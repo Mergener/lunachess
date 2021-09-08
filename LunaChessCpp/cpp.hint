@@ -1,0 +1,27 @@
+// Arquivos de dica ajudam o Visual Studio IDE a interpretar identificadores do Visual C++
+// por exemplo, nomes de funções e macros.
+// Para obter mais informações, consulte https://go.microsoft.com/fwlink/?linkid=865984
+
+#define BITWISE_ENUM_CLASS(name, baseType, ...) \
+	enum class name : baseType { __VA_ARGS__ }; \
+	IMPLEMENT_BITOPS_FOR_ENUM(name, baseType)
+
+#define IMPLEMENT_BITOPS_FOR_ENUM(name, baseType) \
+	inline name operator&(name a, name b) { return static_cast<name>(static_cast<baseType>(a) & static_cast<baseType>(b)); } \
+	inline name operator|(name a, name b) { return static_cast<name>(static_cast<baseType>(a) | static_cast<baseType>(b)); } \
+	inline name operator^(name a, name b) { return static_cast<name>(static_cast<baseType>(a) ^ static_cast<baseType>(b)); } \
+	inline name& operator|=(name& a, name b) { a = a | b; return a; } \
+	inline name& operator&=(name& a, name b) { a = a & b; return a; } \
+	inline name& operator^=(name& a, name b) { a = a ^ b; return a; } #define UINT16_MAX
+#define FOR_EACH_PIECE_TYPE(pt) for (PieceType pt = PieceType::Pawn; (int)pt < (int)PieceType::_Count; pt = ((PieceType)(((int)pt + 1)) ))
+#define FOREACH_PIECE_TYPE(pt) for (PieceType pt = PieceType::Pawn; (int)pt < (int)PieceType::_Count; pt = ((PieceType)((int)pt + 1)) )
+#define FOREACH_SIDE(s) for (Side s = Side::White; (int)s <= 2; s = ((Side)((int)s + 1)) )
+#define LUNA_ASSERT(cond, msg) \
+	{ \
+		if (!(cond)) { \
+			std::stringstream ASSERTSSTREAM_; \
+			ASSERTSSTREAM_ << msg; \
+			std::string ASSERTSTR_ = ASSERTSSTREAM_.str(); \
+			::lunachess::debug::assertionFailure(__FILE__, __func__, __LINE__, ASSERTSTR_); \
+		}\
+	} 

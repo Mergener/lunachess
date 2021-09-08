@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30320.27
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LunaChess", "LunaChessCpp\LunaChessCpp.vcxproj", "{E97282C7-4070-4314-ADEB-BCE98A9DFD77}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LunaChessCLI", "LunaChessCLI\LunaChessCLI.vcxproj", "{48038115-6944-4B90-9DBE-A8094316485B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LunaTest", "LunaTest\LunaTest.vcxproj", "{EEDE030B-93A2-4451-BB21-653CC5E5AFC5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E97282C7-4070-4314-ADEB-BCE98A9DFD77}.Debug|x64.ActiveCfg = Debug|x64
+		{E97282C7-4070-4314-ADEB-BCE98A9DFD77}.Debug|x64.Build.0 = Debug|x64
+		{E97282C7-4070-4314-ADEB-BCE98A9DFD77}.Release|x64.ActiveCfg = Release|x64
+		{E97282C7-4070-4314-ADEB-BCE98A9DFD77}.Release|x64.Build.0 = Release|x64
+		{48038115-6944-4B90-9DBE-A8094316485B}.Debug|x64.ActiveCfg = Debug|x64
+		{48038115-6944-4B90-9DBE-A8094316485B}.Debug|x64.Build.0 = Debug|x64
+		{48038115-6944-4B90-9DBE-A8094316485B}.Release|x64.ActiveCfg = Release|x64
+		{48038115-6944-4B90-9DBE-A8094316485B}.Release|x64.Build.0 = Release|x64
+		{EEDE030B-93A2-4451-BB21-653CC5E5AFC5}.Debug|x64.ActiveCfg = Debug|x64
+		{EEDE030B-93A2-4451-BB21-653CC5E5AFC5}.Debug|x64.Build.0 = Debug|x64
+		{EEDE030B-93A2-4451-BB21-653CC5E5AFC5}.Release|x64.ActiveCfg = Release|x64
+		{EEDE030B-93A2-4451-BB21-653CC5E5AFC5}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C98D22B2-B29F-4850-B13B-04AB56D33D09}
+	EndGlobalSection
+EndGlobal
