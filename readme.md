@@ -1,13 +1,3 @@
-## Table of Contents
-
-*  [About](#about)
-
-*  [Building](#building)
-
-* [Features](#features)
-
-*  [Usage](#usage)
-
 ## About
 
 Luna is an alpha-beta pruning based chess engine that uses traditional evaluation methods.
