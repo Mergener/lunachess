@@ -24,8 +24,11 @@ Futurely, Luna will migrate to CMake for better cross-platform support.
 
 
 ## Usage
+
 **Play mode**
+
 ```lunachess play [optArgs...]```
+
 Starts a chess game against Luna. Expects the user to input UCI-based chess moves.
 Whenever it is Luna's turn, it will output the UCI moves it chooses.
 
@@ -38,7 +41,9 @@ Arguments (optional):
  - ```--showtime``` Outputs the time, in seconds, spent for each of Luna's moves.
  
 **Evaluation mode**
+
 ```lunachess eval [optArgs...]```
+
 Evaluates a single chess position, outputting its score and the best move according to Luna.
 
 Arguments (optional):
