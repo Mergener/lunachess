@@ -3,6 +3,11 @@
 Luna is an alpha-beta pruning based chess engine that uses traditional evaluation methods.
 It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) protocol, so it is possible to embed it into a GUI.
 
+## Prerequisites
+
+- C++17 compliant compiler
+- CMake 3.15 or higher (build system generator)
+
 ## Features
 
 - Move generation
@@ -16,12 +21,25 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 	 - Iterative deepening with Transposition Tables
 
 ## Building
-Currently, Luna only uses Microsoft Visual Studio's building system. The root folder contains the Visual Studio solution (```.sln```), and each of Luna's components has its own VS project (```.vcxproj```) within its folder.
 
-Simply loading the Visual Studio solution onto the IDE should work.
+- Unix based terminal + Makefile
 
-Futurely, Luna will migrate to CMake for better cross-platform support.
+Use the following command while in the root of the repository to setup the build system:
+```
+cmake -S . -B builds
+```
 
+After that, ```cd``` onto ```builds``` and call ```make```. This will generate binaries for
+lunachess (both the engine static library and executable) and lunatest (the Luna testing suite).
+
+- Visual Studio 2019 
+
+First, make sure 'C++ Cmake tools for Windows' is installed. If not, it is possible
+to do so in the Visual Studio Installer.
+
+With Visual Studio running, go to ```File > Open > Cmake...``` and select the ```CMakeLists.txt``` file
+at the root of this repository. Visual Studio should then load the project accordingly, and you'll
+be able to compile and run it within the IDE.
 
 ## Usage
 
