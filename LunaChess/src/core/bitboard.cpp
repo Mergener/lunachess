@@ -100,8 +100,6 @@ BITWISE_ENUM_CLASS(RayDirection, ui8,
 	NorthWest
 );
 
-static const i8 s_PawnStep[] = { 8, -8 };
-
 static Bitboard s_RayAttacks[8][64];
 static Bitboard s_KnightAttacks[64];
 static Bitboard s_KingAttacks[64];
@@ -517,8 +515,6 @@ Bitboard getLightSquares() {
 Bitboard getDarkSquares() {
 	return s_DarkSquares;
 }
-
-using MoveGenFunc = int (*)(MoveList& ml, Bitboard attacks, Square sqr);
 
 void initialize() {
 	if (s_Initialized) {

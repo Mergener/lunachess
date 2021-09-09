@@ -202,7 +202,6 @@ void PlayMode::play() {
 
 		if (legalMoves.count() == 0) {
 			if (m_Position.isCheck()) {
-
 				if (m_Position.getSideToMove() == Side::White) {
 					console::write("Checkmate. Black wins.\n");
 				}

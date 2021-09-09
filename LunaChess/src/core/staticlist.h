@@ -3,6 +3,8 @@
 
 #include "move.h"
 
+#include <cstring>
+
 namespace lunachess {
 
 template <typename T, int SIZE>

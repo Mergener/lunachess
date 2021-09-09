@@ -4,15 +4,12 @@
 #include "defs.h"
 #include "types.h"
 
-#define HAS_BITSCAN_INTRINSICS
-#ifdef HAS_BITSCAN_INTRINSICS
-	#ifdef __GNUC__
-		#include <cpuid.h>
-	#elif _MSC_VER
-		#include <intrin.h>
-		#pragma intrinsic(_BitScanForward64)
-		#pragma intrinsic(_BitScanReverse64)
-	#endif
+#ifdef __GNUC__
+    #include <cpuid.h>
+#elif _MSC_VER
+    #include <intrin.h>
+    #pragma intrinsic(_BitScanForward64)
+    #pragma intrinsic(_BitScanReverse64)
 #endif
 
 namespace lunachess::bits {
@@ -50,12 +47,18 @@ inline ui64 rotateRight(ui64 val, ui64 rot) {
 }
 
 inline bool bitScanF(ui64 n, i8& bit) {
-#ifdef HAS_BITSCAN_INTRINSICS
+#if defined(__MSC_VER)
 	unsigned long idx;
 	unsigned char found = _BitScanForward64(&idx, n);
 
 	bit = static_cast<ui8>(idx);
 	return found;
+#elif defined(__GNUC__)
+    if (n == 0) {
+        return false;
+    }
+    bit = static_cast<i8>(__builtin_ctzll(n));
+    return true;
 #else
 	for (int i = 0; i < 64; ++i) {
 		if ((n & (C64(1) << i)) != 0) {
@@ -68,12 +71,18 @@ inline bool bitScanF(ui64 n, i8& bit) {
 }
 
 inline bool bitScanR(ui64 n, i8& bit) {
-#ifdef HAS_BITSCAN_INTRINSICS
+#if defined(__MSC_VER)
 	unsigned long idx;
 	unsigned char found = _BitScanReverse64(&idx, n);
 
 	bit = static_cast<ui8>(idx);
 	return found;
+#elif defined(__GNUC__)
+    if (n == 0) {
+        return false;
+    }
+    bit = static_cast<i8>(63 ^ __builtin_clzll(n));
+    return true;
 #else
 	for (int i = 63; i >= 0; --i) {
 		if ((n & (C64(1) << i)) != 0) {

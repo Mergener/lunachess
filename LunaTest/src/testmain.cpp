@@ -29,7 +29,7 @@
 
 namespace lunachess::tests {
 
-static bool s_ColorsSupported = true;
+static bool s_ColorsSupported = false;
 
 struct {
 

@@ -164,10 +164,9 @@ public:
 
 	inline MovePicker() {
 		//generateSicilianBook();
-		//generateSicilianBook();
 		//generateRuyLopezBook();
 		//generateKingsIndianBook();
-		//generateQGDBook();
+		generateQGDBook();
 	}
 
 private:
