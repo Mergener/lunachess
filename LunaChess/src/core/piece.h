@@ -33,16 +33,8 @@ public:
 		return m_Side;
 	}
 
-	inline void setSide(Side side) {
-		m_Side = side;
-	}
-
 	inline PieceType getType() const {
 		return m_Type;
-	}
-
-	inline void setType(PieceType type) {
-		m_Type = type;
 	}
 
 	int getPointValue() const;
@@ -61,7 +53,6 @@ public:
 		: m_Side(side), m_Type(type) { }
 
 	static void initialize();
-
 
 private:
 	Side m_Side;

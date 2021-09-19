@@ -1,7 +1,6 @@
 #include "move.h"
 
 #include "position.h"
-#include "debug.h"
 
 namespace lunachess {
 
@@ -9,7 +8,7 @@ Move::Move(const Position& pos, Square src, Square dest, PieceType promotionTarg
 	: m_Move(0) {
 	LUNA_ASSERT(pos.getPieceAt(src) != PIECE_NONE,
 		"Invalid source piece " << getPieceName(pos.getPieceAt(src)) << 
-		"(source square " << squares::getName(src) << ", dest square " << squares::getName(dest) << ")");
+		"(source square " << squares::getName(src) << ", dest square " << squares::getName(dest) << ")")
 
 	setSrcSquare(src);
 	setDstSquare(dest);
@@ -23,7 +22,7 @@ Move::Move(const Position& pos, Square src, Square dest, PieceType promotionTarg
 
 	LUNA_ASSERT(getPrevEnPassantSquare() == pos.getEnPassantSquare(), "En passant squares must match in move. " <<
 		"(move " << *this << " (" << m_Move << "), position fen '" << pos.toFen() << "', expected EPS " << pos.getEnPassantSquare() <<
-		", got " << getPrevEnPassantSquare() << ")");
+		", got " << getPrevEnPassantSquare() << ")")
 }
 
 }

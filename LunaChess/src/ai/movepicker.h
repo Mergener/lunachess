@@ -5,6 +5,7 @@
 #include <tuple>
 #include <type_traits>
 #include <vector>
+#include <atomic>
 
 #include "tranpositiontable.h"
 #include "evaluator.h"
@@ -16,6 +17,9 @@
 
 namespace lunachess::ai {
 
+/**
+ * An alpha-beta pruning based move searcher.
+ */
 class MovePicker {
 private:
 	inline void generateQGDBook() {
@@ -157,15 +161,35 @@ public:
 	static constexpr int MATE_IN_ONE_SCORE = 300000;
 	static constexpr int FORCED_MATE_THRESHOLD = 250000;
 
+    /**
+     * Evaluates a given position, while also suggesting a move.
+     *
+     * @remarks
+     *  For a single move picker object, this method will only be executed from
+     *  a single thread. This means that this methods has a lock that is kept closed
+     *  until the end of execution, and any other threads that try to invoke this method
+     *  from the same object will have to wait until the lock is set free.
+     *
+     * @param pos The position to search the move.
+     * @param depth The depth of search. Higher depths increase accuracy at the cost of execution time.
+     * @return A tuple that contains Luna's move choice and evaluation.
+     */
 	std::tuple<Move, int> pickMove(const Position& pos, int depth);
-
+    /**
+     * @name getEvaluator
+     * @brief  This move picker's evaluator.
+     * @remarks The evaluator statically evaluates positions.
+     * This means that it rates a position without searching for any of the
+     * sides moves, only caring about the position of pieces and the total material count.
+     */
 	EvalT& getEvaluator() { return m_Eval; }
+
+    /**
+     * @copydoc MovePicker::getEvaluator()
+     */
 	const EvalT& getEvaluator() const { return m_Eval; }
 
 	inline MovePicker() {
-		//generateSicilianBook();
-		//generateRuyLopezBook();
-		//generateKingsIndianBook();
 		generateQGDBook();
 	}
 
@@ -177,12 +201,27 @@ private:
 	TranspositionTable m_TT;
 	OpeningBook m_OpBook;
 	Move m_Killers[N_KILLER_MOVES][MAX_DEPTH];
+    int m_Butterflies[64][64];
+    std::atomic_bool m_Lock = false;
 
 	std::tuple<Move, int> pickMoveAndScore(Position& pos, int depth, int ply, int alpha, int beta, bool us);
 	int quiesce(Position& pos, int ply, int alpha, int beta);
 	void orderMoves(MoveList& ml, Move ttMove, int ply);
 	void orderMovesQuiesce(MoveList& ml, int ply);
 	void storeKillerMove(Move move, int ply);
+    bool compareMoves(Move a, Move b) const;
+    bool compareCaptures(Move a, Move b) const;
+
+    inline bool isKillerMove(Move m, int depth) const {
+        for (int i = 0; i < N_KILLER_MOVES; ++i) {
+            if (m == m_Killers[i][depth]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void reset();
 };
 
 

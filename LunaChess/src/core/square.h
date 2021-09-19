@@ -91,6 +91,10 @@ namespace squares {
 
 void initialize();
 
+inline bool isValid(Square sq) {
+    return (sq >= 0) && (sq < 64);
+}
+
 inline Square fromPoint(int x, int y) {
     return y * 8 + x;
 }

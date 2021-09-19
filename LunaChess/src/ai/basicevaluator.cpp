@@ -132,8 +132,6 @@ int BasicEvaluator::getKingSafetyScore(const Position& pos, Side side, int gpp) 
 		for (auto s : bb) {
 			// For every opponent piece, count tropism score based on their
 			// distance from our king
-			auto p = pos.getPieceAt(s);
-			
 			int kingX = squares::fileOf(kingSquare);
 			int kingY = squares::rankOf(kingSquare);
 
@@ -170,7 +168,6 @@ int BasicEvaluator::getPawnChainScore(const Position& pos, Side side, int gpp) c
 
 int BasicEvaluator::getBishopPairScore(const Position& pos, Side side, int gpp) const {
 	Bitboard lightSquares = bitboards::getLightSquares();
-	Bitboard darkSquares = bitboards::getDarkSquares();
 
 	auto bishopBB = pos.getPieceBitboard(Piece(side, PieceType::Bishop));
 	
@@ -269,7 +266,6 @@ BasicEvaluator::BasicEvaluator() {
 	m_OpScoresTable.xrayScores[(int)PieceType::Queen] = 4;
 	m_OpScoresTable.xrayScores[(int)PieceType::King] = 5;
 	m_OpScoresTable.bishopPairScore = 15;
-
 	m_OpScoresTable.tropismScores[(int)PieceType::Pawn] = 10;
 	m_OpScoresTable.tropismScores[(int)PieceType::Bishop] = 5;
 	m_OpScoresTable.tropismScores[(int)PieceType::Knight] = 12;
@@ -289,7 +285,6 @@ BasicEvaluator::BasicEvaluator() {
 	m_EndScoresTable.pieceSquareTables[(int)PieceType::King] = g_EndKingTable;
 	m_EndScoresTable.pieceSquareTables[(int)PieceType::Rook] = g_EndRookTable;
 	m_EndScoresTable.pieceSquareTables[(int)PieceType::Queen] = g_EndQueenTable;
-
 	m_EndScoresTable.tropismScores[(int)PieceType::Pawn] = 10;
 	m_EndScoresTable.tropismScores[(int)PieceType::Bishop] = 5;
 	m_EndScoresTable.tropismScores[(int)PieceType::Knight] = 12;

@@ -12,11 +12,6 @@
 
 namespace lunachess {
 
-static void abortBadUsage() {
-	std::cerr << "Invalid arguments for Luna.";
-	std::exit(EXIT_FAILURE);
-}
-
 static AppMode* makeAppMode(int argc, char* argv[]) {
 	// Assumes argc > 1
 	std::string modeName = argv[1];

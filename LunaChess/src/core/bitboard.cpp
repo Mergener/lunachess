@@ -4,7 +4,6 @@
 
 #include "staticlist.h"
 #include "bits.h"
-#include "defs.h"
 
 namespace lunachess {
 

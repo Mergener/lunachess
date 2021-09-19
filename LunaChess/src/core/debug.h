@@ -12,7 +12,7 @@
 #ifdef LUNA_ASSERTS_ON
 
 #define LUNA_ASSERT(cond, msg) \
-		if (!(cond)) { \
+		if (!(cond)) {               \
 			std::stringstream ASSERTSSTREAM_; \
 			ASSERTSSTREAM_ << msg; \
 			std::string ASSERTSTR_ = ASSERTSSTREAM_.str(); \

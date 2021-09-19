@@ -34,12 +34,11 @@ set(SRC
     "src/core/position.cpp"
     "src/core/square.cpp"
     "src/core/zobrist.cpp"
-)
+        )
 
 set(ALL
     ${HEADERS}
-    ${SRC}
-)
+    ${SRC})
 
 add_library(lunachess STATIC ${ALL})
 

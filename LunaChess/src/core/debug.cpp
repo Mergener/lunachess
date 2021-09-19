@@ -17,6 +17,7 @@ static void defaultAssertionFailHandler(const char* fileName, const char* funcNa
 	std::cerr << "[Assertion Failure] In file " << fileName << ", function " << funcName << ", line " << line << " -- Message:\n";
 	std::cerr << msg;
 	std::cerr << "\n\n==================";
+    std::cin.get();
 	throw AssertionFailureException();
 }
 
