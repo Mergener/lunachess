@@ -276,7 +276,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 		int score;
 
 		if (m_Position.get50moveRuleCounter() <= 48 && !m_Position.getDrawList().contains(m_Position.getZobristKey())) {
-			score = -searchInternal(depth, ply + 1, -beta, -alpha, !us);
+			score = -searchInternal(depth, ply + 1, -beta, -alpha, !us, false);
 		}
 		else {
 			score =  us ? drawScore : -drawScore;
@@ -367,15 +367,17 @@ std::tuple<Move, int> MovePicker::pickMove(const Position& pos, int depth) {
             return std::make_tuple(MOVE_INVALID, score);
         }
         Move bestMove = moves[0];
-        int bestScore = -HIGH_BETA;
+        int bestScore;
 
+        // Perform search with iterative deepening
         for (int i = std::max(depth - 2, 2); i <= depth; ++i) {
+            bestScore = -HIGH_BETA;
             orderMoves(moves, bestMove, 0);
             for (const auto& move : moves) {
                 m_Position.makeMove(move);
                 int score;
                 if (m_Position.get50moveRuleCounter() <= 48 && !m_Position.getDrawList().contains(m_Position.getZobristKey())) {
-                    score = -searchInternal(i - 1, 1, -HIGH_BETA, -bestScore, false);
+                    score = -searchInternal(i - 1, 1, -HIGH_BETA, -bestScore, false, false);
                 }
                 else {
                     score = -m_Eval.getDrawScore();
