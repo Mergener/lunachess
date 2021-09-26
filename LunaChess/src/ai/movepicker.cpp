@@ -249,7 +249,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 	if (moveCount == 0) {
 		if (isCheck) {
 			// We're being checkmated
-			return -MATE_IN_ONE_SCORE;
+			return -MATE_IN_ONE_SCORE + ply;
 		}
 		// Stalemate draw
 		return drawScore;
@@ -293,11 +293,6 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 			alpha = score;
 			bestMoveIdx = i;
 		}
-	}
-
-	if (alpha > FORCED_MATE_THRESHOLD) {
-		// Mate in a few moves, reduce one score
-		alpha--;
 	}
 
 	auto bestMove = moves[bestMoveIdx];
