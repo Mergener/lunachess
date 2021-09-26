@@ -103,7 +103,20 @@ ui64 Position::perftInternal(int depth) {
 	return nodes;
 }
 
-bool Position::sideHasSufficientMaterial(Side side) {
+int Position::getMaterialCount(Side side) const {
+    int count = 0;
+
+    FOREACH_PIECE_TYPE(pt) {
+        Piece piece = Piece(side, pt);
+        auto bb = getPieceBitboard(piece);
+
+        count += bb.count() * piece.getPointValue();
+    }
+
+    return count;
+}
+
+bool Position::sideHasSufficientMaterial(Side side) const {
 	// Check for heavy pieces and pawns
 	Bitboard heavyBB = getPieceBitboard(PieceType::Rook, side) &
 		getPieceBitboard(PieceType::Queen, side) &

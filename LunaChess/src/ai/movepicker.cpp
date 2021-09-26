@@ -31,8 +31,10 @@ bool MovePicker::compareCaptures(Move a, Move b) const {
     }
 
     // Deltas equal, return butterfly count
-    int bfa = m_Butterflies[a.getSource()][a.getDest()];
-    int bfb = m_Butterflies[b.getSource()][b.getDest()];
+    int bfa = 0;
+    int bfb = 0;
+    //int bfa = m_Butterflies[a.getSource()][a.getDest()];
+    //int bfb = m_Butterflies[b.getSource()][b.getDest()];
 
     return bfa > bfb;
 }
@@ -59,10 +61,10 @@ bool MovePicker::compareMoves(Move a, Move b) const {
     }
 
     // Return based on butterfly score
-    //int bfa = 0;
-    //int bfb = 0;
-    int bfa = m_Butterflies[a.getSource()][a.getDest()];
-    int bfb = m_Butterflies[b.getSource()][b.getDest()];
+    int bfa = 0;
+    int bfb = 0;
+    //int bfa = m_Butterflies[a.getSource()][a.getDest()];
+    //int bfb = m_Butterflies[b.getSource()][b.getDest()];
 
     return bfa > bfb;
 }
@@ -106,8 +108,8 @@ void MovePicker::orderMovesQuiesce(MoveList& ml, int ply) {
               [this](Move a, Move b) { return compareCaptures(a, b); });
 }
 
-int MovePicker::quiesce(Position& pos, int ply, int alpha, int beta) {
-	int standPat = m_Eval.evaluate(pos);
+int MovePicker::quiesce(int ply, int alpha, int beta) {
+	int standPat = m_Eval.evaluate(m_Position);
 
 	if (standPat >= beta) {
 		return beta;
@@ -118,20 +120,15 @@ int MovePicker::quiesce(Position& pos, int ply, int alpha, int beta) {
 	}
 
 	MoveList moves;
-	int moveCount;
-	//if (!pos.isCheck()) {
-
-	if (true) {
-		moveCount = pos.getLegalMoves(moves, MoveFlags::Captures);
-		orderMovesQuiesce(moves, ply);
-	}
+	int moveCount = m_Position.getLegalMoves(moves, MoveFlags::Captures);
+    orderMovesQuiesce(moves, ply);
 
 	for (int i = 0; i < moveCount; ++i) {
 		auto& move = moves[i];
 
-		pos.makeMove(move, false, true);
-		int score = -quiesce(pos, ply + 1, -beta, -alpha);
-		pos.undoMove(move);
+        m_Position.makeMove(move, false, true);
+		int score = -quiesce(ply + 1, -beta, -alpha);
+        m_Position.undoMove(move);
 
 		if (score >= beta) {
 			return beta;
@@ -159,25 +156,49 @@ void MovePicker::storeKillerMove(Move move, int ply) {
 	}
 }
 
-std::tuple<Move, int> MovePicker::pickMoveAndScore(Position& pos, int depth, int ply, int alpha, int beta, bool us) {
+bool MovePicker::canSearchNullMove(bool sideInCheck) const {
+    if (sideInCheck) {
+        return false;
+    }
+
+    constexpr int MIN_PIECE_COUNT = 2;
+    int pieceCount = 0;
+
+    // Do not perform null move heuristic if we only have king and pawns
+    FOREACH_PIECE_TYPE(pt) {
+        if (pt == PieceType::Pawn || pt == PieceType::King) {
+            continue;
+        }
+
+        auto bb = m_Position.getPieceBitboard(Piece(m_Position.getSideToMove(), pt));
+        pieceCount += bb.count();
+    }
+    if (pieceCount < MIN_PIECE_COUNT) {
+        return false;
+    }
+
+    return true;
+}
+
+int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us, bool nullMove) {
 	if (depth == 0) {
-		int score = quiesce(pos, ply, alpha, beta);
-		return std::make_tuple(MOVE_INVALID, score);
+		int score = quiesce(ply, alpha, beta);
+		return score;
 	}
 	
 	const int originalAlpha = alpha;
 	int drawScore = m_Eval.getDrawScore();
-	ui64 posKey = pos.getZobristKey();
+	ui64 posKey = m_Position.getZobristKey();
 
 	// We might have already found the best move for this position in 
-	// a search with equal or higher depth. Look for it in the TT.
+	// a pickMove with equal or higher depth. Look for it in the TT.
 	TranspositionTable::Entry ttEntry = {};
 	ttEntry.move = MOVE_INVALID;
 
 	bool foundInTT = m_TT.tryGet(posKey, ttEntry);	
 	if (foundInTT && ttEntry.depth >= depth) {
 		if (ttEntry.type == TranspositionTable::EXACT) {
-			return std::make_tuple(ttEntry.move, ttEntry.score);
+			return ttEntry.score;
 		}
 		else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
 			alpha = std::max(alpha, ttEntry.score);
@@ -187,13 +208,13 @@ std::tuple<Move, int> MovePicker::pickMoveAndScore(Position& pos, int depth, int
 		}
 
 		if (alpha >= beta) {
-			return std::make_tuple(ttEntry.move, ttEntry.score);
+			return ttEntry.score;
 		}
 	}
 
 	// Check extension -- do not decrease depth when searching for moves
 	// in positions in check.
-	bool isCheck = pos.isCheck();
+	bool isCheck = m_Position.isCheck();
 	if (isCheck) {		
 		//depth++;
 	}
@@ -201,17 +222,37 @@ std::tuple<Move, int> MovePicker::pickMoveAndScore(Position& pos, int depth, int
 		depth--;
 	}
 
-	MoveList moves;
-	int moveCount = pos.getLegalMoves(moves);
+    // Null move pruning
+
+    if (!nullMove && canSearchNullMove(isCheck) && (depth - NULL_MOVE_SEARCH_DEPTH_REDUC) >= 1) {
+        // We can perform null move pruning.
+        int score;
+
+        auto side = m_Position.getSideToMove();
+
+        m_Position.setSideToMove(getOppositeSide(side));
+        score = searchInternal(depth - NULL_MOVE_SEARCH_DEPTH_REDUC, ply + 1, -beta, -beta + 1, !us, true);
+        score = -score;
+        m_Position.setSideToMove(side);
+
+        if (score >= beta) {
+            // A cutoff was caused.
+            return beta;
+        }
+    }
+
+
+    MoveList moves;
+	int moveCount = m_Position.getLegalMoves(moves);
 
 	// If no legal moves, we're either in checkmate or stalemate
 	if (moveCount == 0) {
 		if (isCheck) {
 			// We're being checkmated
-			return std::make_tuple(MOVE_INVALID, -MATE_IN_ONE_SCORE);
+			return -MATE_IN_ONE_SCORE;
 		}
 		// Stalemate draw
-		return std::make_tuple(MOVE_INVALID, drawScore);
+		return drawScore;
 	}
 
 	// Perform move ordering for better beta-cutoffs
@@ -221,29 +262,27 @@ std::tuple<Move, int> MovePicker::pickMoveAndScore(Position& pos, int depth, int
 	// placing it at the start of the move list.
 	int bestMoveIdx = 0;
 
-	// Finally, do the search
+	// Finally, do the pickMove
 	for (int i = 0; i < moveCount; ++i) {
 		auto move = moves[i];
 
         // Update butterfly table
         Square src = move.getSource();
         Square dest = move.getDest();
-        m_Butterflies[src][dest] += 1;
+        //m_Butterflies[src][dest] += 1;
 
-		pos.makeMove(move, false, true);
+		m_Position.makeMove(move, false, true);
 
 		int score;
-		Move _;
 
-		if (pos.get50moveRuleCounter() <= 48 && !pos.getDrawList().contains(pos.getZobristKey())) {
-			std::tie(_, score) = pickMoveAndScore(pos, depth, ply + 1, -beta, -alpha, !us);
-			score = -score;
+		if (m_Position.get50moveRuleCounter() <= 48 && !m_Position.getDrawList().contains(m_Position.getZobristKey())) {
+			score = -searchInternal(depth, ply + 1, -beta, -alpha, !us);
 		}
 		else {
 			score =  us ? drawScore : -drawScore;
 		}
 
-		pos.undoMove(move);
+		m_Position.undoMove(move);
 
 		if (score >= beta) {
 			alpha = beta;
@@ -279,7 +318,7 @@ std::tuple<Move, int> MovePicker::pickMoveAndScore(Position& pos, int depth, int
 	ttEntry.zobristKey = posKey;
 
 	m_TT.maybeAdd(ttEntry);
-	return std::make_tuple(bestMove, alpha);
+	return alpha;
 }
 
 #define DO_ITERATIVE_DEEPENING
@@ -289,67 +328,73 @@ std::tuple<Move, int> MovePicker::pickMove(const Position& pos, int depth) {
     try {
         m_Lock = true;
 
+        // Cannot search with depth higher than MAX_DEPTH
         if (depth > MAX_DEPTH) {
             m_Lock = false;
             return std::make_tuple(MOVE_INVALID, 0);
         }
 
+        // Reset search values
         reset();
 
         // Replicate the position
-        Position newPos = pos;
+        m_Position = pos;
 
-        // Check if position is covered in our openings book.
+        // Check if position is covered in our openings book
         auto bookMove = m_OpBook.getMoveForPosition(pos);
         if (bookMove != MOVE_INVALID) {
             // Position is covered in our openings book. However,
-            // we still want to calculate the score from now on.
-            newPos.makeMove(bookMove);
+            // we still want to calculate the score from now on
+            m_Position.makeMove(bookMove);
             depth--;
         }
 
-        Move move;
-        int score;
-
-        int materialCount = newPos.countTotalPointValue();
-
-        if (materialCount <= 26) {
-            //depth++;
-        }
+        // Increment depth if material is low enough
+        int materialCount = m_Position.countTotalPointValue();
         if (materialCount <= 22) {
             depth++;
-        }
-        if (materialCount <= 12) {
-            //depth++;
         }
         if (materialCount <= 7) {
             depth++;
         }
 
-#ifdef DO_ITERATIVE_DEEPENING
+        // Perform search with iterative deepening
+        MoveList moves;
+        m_Position.getLegalMoves(moves);
+        if (moves.count() == 0) {
+            // No legal moves
+            int score = m_Position.isCheck() ? -MATE_IN_ONE_SCORE : 0;
+            return std::make_tuple(MOVE_INVALID, score);
+        }
+        Move bestMove = moves[0];
+        int bestScore = -HIGH_BETA;
 
-        for (int i = std::max(depth - 2, 1); i <= depth; ++i) {
-            std::tie(move, score) = pickMoveAndScore(newPos, i, 0, -HIGH_BETA, HIGH_BETA, true);
+        for (int i = std::max(depth - 2, 2); i <= depth; ++i) {
+            orderMoves(moves, bestMove, 0);
+            for (const auto& move : moves) {
+                m_Position.makeMove(move);
+                int score;
+                if (m_Position.get50moveRuleCounter() <= 48 && !m_Position.getDrawList().contains(m_Position.getZobristKey())) {
+                    score = -searchInternal(i - 1, 1, -HIGH_BETA, -bestScore, false);
+                }
+                else {
+                    score = -m_Eval.getDrawScore();
+                }
+                m_Position.undoMove(move);
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
         }
 
         if (bookMove != MOVE_INVALID) {
-            move = bookMove;
+            bestMove = bookMove;
         }
         m_Lock = false;
 
-        return std::make_tuple(move, score);
-
-#else
-        std::tie(move, score) = pickMoveAndScore(newPos, depth, 0, -HIGH_BETA, HIGH_BETA, true);
-
-        if (bookMove != MOVE_INVALID) {
-            move = bookMove;
-        }
-        m_TT.clear();
-        m_Lock = false;
-
-        return std::make_tuple(move, score);
-#endif
+        return std::make_tuple(bestMove, bestScore);
     }
     catch (const std::exception& ex) {
         m_Lock = false;

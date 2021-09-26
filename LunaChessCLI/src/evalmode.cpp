@@ -29,9 +29,15 @@ void EvalMode::doArgs(const std::vector<AppArg>& args) {
 
 			m_Position = *fenPos;
 		}
-		else {
-			runtimeAssert(false, "Unknown argument '" + arg.argName + "'");
-		}
+        // Show principal variation argument
+        else if (arg.argName == "--showpv") {
+            runtimeAssert(arg.argParams.size() == 0, "'--showpv' expects no arguments");
+
+            m_ShowPv = true;
+        }
+        else {
+            runtimeAssert(false, "Unknown argument '" + arg.argName + "'");
+        }
 	}
 
 }
@@ -96,6 +102,22 @@ int EvalMode::run(const std::vector<AppArg>& args) {
 	console::write("\nBest move: ");
 	console::write(move);
 	console::write("\n");
+
+    if (move != MOVE_INVALID && m_ShowPv) {
+        const auto& tt = movePicker.getTranspositionTable();
+
+        m_Position.makeMove(move);
+        console::write("Evaluated line: ");
+        console::write(move);
+
+        ai::TranspositionTable::Entry entry;
+        while (tt.tryGet(m_Position.getZobristKey(), entry)) {
+            console::write(" ");
+            console::write(entry.move);
+            m_Position.makeMove(entry.move);
+        }
+        console::write("\n");
+    }
 
 	return 0;
 }

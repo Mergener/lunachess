@@ -154,7 +154,6 @@ private:
 	}
 
 public:
-	using DrawList = Position::DrawList;
 	using EvalT = BasicEvaluator;
 
 	static constexpr int HIGH_BETA = 999999;
@@ -170,8 +169,8 @@ public:
      *  until the end of execution, and any other threads that try to invoke this method
      *  from the same object will have to wait until the lock is set free.
      *
-     * @param pos The position to search the move.
-     * @param depth The depth of search. Higher depths increase accuracy at the cost of execution time.
+     * @param pos The position to pickMove the move.
+     * @param depth The depth of pickMove. Higher depths increase accuracy at the cost of execution time.
      * @return A tuple that contains Luna's move choice and evaluation.
      */
 	std::tuple<Move, int> pickMove(const Position& pos, int depth);
@@ -182,20 +181,23 @@ public:
      * This means that it rates a position without searching for any of the
      * sides moves, only caring about the position of pieces and the total material count.
      */
-	EvalT& getEvaluator() { return m_Eval; }
+	inline EvalT& getEvaluator() { return m_Eval; }
 
     /**
      * @copydoc MovePicker::getEvaluator()
      */
-	const EvalT& getEvaluator() const { return m_Eval; }
+	inline const EvalT& getEvaluator() const { return m_Eval; }
+
+    inline const TranspositionTable& getTranspositionTable() const { return m_TT; }
 
 	inline MovePicker() {
-		generateQGDBook();
+        generateQGDBook();
 	}
 
 private:
 	static constexpr int N_KILLER_MOVES = 2;
 	static constexpr int MAX_DEPTH = 256;
+    static constexpr int NULL_MOVE_SEARCH_DEPTH_REDUC = 2;
 
 	EvalT m_Eval;
 	TranspositionTable m_TT;
@@ -203,14 +205,18 @@ private:
 	Move m_Killers[N_KILLER_MOVES][MAX_DEPTH];
     int m_Butterflies[64][64];
     std::atomic_bool m_Lock = false;
+    bool m_LastMoveWasNull = false;
 
-	std::tuple<Move, int> pickMoveAndScore(Position& pos, int depth, int ply, int alpha, int beta, bool us);
-	int quiesce(Position& pos, int ply, int alpha, int beta);
+    Position m_Position;
+
+	int searchInternal(int depth, int ply, int alpha, int beta, bool us, bool nullMove);
+	int quiesce(int ply, int alpha, int beta);
 	void orderMoves(MoveList& ml, Move ttMove, int ply);
 	void orderMovesQuiesce(MoveList& ml, int ply);
 	void storeKillerMove(Move move, int ply);
     bool compareMoves(Move a, Move b) const;
     bool compareCaptures(Move a, Move b) const;
+    bool canSearchNullMove(bool sideInCheck) const;
 
     inline bool isKillerMove(Move m, int depth) const {
         for (int i = 0; i < N_KILLER_MOVES; ++i) {

@@ -13,6 +13,7 @@ public:
 
 
 private:
+    bool m_ShowPv = false;
 	int m_Depth = 4;
 	Position m_Position = Position::getInitialPosition();
 

@@ -32,7 +32,9 @@ public:
 
 	void richPerft(int depth, PerftStats& stats) const; 
 
-	bool sideHasSufficientMaterial(Side side);
+	bool sideHasSufficientMaterial(Side side) const;
+
+    int getMaterialCount(Side side) const;
 
 	inline bool isInsufficientMaterialDraw() {
 		return !sideHasSufficientMaterial(Side::White) &&
@@ -231,9 +233,11 @@ public:
 
 	Position(Position&& other) noexcept = default;
 
-	Position(const Position& other) = default;
+	inline Position(const Position& other) {
+        std::memcpy(this, &other, sizeof(Position));
+    }
 
-	Position& operator=(const Position& other) {
+	inline Position& operator=(const Position& other) {
 		std::memcpy(this, &other, sizeof(Position));
 		return *this;
 	}

@@ -17,7 +17,7 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 	 - Killer move heuristic
 	 - PV-Node heuristic
 	 - MVV-LVA ordering for captures
-	 - Quiescence search
+	 - Quiescence pickMove
 	 - Iterative deepening with Transposition Tables
 
 ## Building

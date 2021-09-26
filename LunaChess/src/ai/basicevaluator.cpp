@@ -122,12 +122,19 @@ int BasicEvaluator::getKingSafetyScore(const Position& pos, Side side, int gpp) 
 	
 	Side opponent = getOppositeSide(side);
 
+    bool weHaveMoreMaterial = pos.getMaterialCount(side) > pos.getMaterialCount(opponent);
+
 	FOREACH_PIECE_TYPE(pt) {
+        if (pt == PieceType::King && !weHaveMoreMaterial) {
+            // King is only good closer to the other king when we have more material.
+            // This encourages the engine to chase the opponent's king with their king in endgames.
+            continue;
+        }
+
 		// Get tropism score for each piece type
 		int trop = interpolateScores(m_OpScoresTable.tropismScores[(int)pt], m_EndScoresTable.tropismScores[(int)pt], gpp);
 		int sqrTrop = trop * trop;
 
-		
 		Bitboard bb = pos.getPieceBitboard(pt, opponent);
 		for (auto s : bb) {
 			// For every opponent piece, count tropism score based on their
@@ -246,7 +253,7 @@ int BasicEvaluator::evaluate(const Position& pos) const {
 }
 
 int BasicEvaluator::getDrawScore() const {
-	return -2500;
+	return 0;
 }
 
 BasicEvaluator::BasicEvaluator() {
@@ -285,12 +292,12 @@ BasicEvaluator::BasicEvaluator() {
 	m_EndScoresTable.pieceSquareTables[(int)PieceType::King] = g_EndKingTable;
 	m_EndScoresTable.pieceSquareTables[(int)PieceType::Rook] = g_EndRookTable;
 	m_EndScoresTable.pieceSquareTables[(int)PieceType::Queen] = g_EndQueenTable;
-	m_EndScoresTable.tropismScores[(int)PieceType::Pawn] = 10;
-	m_EndScoresTable.tropismScores[(int)PieceType::Bishop] = 5;
-	m_EndScoresTable.tropismScores[(int)PieceType::Knight] = 12;
-	m_EndScoresTable.tropismScores[(int)PieceType::Rook] = 8;
-	m_EndScoresTable.tropismScores[(int)PieceType::Queen] = 6;
-	m_EndScoresTable.tropismScores[(int)PieceType::King] = 0;
+	m_EndScoresTable.tropismScores[(int)PieceType::Pawn] = 0;
+	m_EndScoresTable.tropismScores[(int)PieceType::Bishop] = 7;
+	m_EndScoresTable.tropismScores[(int)PieceType::Knight] = 14;
+	m_EndScoresTable.tropismScores[(int)PieceType::Rook] = 10;
+	m_EndScoresTable.tropismScores[(int)PieceType::Queen] = 8;
+	m_EndScoresTable.tropismScores[(int)PieceType::King] = 7;
 	m_EndScoresTable.blockingPawnsScore = -60;
 	m_EndScoresTable.goodColorPawnScore = 1;
 	m_EndScoresTable.knightOutpostScore = 10;
