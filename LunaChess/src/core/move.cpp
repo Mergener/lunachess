@@ -7,8 +7,8 @@ namespace lunachess {
 Move::Move(const Position& pos, Square src, Square dest, PieceType promotionTarget)
 	: m_Move(0) {
 	LUNA_ASSERT(pos.getPieceAt(src) != PIECE_NONE,
-		"Invalid source piece " << getPieceName(pos.getPieceAt(src)) << 
-		"(source square " << squares::getName(src) << ", dest square " << squares::getName(dest) << ")")
+		"Invalid source piece '" << getPieceName(pos.getPieceAt(src)) <<
+		"' (source square " << squares::getName(src) << ", dest square " << squares::getName(dest) << ", position '" << pos.toFen() << "')")
 
 	setSrcSquare(src);
 	setDstSquare(dest);

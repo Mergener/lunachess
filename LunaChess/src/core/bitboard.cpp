@@ -4,6 +4,9 @@
 
 #include "staticlist.h"
 #include "bits.h"
+#include "debug.h"
+
+#define ASSERT_VALID_SQUARE(s) LUNA_ASSERT(squares::isValid(s), (int)s << " is not a valid square ID.")
 
 namespace lunachess {
 
@@ -71,6 +74,7 @@ Bitboard::Iterator& Bitboard::Iterator::operator++() {
 			m_Bit += delta;
 		}
 	}
+    LUNA_ASSERT(squares::isValid(m_Bit) || m_Bit == 64, "Must be a valid square.");
 
 	return *this;
 }
@@ -83,7 +87,9 @@ bool Bitboard::Iterator::operator!=(const Iterator& it) {
 	return m_Bit != it.m_Bit;
 }
 Square Bitboard::Iterator::operator*() {
-	return static_cast<Square>(m_Bit);
+    Square ret = static_cast<Square>(m_Bit);
+    LUNA_ASSERT(squares::isValid(ret), "Must be a valid square.");
+    return ret;
 }
 
 namespace bitboards {
@@ -141,6 +147,7 @@ static void precomputeRayAttacks() {
 				switch (dir) {
 				case RayDirection::North:
 				case RayDirection::South:
+                    // Vertical rays. Cannot leave the same file.
 					if (x != initialX) {
 						exitLoop = true;
 					}
@@ -148,6 +155,7 @@ static void precomputeRayAttacks() {
 
 				case RayDirection::East:
 				case RayDirection::West:
+                    // Horizontal rays. Cannot leave the same rank.
 					if (y != initialY) {
 						exitLoop = true;
 					}
@@ -186,6 +194,9 @@ static void precomputeRayAttacks() {
 				bit = step(bit, dir);
 				x = bit % 8;
 				y = bit / 8;
+                if (x < 0 || x >= 8 || y < 0 || y >= 8) {
+                    break;
+                }
 			}
 
 			s_RayAttacks[(int)dir][s] = attacks;
@@ -363,14 +374,14 @@ static Bitboard getPositiveRayAttacks(Bitboard occupancy, RayDirection dir, Squa
 }
 
 static Bitboard getNegativeRayAttacks(Bitboard occupancy, RayDirection dir, Square srcSqr) {
-	Bitboard attacks = s_RayAttacks[(int)dir][srcSqr];
+    Bitboard attacks = s_RayAttacks[(int)dir][srcSqr];
 	Bitboard blocker = attacks & occupancy;
 	bits::bitScanR(blocker | 1, srcSqr);
 	return attacks ^ s_RayAttacks[(int)dir][srcSqr];
 }
 
 Bitboard getDiagonalAttacks(Bitboard occupancy, Square sqr) {
-	return getPositiveRayAttacks(occupancy, RayDirection::NorthEast, sqr)
+    return getPositiveRayAttacks(occupancy, RayDirection::NorthEast, sqr)
 		| getNegativeRayAttacks(occupancy, RayDirection::SouthWest, sqr);
 }
 
@@ -380,12 +391,12 @@ Bitboard getAntiDiagonalAttacks(Bitboard occupancy, Square sqr) {
 }
 
 Bitboard getFileAttacks(Bitboard occupancy, Square sqr) {
-	return getPositiveRayAttacks(occupancy, RayDirection::North, sqr)
+    return getPositiveRayAttacks(occupancy, RayDirection::North, sqr)
 		| getNegativeRayAttacks(occupancy, RayDirection::South, sqr);
 }
 
 Bitboard getRankAttacks(Bitboard occupancy, Square sqr) {
-	return getPositiveRayAttacks(occupancy, RayDirection::East, sqr)
+    return getPositiveRayAttacks(occupancy, RayDirection::East, sqr)
 		| getNegativeRayAttacks(occupancy, RayDirection::West, sqr);
 }
 
@@ -460,7 +471,9 @@ static void generateAttackFuncsArray() {
 }
 
 Bitboard getPieceAttacks(PieceType pieceType, Bitboard occupancy, Square sqr, Side side) {
-	ui64 val = (s_AttacksFuncs[(int)pieceType](occupancy, sqr, side));
+    ASSERT_VALID_SQUARE(sqr);
+
+    ui64 val = (s_AttacksFuncs[(int)pieceType](occupancy, sqr, side));
 	return val;
 }
 

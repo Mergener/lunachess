@@ -246,6 +246,7 @@ void PlayMode::play() {
 		else {
 			humanTurn();
 		}
+
 	}
 }
 

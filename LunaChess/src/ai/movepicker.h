@@ -41,6 +41,7 @@ private:
 		move = Move(pos, SQ_E7, SQ_E6);
 		m_OpBook.setMoveForPosition(pos, move);
 		pos.makeMove(move);
+        return;
 
 		move = Move(pos, SQ_B1, SQ_C3);
 		m_OpBook.setMoveForPosition(pos, move);
@@ -191,7 +192,7 @@ public:
     inline const TranspositionTable& getTranspositionTable() const { return m_TT; }
 
 	inline MovePicker() {
-        generateQGDBook();
+        //generateQGDBook();
 	}
 
 private:
@@ -217,6 +218,7 @@ private:
     bool compareMoves(Move a, Move b) const;
     bool compareCaptures(Move a, Move b) const;
     bool canSearchNullMove(bool sideInCheck) const;
+    bool squareCanBeCapturedByPawn(Square s, Side side) const;
 
     inline bool isKillerMove(Move m, int depth) const {
         for (int i = 0; i < N_KILLER_MOVES; ++i) {

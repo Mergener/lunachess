@@ -3,6 +3,7 @@
 
 #include "move.h"
 
+#include <array>
 #include <cstring>
 
 namespace lunachess {
@@ -43,6 +44,7 @@ public:
 	}
 
 	inline T& operator[](int index) {
+        LUNA_ASSERT(index >= 0 && index < m_Count, "Index out of bounds (count was " << m_Count << ", got " << index << ")");
 		return m_List[index];
 	}
 
@@ -92,19 +94,23 @@ public:
 		: m_Count(0) {
 	}
 
+    StaticList(const StaticList& other) = default;
+    StaticList& operator=(const StaticList& other) = default;
+/*
 	inline StaticList(const StaticList& other) {
-		std::memcpy(m_List, other.m_List, m_Count * sizeof(T));
+		std::memcpy(&m_List[0], &other.m_List[0], m_Count * sizeof(T));
 		m_Count = other.m_Count;
-	}
+	}*/
 
-	inline StaticList& operator=(const StaticList& other) {
-		std::memcpy(m_List, other.m_List, m_Count * sizeof(T));
+    /*
+    inline StaticList& operator=(const StaticList& other) {
+		std::memcpy(&m_List[0], &other.m_List[0], m_Count * sizeof(T));
 		m_Count = other.m_Count;
 		return *this;
-	}
+	}*/
 
 private:
-	T m_List[SIZE];
+	std::array<T, SIZE> m_List;
 	int m_Count = 0;
 };
 

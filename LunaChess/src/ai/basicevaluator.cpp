@@ -215,11 +215,12 @@ int BasicEvaluator::evaluate(const Position& pos) const {
 			evalSqr = s;
 		}		
 		
-		
+
 		total += (sign * interpolateScores(
 			m_OpScoresTable.pieceSquareTables[(int)p.getType()][evalSqr],
 			m_EndScoresTable.pieceSquareTables[(int)p.getType()][evalSqr],
-			gpp)) / 25;			
+			gpp)) / 25;
+
 			
 		// See xrays
 		auto attacks = bitboards::getPieceAttacks(p.getType(), 0, s, p.getSide());
