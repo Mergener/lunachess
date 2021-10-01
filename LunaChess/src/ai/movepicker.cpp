@@ -21,10 +21,10 @@ bool MovePicker::compareCaptures(Move a, Move b) const {
     int bfa = m_Butterflies[a.getSource()][a.getDest()];
     int bfb = m_Butterflies[b.getSource()][b.getDest()];
 
-    return false;
+    return bfa > bfb;
 }
 
-bool MovePicker::compareMoves(Move a, Move b) const {
+bool MovePicker::compareMoves(const Move& a, const Move& b) const {
     LUNA_ASSERT(a != MOVE_INVALID && b != MOVE_INVALID, "Moves cannot be invalid");
 
 	if (a.isCapture() && b.isCapture()) {
@@ -33,8 +33,36 @@ bool MovePicker::compareMoves(Move a, Move b) const {
 	if (a.isCapture()) {
 		return true;
 	}
+    if (b.isCapture()) {
+        return false;
+    }
 
+    // Check if it is a direct check
+    /*
+    auto us = a.getSourcePiece().getSide();
+    auto opponentKingSquare = m_Position.getKingSquare(getOppositeSide(us));
+    auto occ = m_Position.getCompositeBitboard();
+    auto attacksA = bitboards::getPieceAttacks(a.getSourcePiece(), occ, a.getDest());
+    if (attacksA.contains(opponentKingSquare)) {
+        return true;
+    }
+    auto attacksB = bitboards::getPieceAttacks(b.getSourcePiece(), occ, b.getDest());
+    if (attacksB.contains(opponentKingSquare)) {
+        return false;
+    }*/
 
+    // Return based on butterfly score
+    int bfa = m_Butterflies[a.getSource()][a.getDest()];
+    int bfb = m_Butterflies[b.getSource()][b.getDest()];
+
+    if (bfa > bfb) {
+        return true;
+    }
+    else if (bfb > bfa) {
+        return false;
+    }
+
+    /*
     if (squareCanBeCapturedByPawn(a.getDest(), getOppositeSide(a.getSourcePiece().getSide()))
         && a.getSourcePiece().getType() != PieceType::Pawn) {
         return false;
@@ -42,16 +70,12 @@ bool MovePicker::compareMoves(Move a, Move b) const {
     if (squareCanBeCapturedByPawn(b.getDest(), getOppositeSide(b.getSourcePiece().getSide()))
         && b.getSourcePiece().getType() != PieceType::Pawn) {
         return true;
-    }
+    }*/
 
-    // Return based on butterfly score
-    int bfa = m_Butterflies[a.getSource()][a.getDest()];
-    int bfb = m_Butterflies[b.getSource()][b.getDest()];
-
-    return bfa > bfb;
+    return false;
 }
 
-//#define DO_KILLER_MOVES
+#define DO_KILLER_MOVES
 
 void MovePicker::orderMoves(MoveList& ml, Move ttMove, int ply) {
     int nKillers = 0;
@@ -68,19 +92,15 @@ void MovePicker::orderMoves(MoveList& ml, Move ttMove, int ply) {
 		}
 	}
 #endif
-
-    MoveList b4 = ml;
-    std::sort(&ml[static_cast<size_t>(nKillers)], ml.end(),
-              [this](Move a, Move b) { return compareMoves(a, b); });
-
-    LUNA_ASSERT(ml[0] != MOVE_INVALID, "HAHAHA");
-
     if (ttMove != MOVE_INVALID) {
         int idx = ml.indexOf(ttMove);
         if (idx != -1) {
             std::swap(ml[0], ml[idx]);
         }
     }
+
+    std::sort(ml.begin() + nKillers + (ttMove != MOVE_INVALID ? 1 : 0), ml.end(),
+              [this](Move a, Move b) { return compareMoves(a, b); });
 
 }
 
@@ -165,15 +185,11 @@ bool MovePicker::squareCanBeCapturedByPawn(Square s, Side side) const {
     LUNA_ASSERT(squares::isValid(s), "Square must be valid. (got " << (int)s << ")");
     Bitboard pawnBB = m_Position.getPieceBitboard(Piece(side, PieceType::Pawn));
     Bitboard pawnSquares = bitboards::getPawnAttacks(pawnBB, s, getOppositeSide(side)) & pawnBB;
-    return pawnSquares != 0;
+    return pawnSquares == 0;
 }
 
 int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us, bool nullMove) {
     int drawScore = m_Eval.getDrawScore();
-    if (m_Position.getDrawList().contains(m_Position.getZobristKey()) ||
-        m_Position.get50moveRuleCounter() >= 48) {
-        return us ? drawScore : -drawScore;
-    }
 
 	if (depth == 0) {
 		int score = quiesce(ply, alpha, beta);
@@ -208,6 +224,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 	// Check extension -- do not decrease depth when searching for moves
 	// in positions in check.
 	bool isCheck = m_Position.isCheck();
+
 	if (isCheck) {		
 		//depth++;
 	}
@@ -256,9 +273,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 
 	// Finally, do the pickMove
 	for (int i = 0; i < moveCount; ++i) {
-        //std::cout << m_Position.toFen() << std::endl;
 		auto move = moves[i];
-        //std::cout << move << std::endl;
 
         // Update butterfly table
         Square src = move.getSource();
@@ -266,8 +281,13 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
         m_Butterflies[src][dest] += 1;
 
 		m_Position.makeMove(move, false, true);
-
-		int score = -searchInternal(depth, ply + 1, -beta, -alpha, !us, false);
+        int score;
+        if (m_Position.is50moveRuleDraw() || m_Position.isRepetitionDraw(1)) {
+            score = -drawScore;
+        }
+        else {
+            score = -searchInternal(depth, ply + 1, -beta, -alpha, !us, false);
+        }
 
 		m_Position.undoMove(move);
 

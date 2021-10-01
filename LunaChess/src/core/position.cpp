@@ -1,5 +1,3 @@
-// JEITO NOVO
-
 #include "position.h"
 
 #include <stdexcept>
@@ -118,22 +116,22 @@ int Position::getMaterialCount(Side side) const {
 
 bool Position::sideHasSufficientMaterial(Side side) const {
 	// Check for heavy pieces and pawns
-	Bitboard heavyBB = getPieceBitboard(PieceType::Rook, side) &
-		getPieceBitboard(PieceType::Queen, side) &
+	Bitboard heavyBB = getPieceBitboard(PieceType::Rook, side) |
+		getPieceBitboard(PieceType::Queen, side) |
 		getPieceBitboard(PieceType::Pawn, side);
 
 	if (heavyBB.count() > 0) {
-		return false;
+		return true;
 	}
 
 	// Check for lesser pieces
 	Bitboard lightBB = getPieceBitboard(PieceType::Bishop, side) &
 		getPieceBitboard(PieceType::Knight, side);
 	if (lightBB.count() > 1) {
-		return false;
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 std::string Position::toFen() const {
@@ -711,8 +709,6 @@ bool Position::makeMove(Move move, bool validate, bool fullyReversibleDrawList) 
         LUNA_ASSERT(squares::isValid(move.getSource()), "Expected valid square. (got " << (int)move.getSource() << ")");
         LUNA_ASSERT(squares::isValid(move.getDest()), "Expected valid square. (got " << (int)move.getSource() << ")");
 
-        LUNA_ASSERT(getPieceBitboard(WHITE_KING).count() > 0 && getPieceBitboard(BLACK_KING).count() > 0,
-                    "Must have king!");
 		m_Ply++;
 
 		// Move is being made

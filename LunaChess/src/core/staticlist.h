@@ -94,23 +94,20 @@ public:
 		: m_Count(0) {
 	}
 
-    StaticList(const StaticList& other) = default;
-    StaticList& operator=(const StaticList& other) = default;
-/*
 	inline StaticList(const StaticList& other) {
+        m_Count = other.m_Count;
 		std::memcpy(&m_List[0], &other.m_List[0], m_Count * sizeof(T));
-		m_Count = other.m_Count;
-	}*/
+	}
 
-    /*
+
     inline StaticList& operator=(const StaticList& other) {
+        m_Count = other.m_Count;
 		std::memcpy(&m_List[0], &other.m_List[0], m_Count * sizeof(T));
-		m_Count = other.m_Count;
 		return *this;
-	}*/
+	}
 
 private:
-	std::array<T, SIZE> m_List;
+	T m_List[SIZE];
 	int m_Count = 0;
 };
 

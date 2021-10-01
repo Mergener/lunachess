@@ -133,7 +133,9 @@ public:
 
 	Move(const Position& pos, Square src, Square dest, PieceType promotionTarget = PieceType::None);
 
-	Move(Move&& other) = default;
+	inline Move(Move&& other) {
+        m_Move = other.m_Move;
+    }
 
 	inline Move& operator=(const Move& other) {
 		m_Move = other.m_Move;

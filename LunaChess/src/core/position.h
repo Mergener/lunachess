@@ -54,6 +54,8 @@ public:
 		Undefined behavior if side == Side::None or pt == PieceType::None.
 	*/
 	inline const Bitboard& getPieceBitboard(const Piece& piece) const {
+        LUNA_ASSERT(piece.getSide() != Side::None && piece.getType() != PieceType::None,
+                    "Piece side and type cannot be none.");
 		return getPieceBitboard(piece.getType(), piece.getSide());
 	}
 

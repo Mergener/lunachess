@@ -276,7 +276,8 @@ static void precomputePawnAttacks() {
 					pushes.add(squares::fromPoint(x, y + yStep * 2));
 				}
 
-				// Do captures
+				// Do captures. Since captures are diagonal, we need to do some
+                // x bounds checking.
 				Bitboard captures = 0;
 				if (x < 7) {
 					captures.add(squares::fromPoint(x + 1, y + yStep));
@@ -422,20 +423,22 @@ Bitboard getKnightAttacks(Bitboard occupancy, Square sqr, Side side) {
 }
 
 Bitboard getPawnAttacks(Bitboard occupancy, Square sqr, Side side) {
-	// For double pushes, the occupancy of the square right in front of the pawn
-	// must also be considered occupancy of the square of distance 2 ahead of the pawn.
-	i8 pushStep = getPawnPushStep(side);
+    if (squares::rankOf(sqr) == squares::getPawnInitialRank(side)) {
+        // For double pushes, the occupancy of the square right in front of the pawn
+        // must also be considered occupancy of the square of distance 2 ahead of the pawn.
+        i8 pushStep = getPawnPushStep(side);
 
-	// One square towards the pawn's path
-	i8 singlePushSq = sqr + pushStep;
+        // One square towards the pawn's path
+        i8 singlePushSq = sqr + pushStep;
 
-	// Occupancy at the square right in front of the pawn
-	ui64 singlePushOcc = occupancy & (C64(1) << singlePushSq);
+        // Occupancy at the square right in front of the pawn
+        ui64 singlePushOcc = occupancy & (C64(1) << singlePushSq);
 
-	// Two square towards the pawn's path
-	i8 doublePushSq = sqr + 2 * pushStep;
+        // Two square towards the pawn's path
+        i8 doublePushSq = sqr + 2 * pushStep;
 
-	occupancy |= (singlePushOcc >> singlePushSq) << doublePushSq;
+        occupancy |= (singlePushOcc >> singlePushSq) << doublePushSq;
+    }
 
 	// For pushes, exclude occupied squares
 	Bitboard pushes = s_PawnPushes[(int)side - 1][sqr] & (~occupancy);
@@ -471,6 +474,7 @@ static void generateAttackFuncsArray() {
 }
 
 Bitboard getPieceAttacks(PieceType pieceType, Bitboard occupancy, Square sqr, Side side) {
+    LUNA_ASSERT((side == Side::White || side == Side::Black) || pieceType == PieceType::None, "Invalid side.");
     ASSERT_VALID_SQUARE(sqr);
 
     ui64 val = (s_AttacksFuncs[(int)pieceType](occupancy, sqr, side));
