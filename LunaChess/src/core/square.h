@@ -109,6 +109,12 @@ inline int rankOf(Square sq) {
 
 const char* getName(Square sq);
 
+inline int getPawnInitialRank(Side side) {
+    static int rank[] = { 0, 1, 6 };
+
+    return rank[(int)side];
+}
+
 Square fromStr(std::string_view s);
 
 Square getCastleRookSquare(Side side, LateralSide lateralSide);

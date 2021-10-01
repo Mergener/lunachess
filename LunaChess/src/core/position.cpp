@@ -1,5 +1,3 @@
-// JEITO NOVO
-
 #include "position.h"
 
 #include <stdexcept>
@@ -118,22 +116,22 @@ int Position::getMaterialCount(Side side) const {
 
 bool Position::sideHasSufficientMaterial(Side side) const {
 	// Check for heavy pieces and pawns
-	Bitboard heavyBB = getPieceBitboard(PieceType::Rook, side) &
-		getPieceBitboard(PieceType::Queen, side) &
+	Bitboard heavyBB = getPieceBitboard(PieceType::Rook, side) |
+		getPieceBitboard(PieceType::Queen, side) |
 		getPieceBitboard(PieceType::Pawn, side);
 
 	if (heavyBB.count() > 0) {
-		return false;
+		return true;
 	}
 
 	// Check for lesser pieces
 	Bitboard lightBB = getPieceBitboard(PieceType::Bishop, side) &
 		getPieceBitboard(PieceType::Knight, side);
 	if (lightBB.count() > 1) {
-		return false;
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 std::string Position::toFen() const {
@@ -628,7 +626,7 @@ bool Position::isCheck() const {
 
 int Position::getLegalMoves(MoveList& ret, ui64 moveFlagsMask) const {
 	const int idx = ret.count(); // index to start placing elements at movelist
-	const int count = getPseudoLegalMoves(ret, moveFlagsMask); // pseudo-moves list cound
+	const int count = getPseudoLegalMoves(ret, moveFlagsMask); // pseudo-moves list count
 
 	// Note: the move list could already be filled with some moves.
 
@@ -705,7 +703,12 @@ bool Position::isRepetitionDraw(int maxRepetitions) const {
 }
 
 bool Position::makeMove(Move move, bool validate, bool fullyReversibleDrawList) {
+    LUNA_ASSERT(move != MOVE_INVALID, "Cannot make MOVE_INVALID.");
+
 	if (!validate || moveIsLegal(move)) {
+        LUNA_ASSERT(squares::isValid(move.getSource()), "Expected valid square. (got " << (int)move.getSource() << ")");
+        LUNA_ASSERT(squares::isValid(move.getDest()), "Expected valid square. (got " << (int)move.getSource() << ")");
+
 		m_Ply++;
 
 		// Move is being made
@@ -773,7 +776,6 @@ bool Position::makeMove(Move move, bool validate, bool fullyReversibleDrawList) 
 
 		handleSpecialMove(move);
 
-
 		return true;
 	}
 
@@ -819,6 +821,8 @@ void Position::handleSpecialMoveUndo(Move move) {
 }
 
 void Position::undoMove(Move move) {
+    LUNA_ASSERT(move != MOVE_INVALID, "Cannot undo MOVE_INVALID.");
+
 	m_Ply--;
 
 	// Recover previous castling rights
@@ -849,7 +853,7 @@ void Position::setPieceAt(Square sqr, Piece piece) {
 	if (prevPiece != PIECE_NONE) {
 		// We had a piece on the square before,
 		// update its bitboard and the zobrist key.
-		auto& prevBb = getPieceBitboard(prevPiece);
+		auto& prevBb = getPieceBitboardInternal(prevPiece);
 		prevBb.remove(sqr);
 
 		// Update zobrist key
@@ -865,7 +869,7 @@ void Position::setPieceAt(Square sqr, Piece piece) {
 		m_CompositeBitboard.add(sqr);
 
 		// Update this piece's bitboard
-		auto& bb = getPieceBitboard(piece);
+		auto& bb = getPieceBitboardInternal(piece);
 		bb.add(sqr);
 
 		// Update zobrist key

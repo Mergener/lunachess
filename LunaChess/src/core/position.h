@@ -46,7 +46,7 @@ public:
 		Undefined behavior if side == Side::None or pt == PieceType::None.
 	*/
 	inline const Bitboard& getPieceBitboard(PieceType pt, Side side) const {
-		return const_cast<Position*>(this)->getPieceBitboard(pt, side);
+		return const_cast<Position *>(this)->getPieceBitboardInternal(pt, side);
 	}
 
 	/**
@@ -54,6 +54,8 @@ public:
 		Undefined behavior if side == Side::None or pt == PieceType::None.
 	*/
 	inline const Bitboard& getPieceBitboard(const Piece& piece) const {
+        LUNA_ASSERT(piece.getSide() != Side::None && piece.getType() != PieceType::None,
+                    "Piece side and type cannot be none.");
 		return getPieceBitboard(piece.getType(), piece.getSide());
 	}
 
@@ -65,6 +67,9 @@ public:
 	}
 
 	inline bool pieceXrays(Square pieceSquare, Square xraySquare) {
+        LUNA_ASSERT(squares::isValid(pieceSquare), "Must be a valid square. (got " << (int)pieceSquare << ")");
+        LUNA_ASSERT(squares::isValid(xraySquare), "Must be a valid square. (got " << (int)xraySquare << ")");
+
 		auto piece = getPieceAt(pieceSquare);
 		return bitboards::getPieceAttacks(piece.getType(), 0, pieceSquare, piece.getSide()).contains(xraySquare);
 	}
@@ -95,6 +100,9 @@ public:
 		Changes this position's current en passant square.
 	*/
 	inline void setEnPassantSquare(Square square) {
+        LUNA_ASSERT(square == SQ_INVALID || squares::rankOf(square) == 2 || squares::rankOf(square) == 5,
+                    "Invalid square for en passant (got " << (int)square << ")");
+
 		if (m_EnPassantSquare != SQ_INVALID) {
 			m_Zobrist ^= zobrist::getEnPassantSquareKey(m_EnPassantSquare);
 		}
@@ -110,6 +118,8 @@ public:
 		Returns the piece located at the specified square.
 	*/
 	inline Piece getPieceAt(Square sqr) const {
+        LUNA_ASSERT(squares::isValid(sqr), "Must be a valid square. (got " << (int)sqr << ")");
+
 		return m_Squares[sqr];
 	}
 
@@ -259,11 +269,11 @@ private:
 
 	void richPerftInternal(int depth, PerftStats& stats);
 
-	inline Bitboard& getPieceBitboard(const Piece& piece) {
-		return getPieceBitboard(piece.getType(), piece.getSide());
+	inline Bitboard& getPieceBitboardInternal(const Piece& piece) {
+		return getPieceBitboardInternal(piece.getType(), piece.getSide());
 	}
 
-	inline Bitboard& getPieceBitboard(PieceType pt, Side side) {
+	inline Bitboard& getPieceBitboardInternal(PieceType pt, Side side) {
 		return m_BBs[(int)side][(int)pt];
 	}
 

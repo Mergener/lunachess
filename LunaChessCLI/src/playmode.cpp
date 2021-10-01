@@ -145,6 +145,15 @@ void PlayMode::humanTurn() {
 	}
 }
 
+static void displayTime(ui64 miliseconds) {
+    console::write(miliseconds / 1000);
+    console::write(".");
+    console::write(std::setfill('0'));
+    console::write(std::setw(3));
+    console::write(miliseconds % 1000);
+    console::write("s");
+}
+
 void PlayMode::computerTurn() {
 	Move move;
 	int score;
@@ -167,6 +176,8 @@ void PlayMode::computerTurn() {
 		m_Playing = false;
 	}
 	else {
+        m_TotalCpPlayTime += miliseconds;
+        m_TotalCpMoves++;
 		console::write(move);
 
 		if (m_ShowEval) {
@@ -179,13 +190,8 @@ void PlayMode::computerTurn() {
 		}
 
 		if (m_ShowTime) {
-			console::write(" - time: "); 
-			console::write(miliseconds / 1000);
-			console::write(".");
-			console::write(std::setfill('0'));
-			console::write(std::setw(3));
-			console::write(miliseconds % 1000);
-			console::write("s");
+            console::write(" - time: ");
+            displayTime(miliseconds);
 		}
 		
 		console::write('\n');
@@ -246,7 +252,16 @@ void PlayMode::play() {
 		else {
 			humanTurn();
 		}
+
 	}
+
+    if (m_ShowTime) {
+        console::write("Total computer time: ");
+        displayTime(m_TotalCpPlayTime);
+        console::write(" (average ");
+        displayTime(m_TotalCpPlayTime / m_TotalCpMoves);
+        console::write(" per move)");
+    }
 }
 
 int PlayMode::run(const std::vector<AppArg>& args) {

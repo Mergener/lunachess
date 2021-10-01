@@ -79,7 +79,7 @@ public:
 	/** True if this move is castles (O-O or O-O-O) */
 	inline bool isCastles() {
 		bool ret = getSourcePiece().getType() == PieceType::King &&
-			!bitboards::getPieceAttacks(PieceType::King, 0, getSource(), getSourcePiece().getSide()).contains(getDest());
+                (std::abs(squares::fileOf(getSource()) - squares::fileOf(getDest())) == 2);
 
 		LUNA_ASSERT(!ret || !isCapture(), "Castling is not a capture");
 
@@ -133,8 +133,9 @@ public:
 
 	Move(const Position& pos, Square src, Square dest, PieceType promotionTarget = PieceType::None);
 
-	inline Move(Move&& other) noexcept
-		: m_Move(other.m_Move) { }
+	inline Move(Move&& other) {
+        m_Move = other.m_Move;
+    }
 
 	inline Move& operator=(const Move& other) {
 		m_Move = other.m_Move;

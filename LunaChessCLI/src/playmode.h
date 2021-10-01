@@ -25,6 +25,8 @@ private:
 	int m_BotDepth = 4;
 	bool m_ShowEval = false;
 	bool m_ShowTime = false;
+    ui64 m_TotalCpPlayTime = 0;
+    ui32 m_TotalCpMoves = 0;
 
 	void parseArgs(const std::vector<AppArg>& args);
 	void play();
