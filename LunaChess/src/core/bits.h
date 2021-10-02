@@ -3,6 +3,7 @@
 
 #include "defs.h"
 #include "types.h"
+#include "debug.h"
 
 #ifdef __GNUC__
     #include <cpuid.h>
@@ -46,43 +47,31 @@ inline ui64 rotateRight(ui64 val, ui64 rot) {
 	return (val >> rot) | (val << ((sizeof(val) * 8) - rot));
 }
 
-inline bool bitScanF(ui64 n, i8& bit) {
+inline i8 bitScanF(ui64 n) {
 #if defined(__MSC_VER)
 	unsigned long idx;
-	unsigned char found = _BitScanForward64(&idx, n);
-
-	bit = static_cast<ui8>(idx);
-	return found;
+	_BitScanForward64(&idx, n);
+	return static_cast<ui8>(idx);
 #elif defined(__GNUC__)
-    if (n == 0) {
-        return false;
-    }
-    bit = static_cast<i8>(__builtin_ctzll(n));
-    return true;
+    return static_cast<i8>(__builtin_ctzll(n));
 #else
 	for (int i = 0; i < 64; ++i) {
 		if ((n & (C64(1) << i)) != 0) {
-			bit = i;
-			return true;
+			return i;
 		}
 	}
-	return false;
+	// Unreachable
+	return 0;
 #endif
 }
 
-inline bool bitScanR(ui64 n, i8& bit) {
+inline i8 bitScanR(ui64 n) {
 #if defined(__MSC_VER)
 	unsigned long idx;
-	unsigned char found = _BitScanReverse64(&idx, n);
-
-	bit = static_cast<ui8>(idx);
-	return found;
+	_BitScanReverse64(&idx, n);
+	return static_cast<ui8>(idx);
 #elif defined(__GNUC__)
-    if (n == 0) {
-        return false;
-    }
-    bit = static_cast<i8>(63 ^ __builtin_clzll(n));
-    return true;
+	return static_cast<i8>(63 ^ __builtin_clzll(n));
 #else
 	for (int i = 63; i >= 0; --i) {
 		if ((n & (C64(1) << i)) != 0) {

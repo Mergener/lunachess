@@ -44,52 +44,37 @@ int Bitboard::count() const {
 		+ s_BitboardsBitCount[(m_BB >> 56) & 0xff]);
 }
 
-Bitboard::Iterator::Iterator(const Bitboard& board, i8 bit) {
-	m_Bit = bit;
-	m_BB = board.m_BB;
-	if (m_Bit != 64 && !bits::bitScanF(m_BB >> m_Bit, m_Bit)) {
-		m_Bit = 64;
-	}
+Bitboard::Iterator::Iterator(const Bitboard& board) {
+	m_BB = board;
+	m_Sq = bits::bitScanF(m_BB);
 }
 
 Bitboard::Iterator::Iterator(const Iterator& it) noexcept {
 	m_BB = it.m_BB;
-	m_Bit = it.m_Bit;
+	m_Sq = it.m_Sq;
 }
 
 Bitboard::Iterator::Iterator(Bitboard::Iterator&& it) noexcept {
 	m_BB = it.m_BB;
-	m_Bit = it.m_Bit;
+	m_Sq = it.m_Sq;
 }
 
 Bitboard::Iterator& Bitboard::Iterator::operator++() {
-	m_Bit++;
-	i8 delta;
-
-	if (m_Bit != 64) {
-		if (!bits::bitScanF(m_BB >> m_Bit, delta)) {
-			m_Bit = 64;
-		}
-		else {
-			m_Bit += delta;
-		}
-	}
-    LUNA_ASSERT(squares::isValid(m_Bit) || m_Bit == 64, "Must be a valid square.");
+	m_BB &= ~(C64(1) << m_Sq);
+	m_Sq = bits::bitScanF(m_BB);
 
 	return *this;
 }
 
 bool Bitboard::Iterator::operator==(const Iterator& it) {
-	return m_Bit == it.m_Bit;
+	return m_BB == it.m_BB;
 }
 
 bool Bitboard::Iterator::operator!=(const Iterator& it) {
-	return m_Bit != it.m_Bit;
+	return m_BB != it.m_BB;
 }
 Square Bitboard::Iterator::operator*() {
-    Square ret = static_cast<Square>(m_Bit);
-    LUNA_ASSERT(squares::isValid(ret), "Must be a valid square.");
-    return ret;
+    return m_Sq;
 }
 
 namespace bitboards {
@@ -370,14 +355,14 @@ Bitboard getCastlingRookPath(Side side, LateralSide lSide) {
 static Bitboard getPositiveRayAttacks(Bitboard occupancy, RayDirection dir, Square srcSqr) {
 	Bitboard attacks = s_RayAttacks[(int)dir][srcSqr];
 	Bitboard blocker = attacks & occupancy;
-	bits::bitScanF(blocker | C64(0x8000000000000000), srcSqr);
+	srcSqr = bits::bitScanF(blocker | C64(0x8000000000000000));
 	return attacks ^ s_RayAttacks[(int)dir][srcSqr];
 }
 
 static Bitboard getNegativeRayAttacks(Bitboard occupancy, RayDirection dir, Square srcSqr) {
     Bitboard attacks = s_RayAttacks[(int)dir][srcSqr];
 	Bitboard blocker = attacks & occupancy;
-	bits::bitScanR(blocker | 1, srcSqr);
+	srcSqr = bits::bitScanR(blocker | 1);
 	return attacks ^ s_RayAttacks[(int)dir][srcSqr];
 }
 

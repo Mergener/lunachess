@@ -87,7 +87,7 @@ public:
 
 	class Iterator {
 	public:
-		Iterator(const Bitboard& board, i8 bit = 0);
+		Iterator(const Bitboard& board);
 		Iterator(const Iterator& it) noexcept;
 		Iterator(Iterator&& it) noexcept;
 
@@ -98,11 +98,11 @@ public:
 
 	private:
 		ui64 m_BB;
-		i8 m_Bit;
+		i8 m_Sq;
 	};
 
 	inline Iterator cbegin() const { return Iterator(*this); }
-	inline Iterator cend() const { return Iterator(*this, 64); }
+	inline Iterator cend() const { return Iterator(0); }
 	inline Iterator begin() { return cbegin(); }
 	inline Iterator end() { return cend(); }
 

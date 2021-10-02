@@ -599,8 +599,7 @@ bool Position::canCastleNow(LateralSide lateralSide) const {
 
 Square Position::getKingSquare(Side side) const {
 	Bitboard kbb = getPieceBitboard(PieceType::King, side);
-	Square sq = SQ_INVALID;
-	bits::bitScanF(kbb, sq);
+	Square sq = bits::bitScanF(kbb);
 	return sq;
 }
 
