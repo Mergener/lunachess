@@ -139,20 +139,48 @@ int BasicEvaluator::getKingSafetyScore(const Position& pos, Side side, int gpp) 
 		for (auto s : bb) {
 			// For every opponent piece, count tropism score based on their
 			// distance from our king
-			int kingX = squares::fileOf(kingSquare);
-			int kingY = squares::rankOf(kingSquare);
-
-			int sx = squares::fileOf(s);
-			int sy = squares::rankOf(s);
-
-			int pseudoDist = std::abs(sx - kingX) + std::abs(sy - kingY);
-			if (pseudoDist == 0) {
-				pseudoDist = 1;
+			int dist = squares::getChebyshevDistance(kingSquare, s);
+			if (dist == 0) {
+				dist = 1;
 			}
-			tropismScore -= sqrTrop / pseudoDist; // The higher the distance, the lower the penalty.
+			tropismScore -= sqrTrop / dist; // The higher the distance, the lower the penalty.
 		}
 	}
 
+	// Open and semi open files
+	/*
+	int filesScore = 0;
+
+	int individualOpenScore = interpolateScores(m_OpScoresTable.openFileNearKingScore,
+	                                                m_EndScoresTable.openFileNearKingScore,
+	                                                gpp);
+
+	int individualSemiopenScore = interpolateScores(m_OpScoresTable.semiOpenFileNearKingScore,
+	                                                m_EndScoresTable.semiOpenFileNearKingScore,
+	                                                gpp);
+
+	int kingFile = squares::fileOf(kingSquare);
+	Bitboard whitePawns = pos.getPieceBitboard(WHITE_PAWN);
+	Bitboard blackPawns = pos.getPieceBitboard(BLACK_PAWN);
+	for (int i = kingFile - 1; i <= kingFile + 1; ++i) {
+		if (i < 0 || i >= 8) {
+			continue;
+		}
+
+		switch (aibitboards::getFileState(i, whitePawns, blackPawns)) {
+			case aibitboards::FileState::Open:
+				filesScore += individualOpenScore;
+				break;
+
+			case aibitboards::FileState::SemiOpen:
+				filesScore += individualSemiopenScore;
+				break;
+
+			default:
+				break;
+		}
+	}
+*/
 	return shieldPawns.count() * individualPawnShieldScore + tropismScore;
 }
 
@@ -198,6 +226,9 @@ int BasicEvaluator::evaluate(const Position& pos) const {
 
 	for (Square s = 0; s < 64; ++s) {
 		auto p = pos.getPieceAt(s);
+		if (p == PIECE_NONE) {
+			continue;
+		}
 
 		int sign = p.getSide() == side ? 1 : -1;
 		
@@ -214,7 +245,6 @@ int BasicEvaluator::evaluate(const Position& pos) const {
 		else {
 			evalSqr = s;
 		}		
-		
 
 		total += (sign * interpolateScores(
 			m_OpScoresTable.pieceSquareTables[(int)p.getType()][evalSqr],
@@ -284,6 +314,9 @@ BasicEvaluator::BasicEvaluator() {
 	m_OpScoresTable.spaceScore = 3;
 	m_OpScoresTable.pawnShieldScore = 12;
 	m_OpScoresTable.pawnChainScore = 4;
+	m_OpScoresTable.pawnKingDistanceScore = 0;
+	m_OpScoresTable.openFileNearKingScore = -30;
+	m_OpScoresTable.semiOpenFileNearKingScore = -20;
 
 	// ENDGAME
 
@@ -306,7 +339,9 @@ BasicEvaluator::BasicEvaluator() {
 	m_EndScoresTable.pawnShieldScore = 0;
 	m_EndScoresTable.pawnChainScore = 8;
 	m_EndScoresTable.bishopPairScore = 40;
-	
+	m_EndScoresTable.pawnKingDistanceScore = 3;
+	m_EndScoresTable.openFileNearKingScore = 0;
+	m_EndScoresTable.semiOpenFileNearKingScore = 0;
 }
 
 int BasicEvaluator::getGamePhaseFactor(const Position& pos) const {

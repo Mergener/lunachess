@@ -673,7 +673,7 @@ void Position::handleSpecialMove(Move move) {
 		Square newRookSq = (rank * 8) + 5;
 
 		setPieceAt(newRookSq, Piece(king.getSide(), PieceType::Rook));
-		setPieceAt(prevRookSq, Piece(king.getSide(), PieceType::None));
+		setPieceAt(prevRookSq, PIECE_NONE);
 	}
 	else if (move.isCastles(LateralSide::QueenSide)) {
 		auto king = move.getSourcePiece();
@@ -682,7 +682,7 @@ void Position::handleSpecialMove(Move move) {
 		Square newRookSq = (rank * 8) + 3;
 
 		setPieceAt(newRookSq, Piece(king.getSide(), PieceType::Rook));
-		setPieceAt(prevRookSq, Piece(king.getSide(), PieceType::None));
+		setPieceAt(prevRookSq, PIECE_NONE);
 	}
 }
 

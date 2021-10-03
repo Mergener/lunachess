@@ -17,6 +17,7 @@
 // lunachess::ai
 #include "ai/aibitboards.h"
 #include "ai/basicevaluator.h"
+#include "ai/endgame.h"
 #include "ai/evaluator.h"
 #include "ai/movepicker.h"
 #include "ai/openingbook.h"

@@ -3,9 +3,13 @@
 
 #include <array>
 #include <cstring>
+#include <ostream>
+#include <istream>
 
 #include "../core/square.h"
 #include "../core/piece.h"
+
+#include "json.hpp"
 
 namespace lunachess::ai {
 
@@ -48,6 +52,15 @@ struct ScoresTable {
 
 	int bishopPairScore = 0;
 
+	int semiOpenFileNearKingScore = 0;
+
+	int openFileNearKingScore = 0;
+
+	/**
+	 *	Score given for the king's proximity to pawns.
+	 */
+	int pawnKingDistanceScore = 0;
+
 	/** Score for each piece being x-rayed, by type. */
 	std::array<int, (int)PieceType::_Count> xrayScores;
 
@@ -61,6 +74,9 @@ struct ScoresTable {
 		std::memset(xrayScores.data(), 0, sizeof(xrayScores));
 	}
 };
+
+void to_json(nlohmann::json& j, const ScoresTable& s);
+void from_json(const nlohmann::json& j, ScoresTable& s);
 
 }
 

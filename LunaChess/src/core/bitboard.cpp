@@ -90,6 +90,8 @@ BITWISE_ENUM_CLASS(RayDirection, ui8,
 	NorthWest
 );
 
+#define FOREACH_DIR(d) for (RayDirection d = RayDirection::North; (int)d < (int)RayDirection::NorthWest; d = (RayDirection)((int)d + 1))
+
 static Bitboard s_RayAttacks[8][64];
 static Bitboard s_KnightAttacks[64];
 static Bitboard s_KingAttacks[64];
@@ -115,76 +117,63 @@ static const char* getDirName(RayDirection dir) {
 
 static void precomputeRayAttacks() {
 	for (Square s = 0; s < 64; ++s) {
-		for (int d = 0; d < 8; ++d) {
-			RayDirection dir = static_cast<RayDirection>(d);
+		int file = squares::fileOf(s);
+		int rank = squares::rankOf(s);
 
-			Bitboard attacks = 0; // Initialize with zero
+		// North
+		s_RayAttacks[(int)RayDirection::North][s] = 0;
+		for (int i = rank + 1; i < 8; ++i) {
+			Square sq = squares::fromPoint(file, i);
+			s_RayAttacks[(int)RayDirection::North][s].add(sq);
+		}
 
-			int bit = step(s, dir);
-			int x = bit % 8;
-			int y = bit / 8;
-			int initialX = s % 8;
-			int initialY = s / 8;
+		// South
+		s_RayAttacks[(int)RayDirection::South][s] = 0;
+		for (int i = rank - 1; i >= 0; --i) {
+			Square sq = squares::fromPoint(file, i);
+			s_RayAttacks[(int)RayDirection::South][s].add(sq);
+		}
 
-			while (true) {
-				bool exitLoop = false;
+		// East
+		s_RayAttacks[(int)RayDirection::East][s] = 0;
+		for (int i = file + 1; i < 8; ++i) {
+			Square sq = squares::fromPoint(i, rank);
+			s_RayAttacks[(int)RayDirection::East][s].add(sq);
+		}
 
-				switch (dir) {
-				case RayDirection::North:
-				case RayDirection::South:
-                    // Vertical rays. Cannot leave the same file.
-					if (x != initialX) {
-						exitLoop = true;
-					}
-					break;
+		// South
+		s_RayAttacks[(int)RayDirection::West][s] = 0;
+		for (int i = file - 1; i >= 0; --i) {
+			Square sq = squares::fromPoint(i, rank);
+			s_RayAttacks[(int)RayDirection::West][s].add(sq);
+		}
 
-				case RayDirection::East:
-				case RayDirection::West:
-                    // Horizontal rays. Cannot leave the same rank.
-					if (y != initialY) {
-						exitLoop = true;
-					}
-					break;
+		// Northeast
+		s_RayAttacks[(int)RayDirection::NorthEast][s] = 0;
+		for (int i = file + 1, j = rank + 1; i < 8 && j < 8; ++i, ++j) {
+			Square sq = squares::fromPoint(i, j);
+			s_RayAttacks[(int)RayDirection::NorthEast][s].add(sq);
+		}
 
-				case RayDirection::SouthEast:
-					if (y >= initialY || x <= initialX) {
-						exitLoop = true;
-					}
-					break;
+		// Nortwest
+		s_RayAttacks[(int)RayDirection::NorthWest][s] = 0;
+		for (int i = file - 1, j = rank + 1; i >= 0 && j < 8; --i, ++j) {
+			Square sq = squares::fromPoint(i, j);
+			s_RayAttacks[(int)RayDirection::NorthWest][s].add(sq);
+		}
 
-				case RayDirection::SouthWest:
-					if (y >= initialY || x >= initialX) {
-						exitLoop = true;
-					}
-					break;
+		// Southeast
+		s_RayAttacks[(int)RayDirection::SouthEast][s] = 0;
+		for (int i = file + 1, j = rank - 1; i < 8 && j >= 0; ++i, --j) {
+			Square sq = squares::fromPoint(i, j);
+			s_RayAttacks[(int)RayDirection::SouthEast][s].add(sq);
+		}
 
-				case RayDirection::NorthEast:
-					if (y <= initialY || x <= initialX) {
-						exitLoop = true;
-					}
-					break;
-
-				case RayDirection::NorthWest:
-					if (y <= initialY || x >= initialX) {
-						exitLoop = true;
-					}
-					break;
-				}
-
-				if (exitLoop || (bit < 0) || (bit >= 64)) {
-					break;
-				}
-
-				attacks |= (C64(1) << bit);
-				bit = step(bit, dir);
-				x = bit % 8;
-				y = bit / 8;
-                if (x < 0 || x >= 8 || y < 0 || y >= 8) {
-                    break;
-                }
-			}
-
-			s_RayAttacks[(int)dir][s] = attacks;
+		// Southwest
+		s_RayAttacks[(int)RayDirection::SouthWest][s] = 0;
+		for (int i = file - 1, j = rank - 1; i >= 0 && j >= 0; --i, --j) {
+			Square sq = squares::fromPoint(i, j);
+			s_RayAttacks[(int)RayDirection::SouthWest][s].add(sq);
 		}
 	}
 }

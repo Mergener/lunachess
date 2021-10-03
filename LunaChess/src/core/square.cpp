@@ -32,7 +32,11 @@ const char* getName(Square square) {
 Square fromStr(std::string_view s) {
 	int file = s[0] - 'a';
 	if (file < 0 || file > 7) {
-		return SQ_INVALID;
+		// Try uppercase
+		file = s[0] - 'A';
+		if (file < 0 || file > 7) {
+			return SQ_INVALID;
+		}
 	}
 
 	int rank = s[1] - '1';
@@ -91,8 +95,81 @@ static void generateCastlingSquares() {
 	s_KingDefaultSquares[(int)Side::Black - 1] = SQ_E8;
 }
 
+//
+//  Chebyshev Distances
+//
+
+static int s_ChebyshevDistances[64][64];
+
+static void precomputeChebyshevDistances() {
+	for (Square a = 0; a < 64; ++a) {
+		for (Square b = 0; b < 64; ++b) {
+			int fileA = squares::fileOf(a);
+			int fileB = squares::fileOf(b);
+			int rankA = squares::rankOf(a);
+			int rankB = squares::rankOf(b);
+
+			int rankDist = abs(rankB - rankA);
+			int fileDist = abs(fileB - fileA);
+
+			s_ChebyshevDistances[a][b] = std::max(rankDist, fileDist);
+		}
+	}
+}
+
+int getChebyshevDistance(Square a, Square b) {
+	return s_ChebyshevDistances[a][b];
+}
+
+//
+//  Center-Manhattan Distances
+//
+
+static const int s_CenterManhattanDistance[64] = {
+		6, 5, 4, 3, 3, 4, 5, 6,
+		5, 4, 3, 2, 2, 3, 4, 5,
+		4, 3, 2, 1, 1, 2, 3, 4,
+		3, 2, 1, 0, 0, 1, 2, 3,
+		3, 2, 1, 0, 0, 1, 2, 3,
+		4, 3, 2, 1, 1, 2, 3, 4,
+		5, 4, 3, 2, 2, 3, 4, 5,
+		6, 5, 4, 3, 3, 4, 5, 6
+};
+
+int getManhattanCenterDistance(Square s) {
+	return s_CenterManhattanDistance[s];
+}
+
+//
+//  Manhattan Distances
+//
+
+static int s_ManhattanDistances[64][64];
+
+static void precomputeManhattanDistances() {
+	for (Square a = 0; a < 64; ++a) {
+		for (Square b = 0; b < 64; ++b) {
+			int fileA = squares::fileOf(a);
+			int fileB = squares::fileOf(b);
+			int rankA = squares::rankOf(a);
+			int rankB = squares::rankOf(b);
+
+			int rankDist = abs(rankB - rankA);
+			int fileDist = abs(fileB - fileA);
+
+			s_ManhattanDistances[a][b] = rankDist + fileDist;
+		}
+	}
+}
+
+int getManhattanDistance(Square a, Square b) {
+	return s_ManhattanDistances[a][b];
+}
+
 void initialize() {
 	generateCastlingSquares();
+	precomputeManhattanDistances();
+	precomputeChebyshevDistances();
 }
 
 }

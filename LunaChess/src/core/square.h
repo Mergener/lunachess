@@ -115,12 +115,22 @@ inline int getPawnInitialRank(Side side) {
     return rank[(int)side];
 }
 
+/**
+ *	Reads a chess square in algebraic notation (ex. d3, e1, a4)
+ *
+ * @param s The string to parse the square.
+ * @return The square or SQ_INVALID.
+ */
 Square fromStr(std::string_view s);
 
 Square getCastleRookSquare(Side side, LateralSide lateralSide);
 Square getCastleRookDestSquare(Side side, LateralSide lateralSide);
 Square getKingDefaultSquare(Side side);
 Square getCastleKingDestSquare(Side side, LateralSide lateralSide);
+
+int getChebyshevDistance(Square a, Square b);
+int getManhattanDistance(Square a, Square b);
+int getManhattanCenterDistance(Square s);
 
 }
 

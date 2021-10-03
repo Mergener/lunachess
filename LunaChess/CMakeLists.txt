@@ -17,8 +17,7 @@ set(HEADERS
     "src/core/staticlist.h"
     "src/core/types.h"
     "src/core/zobrist.h"
-    "src/lunachess.h"
-)
+    "src/lunachess.h" src/ai/endgame.h)
 
 set(SRC
     "src/ai/aibitboards.cpp"
@@ -33,20 +32,19 @@ set(SRC
     "src/core/piece.cpp"
     "src/core/position.cpp"
     "src/core/square.cpp"
-    "src/core/zobrist.cpp"
-        )
+    "src/core/zobrist.cpp" src/ai/endgame.cpp)
 
 set(ALL
     ${HEADERS}
     ${SRC})
 
+
 add_library(lunachess STATIC ${ALL})
 
 set_target_properties(lunachess PROPERTIES
-        CXX_STANDARD 17
-        CXX_EXTENSIONS ON
-        )
+    CXX_STANDARD 17
+    CXX_EXTENSIONS ON)
 
 target_include_directories(lunachess PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
-)
+    "${NLOHMANN_JSON_INCLUDE}")

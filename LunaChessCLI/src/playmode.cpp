@@ -201,7 +201,7 @@ void PlayMode::computerTurn() {
 void PlayMode::play() {
 	m_Playing = true;
 	MoveList legalMoves;
-	
+
 	while (m_Playing) {
 		legalMoves.clear();
 		m_Position.getLegalMoves(legalMoves);

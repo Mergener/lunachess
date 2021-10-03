@@ -30,26 +30,13 @@ bool MovePicker::compareMoves(const Move& a, const Move& b) const {
 	if (a.isCapture() && b.isCapture()) {
 		return compareCaptures(a, b);
 	}
+
 	if (a.isCapture()) {
 		return true;
 	}
     if (b.isCapture()) {
         return false;
     }
-
-    // Check if it is a direct check
-    /*
-    auto us = a.getSourcePiece().getSide();
-    auto opponentKingSquare = m_Position.getKingSquare(getOppositeSide(us));
-    auto occ = m_Position.getCompositeBitboard();
-    auto attacksA = bitboards::getPieceAttacks(a.getSourcePiece(), occ, a.getDest());
-    if (attacksA.contains(opponentKingSquare)) {
-        return true;
-    }
-    auto attacksB = bitboards::getPieceAttacks(b.getSourcePiece(), occ, b.getDest());
-    if (attacksB.contains(opponentKingSquare)) {
-        return false;
-    }*/
 
     // Return based on butterfly score
     int bfa = m_Butterflies[a.getSource()][a.getDest()];
@@ -62,7 +49,6 @@ bool MovePicker::compareMoves(const Move& a, const Move& b) const {
         return false;
     }
 
-    /*
     if (squareCanBeCapturedByPawn(a.getDest(), getOppositeSide(a.getSourcePiece().getSide()))
         && a.getSourcePiece().getType() != PieceType::Pawn) {
         return false;
@@ -70,7 +56,7 @@ bool MovePicker::compareMoves(const Move& a, const Move& b) const {
     if (squareCanBeCapturedByPawn(b.getDest(), getOppositeSide(b.getSourcePiece().getSide()))
         && b.getSourcePiece().getType() != PieceType::Pawn) {
         return true;
-    }*/
+    }
 
     return false;
 }
@@ -126,6 +112,7 @@ int MovePicker::quiesce(int ply, int alpha, int beta) {
 
 	for (int i = 0; i < moveCount; ++i) {
 		auto& move = moves[i];
+		m_Butterflies[move.getSource()][move.getDest()] += 1;
 
         m_Position.makeMove(move, false, true);
 		int score = -quiesce(ply + 1, -beta, -alpha);
@@ -286,7 +273,9 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
             score = -drawScore;
         }
         else {
-            score = -searchInternal(depth, ply + 1, -beta, -alpha, !us, false);
+			int d = depth;
+
+            score = -searchInternal(d, ply + 1, -beta, -alpha, !us, false);
         }
 
 		m_Position.undoMove(move);
@@ -311,6 +300,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 		ttEntry.type = TranspositionTable::LOWERBOUND;
 	}
 	else {
+		//std::cout << bestMoveIdx << "/" << moveCount << std::endl;
 		ttEntry.type = TranspositionTable::EXACT;
 	}
 
@@ -347,15 +337,6 @@ std::tuple<Move, int> MovePicker::pickMove(const Position& pos, int depth) {
             // we still want to calculate the score from now on
             m_Position.makeMove(bookMove);
             depth--;
-        }
-
-        // Increment depth if material is low enough
-        int materialCount = m_Position.countTotalPointValue();
-        if (materialCount <= 22) {
-            depth++;
-        }
-        if (materialCount <= 7) {
-            depth++;
         }
 
         // Perform search with iterative deepening

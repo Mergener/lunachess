@@ -2,6 +2,7 @@
 #define LUNA_PIECETYPE_H
 
 #include "types.h"
+#include "debug.h"
 
 // For loop for each piece type, except 'None' and '_Count' (the latter should only be used for iterating purposes).
 #define FOREACH_PIECE_TYPE(pt) \
@@ -50,7 +51,9 @@ public:
 	inline Piece() = default;
 
 	inline constexpr Piece(Side side, PieceType type)
-		: m_Side(side), m_Type(type) { }
+		: m_Side(side), m_Type(type)
+	{
+	}
 
 	static void initialize();
 

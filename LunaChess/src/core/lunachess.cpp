@@ -16,6 +16,7 @@ void initialize() {
 	bitboards::initialize();
 
 	lunachess::ai::aibitboards::initialize();
+	lunachess::ai::endgame::initialize();
 }
 
 }

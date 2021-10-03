@@ -1,5 +1,7 @@
 #include "aibitboards.h"
 
+#include <cstring>
+
 namespace lunachess::ai::aibitboards {
 
 static Bitboard s_KnightOPContestantsBB[64][2];
@@ -76,15 +78,75 @@ Bitboard getPawnShieldBitboard(Square kingSquare, Side side) {
 	return s_PawnShieldBitboards[kingSquare][(int)side - 1];
 }
 
-static Bitboard s_PawnChainBitboards[64][2];
+static Bitboard s_PasserContestants[64][2];
 
-Bitboard getPotentialPawnChainPawnsBitboard(Square square, Side side) {
-	return s_PawnChainBitboards[square][(int)side - 1];
+static void precomputePasserContestants() {
+	FOREACH_SIDE(side) {
+		int sideIdx = static_cast<int>(side) - 1;
+		for (Square s = 0; s < 64; ++s) {
+			Bitboard passerContestants = 0;
+
+			int file = squares::fileOf(s);
+			int rank = squares::rankOf(s);
+			int yStep = side == Side::White ? 1 : -1;
+
+			for (int j = rank + yStep; j > 0 && j < 7; j += yStep) {
+				passerContestants.add(squares::fromPoint(file, j));
+			}
+
+			s_PasserContestants[s][sideIdx] = passerContestants;
+		}
+	}
+}
+
+static Bitboard getPasserContestant(Square s, Side side) {
+	return s_PawnShieldBitboards[s][(int)side - 1];
+}
+
+PawnStructureAnalysis analyzePawnStructure(Bitboard whitePawns, Bitboard blackPawns, Side side) {
+	Bitboard ourPawns, theirPawns;
+	if (side == Side::White) {
+		ourPawns = whitePawns;
+		theirPawns = blackPawns;
+	}
+	else {
+		ourPawns = blackPawns;
+		theirPawns = whitePawns;
+	}
+
+	PawnStructureAnalysis ret;
+
+	// Analyze passed pawns
+	for (Square s : ourPawns) {
+		auto contestants = getPasserContestant(s, side);
+		if ((contestants & theirPawns) == 0) {
+			ret.passedPawns.add(s);
+		}
+	}
+
+	// Analyze connected pawns
+
+}
+
+FileState getFileState(int file, Bitboard whitePawns, Bitboard blackPawns) {
+	Bitboard fileBB = bitboards::getFileBitboard(file);
+
+	whitePawns &= fileBB;
+	blackPawns &= fileBB;
+
+	if (whitePawns == 0) {
+		return blackPawns == 0 ? FileState::Open : FileState::SemiOpen;
+	}
+	if (blackPawns == 0) {
+		return whitePawns == 0 ? FileState::Open : FileState::SemiOpen;
+	}
+	return FileState::Closed;
 }
 
 void initialize() {
 	precomputeKnightOPContestantsBitboards();
 	precomputePawnShields();
+	precomputePasserContestants();
 }
 
 }
