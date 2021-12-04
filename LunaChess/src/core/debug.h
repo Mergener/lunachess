@@ -8,7 +8,7 @@
 #ifndef NDEBUG
 	#define LUNA_ASSERTS_ON
 #endif
-
+#define LUNA_ASSERTS_ON
 #ifdef LUNA_ASSERTS_ON
 
 #define LUNA_ASSERT(cond, msg) \

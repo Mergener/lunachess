@@ -6,7 +6,8 @@
 namespace lunachess::ai::endgame {
 
 enum class EndgameType {
-
+	K_KQ,
+	K_KR
 };
 
 void initialize();

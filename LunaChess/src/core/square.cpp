@@ -47,7 +47,6 @@ Square fromStr(std::string_view s) {
 	return rank * 8 + file;
 }
 
-
 static Square s_RookCastleSquares[2][2];
 static Square s_RookCastleDestSquares[2][2];
 

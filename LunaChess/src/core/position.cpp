@@ -8,6 +8,7 @@
 #include "bitboard.h"
 #include "bits.h"
 #include "debug.h"
+#include "strutils.h"
 
 namespace lunachess {
 
@@ -125,7 +126,7 @@ bool Position::sideHasSufficientMaterial(Side side) const {
 	}
 
 	// Check for lesser pieces
-	Bitboard lightBB = getPieceBitboard(PieceType::Bishop, side) &
+	Bitboard lightBB = getPieceBitboard(PieceType::Bishop, side) |
 		getPieceBitboard(PieceType::Knight, side);
 	if (lightBB.count() > 1) {
 		return true;
@@ -219,12 +220,8 @@ std::string Position::toFen() const {
 
 std::optional<Position> Position::fromFEN(std::string_view fen) {
 	// Remove space duplicates
-	std::string fenStr(fen);
-
-	std::string::iterator newEnd = std::unique(fenStr.begin(), fenStr.end(), [](char a, char b) { 
-		return (a == b) && (a == ' '); 
-	});
-	fenStr.erase(newEnd, fenStr.end());
+	std::string fenStr = std::string(fen);
+	strutils::reduceWhitespace(fenStr);
 	fen = fenStr;
 
 	Position pos;

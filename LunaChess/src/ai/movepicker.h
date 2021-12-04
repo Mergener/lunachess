@@ -148,10 +148,6 @@ private:
 		move = Move(pos, SQ_C7, SQ_C5);
 		m_OpBook.setMoveForPosition(pos, move);
 		pos.makeMove(move);
-
-		move = Move(pos, SQ_G1, SQ_F3);
-		m_OpBook.setMoveForPosition(pos, move);
-		pos.makeMove(move);
 	}
 
 public:
@@ -192,13 +188,15 @@ public:
     inline const TranspositionTable& getTranspositionTable() const { return m_TT; }
 
 	inline MovePicker() {
-        generateQGDBook();
+
+		//generateQGDBook();
+		m_OpBook = OpeningBook::getDefault();
 	}
 
 private:
 	static constexpr int N_KILLER_MOVES = 2;
 	static constexpr int MAX_DEPTH = 256;
-    static constexpr int NULL_MOVE_SEARCH_DEPTH_REDUC = 2;
+    static constexpr int NULL_MOVE_SEARCH_DEPTH_REDUC = 3;
 
 	EvalT m_Eval;
 	TranspositionTable m_TT;

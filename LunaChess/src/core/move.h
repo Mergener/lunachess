@@ -150,6 +150,8 @@ public:
 
 	Move() = default;
 
+	static Move fromLongAlgebraic(const Position& pos, std::string_view v);
+
 private:
 	ui64 m_Move;
 

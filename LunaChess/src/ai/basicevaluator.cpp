@@ -20,7 +20,7 @@ static int getPieceMaterialScore(PieceType pt) {
 		return 310;
 
 	case PieceType::Bishop:
-		return 330;
+		return 340;
 
 	case PieceType::Rook:
 		return 510;
@@ -34,6 +34,8 @@ static int getPieceMaterialScore(PieceType pt) {
 }
 
 int BasicEvaluator::getPawnColorScore(const Position& pos, Side side, int gpp) const {
+	// Score pawns that are on squares that favor the movement of a side's bishop.
+
 	Bitboard lightSquares = bitboards::getLightSquares();
 	Bitboard darkSquares = bitboards::getDarkSquares();
 
@@ -139,48 +141,20 @@ int BasicEvaluator::getKingSafetyScore(const Position& pos, Side side, int gpp) 
 		for (auto s : bb) {
 			// For every opponent piece, count tropism score based on their
 			// distance from our king
-			int dist = squares::getChebyshevDistance(kingSquare, s);
-			if (dist == 0) {
-				dist = 1;
+			int kingX = squares::fileOf(kingSquare);
+			int kingY = squares::rankOf(kingSquare);
+
+			int sx = squares::fileOf(s);
+			int sy = squares::rankOf(s);
+
+			int pseudoDist = std::abs(sx - kingX) + std::abs(sy - kingY);
+			if (pseudoDist == 0) {
+				pseudoDist = 1;
 			}
-			tropismScore -= sqrTrop / dist; // The higher the distance, the lower the penalty.
+			tropismScore -= sqrTrop / pseudoDist; // The higher the distance, the lower the penalty.
 		}
 	}
 
-	// Open and semi open files
-	/*
-	int filesScore = 0;
-
-	int individualOpenScore = interpolateScores(m_OpScoresTable.openFileNearKingScore,
-	                                                m_EndScoresTable.openFileNearKingScore,
-	                                                gpp);
-
-	int individualSemiopenScore = interpolateScores(m_OpScoresTable.semiOpenFileNearKingScore,
-	                                                m_EndScoresTable.semiOpenFileNearKingScore,
-	                                                gpp);
-
-	int kingFile = squares::fileOf(kingSquare);
-	Bitboard whitePawns = pos.getPieceBitboard(WHITE_PAWN);
-	Bitboard blackPawns = pos.getPieceBitboard(BLACK_PAWN);
-	for (int i = kingFile - 1; i <= kingFile + 1; ++i) {
-		if (i < 0 || i >= 8) {
-			continue;
-		}
-
-		switch (aibitboards::getFileState(i, whitePawns, blackPawns)) {
-			case aibitboards::FileState::Open:
-				filesScore += individualOpenScore;
-				break;
-
-			case aibitboards::FileState::SemiOpen:
-				filesScore += individualSemiopenScore;
-				break;
-
-			default:
-				break;
-		}
-	}
-*/
 	return shieldPawns.count() * individualPawnShieldScore + tropismScore;
 }
 
@@ -203,11 +177,12 @@ int BasicEvaluator::getPawnChainScore(const Position& pos, Side side, int gpp) c
 
 int BasicEvaluator::getBishopPairScore(const Position& pos, Side side, int gpp) const {
 	Bitboard lightSquares = bitboards::getLightSquares();
+	Bitboard darkSquares = bitboards::getDarkSquares();
 
 	auto bishopBB = pos.getPieceBitboard(Piece(side, PieceType::Bishop));
 	
 	Bitboard lightSquaredBishops = bishopBB & lightSquares;
-	Bitboard darkSquaredBishops = bishopBB & lightSquares;
+	Bitboard darkSquaredBishops = bishopBB & darkSquares;
 
 	int individualScore = interpolateScores(m_OpScoresTable.bishopPairScore, m_EndScoresTable.bishopPairScore, gpp);
 
@@ -246,10 +221,11 @@ int BasicEvaluator::evaluate(const Position& pos) const {
 			evalSqr = s;
 		}		
 
+/*
 		total += (sign * interpolateScores(
-			m_OpScoresTable.pieceSquareTables[(int)p.getType()][evalSqr],
-			m_EndScoresTable.pieceSquareTables[(int)p.getType()][evalSqr],
-			gpp)) / 25;
+			m_OpScoresTable.pieceSquareTables[evalSqr][(int)p.getType()],
+			m_EndScoresTable.pieceSquareTables[evalSqr][(int)p.getType()],
+			gpp));*/
 
 			
 		// See xrays
@@ -304,7 +280,7 @@ BasicEvaluator::BasicEvaluator() {
 	m_OpScoresTable.xrayScores[(int)PieceType::Queen] = 4;
 	m_OpScoresTable.xrayScores[(int)PieceType::King] = 5;
 	m_OpScoresTable.bishopPairScore = 15;
-	m_OpScoresTable.tropismScores[(int)PieceType::Pawn] = 10;
+	m_OpScoresTable.tropismScores[(int)PieceType::Pawn] = 12;
 	m_OpScoresTable.tropismScores[(int)PieceType::Bishop] = 5;
 	m_OpScoresTable.tropismScores[(int)PieceType::Knight] = 12;
 	m_OpScoresTable.tropismScores[(int)PieceType::Rook] = 8;

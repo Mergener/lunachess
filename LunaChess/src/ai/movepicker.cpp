@@ -27,10 +27,10 @@ bool MovePicker::compareCaptures(Move a, Move b) const {
 bool MovePicker::compareMoves(const Move& a, const Move& b) const {
     LUNA_ASSERT(a != MOVE_INVALID && b != MOVE_INVALID, "Moves cannot be invalid");
 
+	// Evaluate captures first
 	if (a.isCapture() && b.isCapture()) {
 		return compareCaptures(a, b);
 	}
-
 	if (a.isCapture()) {
 		return true;
 	}
@@ -49,43 +49,39 @@ bool MovePicker::compareMoves(const Move& a, const Move& b) const {
         return false;
     }
 
-    if (squareCanBeCapturedByPawn(a.getDest(), getOppositeSide(a.getSourcePiece().getSide()))
-        && a.getSourcePiece().getType() != PieceType::Pawn) {
-        return false;
-    }
-    if (squareCanBeCapturedByPawn(b.getDest(), getOppositeSide(b.getSourcePiece().getSide()))
-        && b.getSourcePiece().getType() != PieceType::Pawn) {
-        return true;
-    }
 
-    return false;
+	return false;
 }
 
 #define DO_KILLER_MOVES
 
 void MovePicker::orderMoves(MoveList& ml, Move ttMove, int ply) {
-    int nKillers = 0;
+	int start = 0;
 #ifdef DO_KILLER_MOVES
+	int nKillers = 0;
     if (ml.count() > (N_KILLER_MOVES + 1)) {
 		for (int i = 0; i < N_KILLER_MOVES; ++i) {
 			auto killer = m_Killers[i][ply];
 
 			int idx = ml.indexOf(killer);
 			if (idx != -1) {
+				// Killer move is a legal move, count it.
 				std::swap(ml[nKillers], ml[idx]);
 				nKillers++;
 			}
 		}
 	}
+	start += nKillers;
 #endif
     if (ttMove != MOVE_INVALID) {
         int idx = ml.indexOf(ttMove);
         if (idx != -1) {
             std::swap(ml[0], ml[idx]);
+			start++;
         }
     }
 
-    std::sort(ml.begin() + nKillers + (ttMove != MOVE_INVALID ? 1 : 0), ml.end(),
+    std::sort(ml.begin() + start, ml.end(),
               [this](Move a, Move b) { return compareMoves(a, b); });
 
 }
@@ -220,6 +216,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 	}
 
     // Null move pruning
+/*
     if (!nullMove && canSearchNullMove(isCheck) && (depth - NULL_MOVE_SEARCH_DEPTH_REDUC) >= 1) {
         // We can perform null move pruning.
         int score;
@@ -235,8 +232,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
             // A cutoff was caused.
             return beta;
         }
-    }
-
+    }*/
 
     MoveList moves;
 	int moveCount = m_Position.getLegalMoves(moves);
@@ -269,7 +265,7 @@ int MovePicker::searchInternal(int depth, int ply, int alpha, int beta, bool us,
 
 		m_Position.makeMove(move, false, true);
         int score;
-        if (m_Position.is50moveRuleDraw() || m_Position.isRepetitionDraw(1)) {
+        if (m_Position.isDraw(1)) {
             score = -drawScore;
         }
         else {
@@ -350,14 +346,25 @@ std::tuple<Move, int> MovePicker::pickMove(const Position& pos, int depth) {
         Move bestMove = moves[0];
         int bestScore;
 
+		int drawScore = m_Eval.getDrawScore();
+
         // Perform search with iterative deepening
         for (int i = std::max(depth - 2, 2); i <= depth; ++i) {
             bestScore = -HIGH_BETA;
-            orderMoves(moves, bestMove, 0);
-            for (const auto& move : moves) {
+	        orderMoves(moves, bestMove, 0);
+            for (int j = 0; j < moves.count(); ++j) {
+	            Move move = moves[j];
                 m_Position.makeMove(move, false, true);
+
                 int score;
-                score = -searchInternal(i - 1, 1, -HIGH_BETA, -bestScore, false, false);
+
+				int d = i;
+	            if (m_Position.isDraw(2)) {
+		            score = -drawScore;
+	            }
+				else {
+		            score = -searchInternal(d, 1, -HIGH_BETA, -bestScore, false, false);
+	            }
 
                 m_Position.undoMove(move);
 

@@ -37,10 +37,11 @@ public:
 		m_Moves[pos.getZobristKey()] = move;
 	}
 
+	static OpeningBook getDefault();
+
 private:
 	std::unordered_map<ui64, Move> m_Moves;
 };
-
 
 }
 

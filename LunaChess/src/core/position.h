@@ -26,7 +26,7 @@ struct PerftStats {
 
 class Position {
 public:
-	using DrawList = StaticList<ui64, 96>;
+	using DrawList = StaticList<ui64, 128>;
 
 	ui64 perft(int depth) const;
 

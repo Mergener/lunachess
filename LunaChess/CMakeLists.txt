@@ -32,7 +32,7 @@ set(SRC
     "src/core/piece.cpp"
     "src/core/position.cpp"
     "src/core/square.cpp"
-    "src/core/zobrist.cpp" src/ai/endgame.cpp)
+    "src/core/zobrist.cpp" src/ai/endgame.cpp src/core/strutils.cpp src/core/strutils.h src/ai/openingbook.cpp)
 
 set(ALL
     ${HEADERS}

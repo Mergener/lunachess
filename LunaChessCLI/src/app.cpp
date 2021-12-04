@@ -1,14 +1,18 @@
 #include "app.h"
+
+#include <iostream>
+
 #include "appmode.h"
 #include "error.h"
 
 #include "lunachess.h"
 
+// Appmodes:
 #include "perftmode.h"
 #include "playmode.h"
 #include "evalmode.h"
-
-#include <iostream>
+#include "ucimode.h"
+//
 
 namespace lunachess {
 
@@ -23,6 +27,9 @@ static AppMode* makeAppMode(int argc, char* argv[]) {
 	}
 	else if (modeName == "perft") {
 		return new PerftMode();
+	}
+	else if (modeName == "uci") {
+		return new UCIMode();
 	}
 	else {
 		runtimeAssert(false, "Unknown execution mode.");

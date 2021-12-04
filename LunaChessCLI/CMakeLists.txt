@@ -14,7 +14,7 @@ set(SRC
     "src/evalmode.cpp"
     "src/perftmode.cpp"
     "src/playmode.cpp"
-)
+        src/ucimode.cpp src/ucimode.h)
 
 set(ALL
     ${HEADERS}

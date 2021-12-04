@@ -11,6 +11,7 @@
 #include "core/position.h"
 #include "core/square.h"
 #include "core/staticlist.h"
+#include "core/strutils.h"
 #include "core/types.h"
 #include "core/zobrist.h"
 
