@@ -9,7 +9,7 @@
 #include "../core/square.h"
 #include "../core/piece.h"
 
-#include "json.hpp"
+//#include "json.hpp"
 
 namespace lunachess::ai {
 
@@ -75,8 +75,9 @@ struct ScoresTable {
 	}
 };
 
+/*
 void to_json(nlohmann::json& j, const ScoresTable& s);
-void from_json(const nlohmann::json& j, ScoresTable& s);
+void from_json(const nlohmann::json& j, ScoresTable& s);*/
 
 }
 

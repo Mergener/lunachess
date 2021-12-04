@@ -1,10 +1,10 @@
 #include "scorestable.h"
 
-#include "json.hpp"
+//#include "json.hpp"
 
 #define NAMEOF(x) #x
 
-using json = nlohmann::json;
+//using json = nlohmann::json;
 
 namespace lunachess::ai {
 
@@ -147,7 +147,7 @@ PieceSquareTable g_EndKingTable = {
     -27, -11,   4,  13,  14,   4,  -5, -17,
     -53, -34, -21, -11, -28, -14, -24, -43
 };
-
+/*
 void to_json(nlohmann::json& j, const ScoresTable& s) {
     j = json {
         { NAMEOF(ScoresTable::blockingPawnsScore), s.blockingPawnsScore },
@@ -164,8 +164,9 @@ void to_json(nlohmann::json& j, const ScoresTable& s) {
     };
 }
 
+
 void from_json(const nlohmann::json& j, ScoresTable& s) {
 
 }
-
+*/
 }
