@@ -190,7 +190,7 @@ public:
 	inline MovePicker() {
 
 		//generateQGDBook();
-		m_OpBook = OpeningBook::getDefault();
+		//m_OpBook = OpeningBook::getDefault();
 	}
 
 private:

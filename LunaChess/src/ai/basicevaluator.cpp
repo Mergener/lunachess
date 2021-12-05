@@ -210,7 +210,7 @@ int BasicEvaluator::evaluate(const Position& pos) const {
 		total += getPieceMaterialScore(p.getType()) * sign;
 
 		Square evalSqr;
-		if (side == Side::White) {
+		if (p.getSide() == Side::White) {
 			int file = squares::fileOf(s);
 			int rank = squares::rankOf(s);
 
@@ -221,13 +221,11 @@ int BasicEvaluator::evaluate(const Position& pos) const {
 			evalSqr = s;
 		}		
 
-/*
 		total += (sign * interpolateScores(
 			m_OpScoresTable.pieceSquareTables[evalSqr][(int)p.getType()],
 			m_EndScoresTable.pieceSquareTables[evalSqr][(int)p.getType()],
-			gpp));*/
+			gpp)) / 3;
 
-			
 		// See xrays
 		auto attacks = bitboards::getPieceAttacks(p.getType(), 0, s, p.getSide());
 		auto opponent = getOppositeSide(p.getSide());
