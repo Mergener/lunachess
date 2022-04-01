@@ -3,10 +3,17 @@
 *.lib
 *.o
 *.a
+*.out
+*.obj
 *.vs
 *.idea
 *.vscode
 
+data/*
 out/*
 temp/*
 builds/*
+build/*
+cmake-build-debug/*
+cmake-build-release/*
+cmake-build-relwithdebinfo/*

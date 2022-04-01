@@ -1,14 +1,8 @@
-cmake_minimum_required(VERSION 3.15.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14)
+project(Luna)
 
-project(lunachess CXX)
+set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
+add_executable(Luna src/main.cpp src/types.h src/bits.h src/piece.h src/types.cpp src/bitboard.h src/bitboard.cpp src/piece.cpp src/position.cpp src/position.h src/zobrist.cpp src/zobrist.h src/square.cpp src/move.cpp src/move.h src/staticlist.h src/utils.h src/perft.h src/perft.cpp src/lunachess.cpp src/lunachess.h src/debug.cpp src/debug.h src/ai/evaluator.h src/ai/transpositiontable.h src/ai/basicevaluator.h src/ai/basicevaluator.cpp src/ai/search.h src/lock.h src/ai/search.cpp src/ai/transpositiontable.cpp src/ai/aimovegen.cpp src/ai/aimovegen.h src/ai/aibitboards.cpp src/ai/aibitboards.h src/uci.cpp src/uci.h src/strutils.cpp src/strutils.h src/input.cpp src/input.h src/ai/hotmap.cpp src/ai/hotmap.h src/ai/genetic.cpp src/ai/genetic.h src/serial.cpp src/serial.h src/clock.h src/ai/neural/nn.cpp src/ai/neural/nn.h src/movegen.h src/posutils.h)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
-
-#add_subdirectory(ext/json)
-#set(NLOHMANN_JSON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/ext/json/single_include/nlohmann)
-
-add_subdirectory(LunaChess)
-add_subdirectory(LunaChessCLI)
-add_subdirectory(LunaTest)
+set(CMAKE_CXX_FLAGS "-pthread --std=c++17 -lstdc++fs")

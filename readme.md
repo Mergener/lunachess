@@ -6,19 +6,28 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 ## Prerequisites
 
 - C++17 compliant compiler
-- CMake 3.15 or higher (build system generator)
+- CMake 3.14 or higher (build system generator)
 
 ## Features
 
 - Move generation
-	- Bitboard based move-generation
+    - Magic bitboard based move-generation
 
 - Search features
-	 - Killer move heuristic
-	 - PV-Node heuristic
-	 - MVV-LVA ordering for captures
-	 - Quiescence pickMove
-	 - Iterative deepening with Transposition Tables
+     - Killer move heuristic
+     - History heuristic
+     - Quiescence search
+     - Iterative deepening with Transposition Tables
+     - PV-Node heuristic
+     - MVV-LVA ordering for captures
+     - Null move pruning
+     - Futility pruning
+     - Delta pruning
+     - Late move reductions
+
+- Evaluation
+    - Traditional evaluation with several positional parameters
+    - Multithreaded genetic algorithm for tuning of positional parameters
 
 ## Building
 
@@ -32,7 +41,7 @@ cmake -S . -B builds
 After that, ```cd``` onto ```builds``` and call ```make```. This will generate binaries for
 lunachess (both the engine static library and executable) and lunatest (the Luna testing suite).
 
-- Visual Studio 2019 
+- Visual Studio 2019/2022 
 
 First, make sure 'C++ Cmake tools for Windows' is installed. If not, it is possible
 to do so in the Visual Studio Installer.
@@ -43,29 +52,18 @@ be able to compile and run it within the IDE.
 
 ## Usage
 
-**Play mode**
+Luna is a command line application that follows the UCI protocol. A documentation for the protocol can be found [here](http://wbec-ridderkerk.nl/html/UCIProtocol.html).
 
-```lunachess play [optArgs...]```
+Note that, by using the UCI protocol, Luna is designed to be easily integrated with existing chess graphical interfaces.
 
-Starts a chess game against Luna. Expects the user to input UCI-based chess moves.
-Whenever it is Luna's turn, it will output the UCI moves it chooses.
+Besides existing UCI commands, Luna also provides the following extensions:
 
-Arguments (optional):
+* ```domoves <move1> [<move2> ...]``` Makes the specified moves on the current position.
 
- - ```-depth <int>``` Specifies Luna's depth. Defaults to 5.
- - ```-side <white|black|both>``` The side Luna should play. Defaults to 'white'.
- - ```-fen <fenString>``` Specifies a [FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) for the initial position. Defaults to the  standard initial chess position.
- - ```--showeval``` Outputs the evaluation for the current position alongside each move it plays.
- - ```--showtime``` Outputs the time, in seconds, spent for each of Luna's moves.
- 
-**Evaluation mode**
+* ```takeback [<n>] ``` Retracts the last n moves. 'n' defaults to 1.
 
-```lunachess eval [optArgs...]```
+* ```getpos``` Outputs the current position in a human comprehensible format.
 
-Evaluates a single chess position, outputting its score and the best move according to Luna.
+* ```getfen``` Outputs the [FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) string for the current position.
 
-Arguments (optional):
-
- - ```-depth <int>``` Specifies Luna's depth. Defaults to 5.
- - ```-fen <fenString>``` Specifies a [FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) for the position to be evaluated. Defaults to the  standard initial chess position.
-
+* ```perft <depth>``` Calculates and outputs the [perft results](https://www.chessprogramming.org/Perft_Results) for the current position.
