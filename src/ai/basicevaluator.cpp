@@ -65,17 +65,17 @@ void BasicEvaluator::generateNewMgTable() {
 
     defaultMgTable.tropismScore[PT_PAWN] = 300;
     defaultMgTable.tropismScore[PT_KNIGHT] = 360;
-    defaultMgTable.tropismScore[PT_BISHOP] = 120;
+    defaultMgTable.tropismScore[PT_BISHOP] = 140;
     defaultMgTable.tropismScore[PT_ROOK] = 300;
     defaultMgTable.tropismScore[PT_QUEEN] = 240;
     defaultMgTable.tropismScore[PT_KING] = 0;
 
-    defaultMgTable.xrayScores[PT_PAWN] = -10;
+    defaultMgTable.xrayScores[PT_PAWN] = -12;
     defaultMgTable.xrayScores[PT_KNIGHT] = 10;
     defaultMgTable.xrayScores[PT_BISHOP] = 10;
     defaultMgTable.xrayScores[PT_ROOK] = 30;
     defaultMgTable.xrayScores[PT_QUEEN] = 50;
-    defaultMgTable.xrayScores[PT_KING] = 80;
+    defaultMgTable.xrayScores[PT_KING] = 60;
 
     defaultMgTable.mobilityScore = 30;
 

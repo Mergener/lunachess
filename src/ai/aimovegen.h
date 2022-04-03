@@ -17,10 +17,10 @@ namespace lunachess::ai {
 struct MoveOrderingScores {
     int promotionBaseScore = 5000;
     int promotionPieceTypeScore = 100;
-    int captureBaseScore = 2000;
+    int captureBaseScore = 3000;
     int captureDeltaScore = 100;
     int castlesScore = 50;
-    int killerMoveScore = 2000;
+    int killerMoveScore = 1000;
     int historyScore = 400;
     int placementDeltaMultiplier = 5;
 };
