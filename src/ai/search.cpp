@@ -140,11 +140,9 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
     }
 
     bool isRoot = ply == 0;
-
+    const int originalDepth = depth;
     const int originalAlpha = alpha;
-
     int staticEval;
-
     Move hashMove = MOVE_INVALID;
 
     // #----------------------------------------
@@ -171,7 +169,6 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
                 return ttEntry.score;
             }
         }
-
         staticEval = ttEntry.staticEval;
     }
     else {
@@ -323,7 +320,7 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
         ttEntry.type = TranspositionTable::EXACT;
     }
 
-    ttEntry.depth = depth;
+    ttEntry.depth = originalDepth;
     ttEntry.move = bestMove;
     ttEntry.score = alpha;
     ttEntry.zobristKey = posKey;
@@ -333,7 +330,9 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
 }
 
 void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, SearchSettings settings) {
-    m_TT.clear();
+    if (settings.clearPreviousTT) {
+        m_TT.clear();
+    }
 
     TranspositionTable::Entry ttEntry;
 
@@ -374,6 +373,10 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
 
     m_LastResults.bestMove = moves[0];
 
+    int alpha = -HIGH_BETA;
+    int beta = HIGH_BETA;
+    int window = 9000;
+
     ui64 posKey = m_Pos.getZobrist();
     // Perform iterative deepening, starting at depth 1
     for (int depth = 1; depth < MAX_SEARCH_DEPTH; depth++) {
@@ -381,14 +384,25 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
         m_LastResults.currDepthStart = clock.now();
 
         // Perform the search
-        m_LastResults.bestScore = searchInternal(depth, 0, -HIGH_BETA, HIGH_BETA, false);
+        bool mustResearch = true;
+        while (mustResearch) {
+            m_LastResults.bestScore = searchInternal(depth, 0, alpha, beta, false);
 
-        // Obtain the best move from the transposition table
-        TranspositionTable::Entry best;
-        m_TT.tryGet(posKey, best);
-        m_LastResults.bestMove = best.move;
-        m_LastResults.bestScore = best.score;
-        m_LastResults.searchedDepth = depth;
+            // Obtain the best move from the transposition table
+            TranspositionTable::Entry best;
+            m_TT.tryGet(posKey, best);
+            if (best.type != TranspositionTable::EXACT) {
+                alpha = -HIGH_BETA;
+                beta = HIGH_BETA;
+                mustResearch = true;
+                continue;
+            }
+
+            m_LastResults.bestMove = best.move;
+            m_LastResults.bestScore = best.score;
+            m_LastResults.searchedDepth = depth;
+            mustResearch = false;
+        }
 
         for (int i = 0; i < moves.size(); ++i) {
             Move move = moves[i];
@@ -402,6 +416,16 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
         moves.clear();
 
         movegen::generate(pos, moves);
+
+        if (depth > 5) {
+            window -= 1000 / (depth - 4);
+            alpha = m_LastResults.bestScore - window;
+            beta = m_LastResults.bestScore + window;
+        }
+        else {
+            alpha = -HIGH_BETA;
+            beta = HIGH_BETA;
+        }
     }
 }
 

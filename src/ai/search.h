@@ -117,6 +117,8 @@ struct SearchSettings {
      * the scores of variations beside the PV is useful.
      */
     bool doDeepSearch = false;
+
+    bool clearPreviousTT = true;
 };
 
 class MoveSearcher {
@@ -164,6 +166,9 @@ public:
 
     inline BasicEvaluator& getEvaluator() { return *m_Eval; }
     inline const BasicEvaluator& getEvaluator() const { return *m_Eval; }
+
+    inline const TranspositionTable& getTT() const { return m_TT; }
+    inline TranspositionTable& getTT() { return m_TT; }
 
 private:
     Position m_Pos = Position::getInitialPosition();
