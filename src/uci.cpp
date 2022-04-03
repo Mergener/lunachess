@@ -15,7 +15,6 @@
 #include "strutils.h"
 #include "lock.h"
 #include "position.h"
-#include "input.h"
 #include "clock.h"
 
 #include "ai/search.h"
@@ -26,30 +25,8 @@ using CommandArgs = std::vector<std::string_view>;
 
 enum UCIState {
     WAITING,
-    CALCULATING,
+    WORKING,
     STOPPING
-};
-
-struct UCISearchContext {
-    ai::MoveSearcher searcher;
-    ai::SearchResults lastResults;
-    bool shouldStop = false;
-    TimePoint startTime;
-
-    UCISearchContext()
-        : startTime(Clock().now()) { }
-};
-
-enum TimeControlMode {
-    TC_INFINITE,
-    TC_FISCHER,
-    TC_MOVETIME
-};
-
-struct TimeControl {
-    int time = 0;
-    int increment = 0;
-    TimeControlMode mode = TC_INFINITE;
 };
 
 struct UCIContext {
@@ -67,10 +44,21 @@ struct UCIContext {
     std::queue<std::string> inputQueue;
     Lock inputQueueLock;
 
+    std::queue<std::function<void()>> workQueue;
+    Lock workQueueLock;
+
     // Search settings
-    std::shared_ptr<UCISearchContext> currentSearch;
     int maxDepth = ai::MAX_SEARCH_DEPTH;
+    ai::MoveSearcher searcher;
+    ai::SearchResults lastSearchResults;
+    bool shouldStopCurrentSearch = false;
 };
+
+static void startWork(UCIContext& ctx, std::function<void()> work) {
+    ctx.workQueueLock.lock();
+    ctx.workQueue.push(work);
+    ctx.workQueueLock.unlock();
+}
 
 using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
 
@@ -293,107 +281,99 @@ static void infoPrintScore(int score) {
 }
 
 static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
-    if (ctx.currentSearch != nullptr) {
+    if (ctx.state != WAITING) {
         std::cerr << "Cannot call go while a search is currently running. Call 'stop' first." << std::endl;
         return;
     }
 
-    auto search = std::make_shared<UCISearchContext>();
-    ctx.currentSearch = search;
+    startWork(ctx, [&ctx, args] {
+        ctx.shouldStopCurrentSearch = false;
 
-    // Create position clone
-    Position pos = ctx.pos;
+        ctx.state = WORKING;
 
-    MoveList searchMoves;
+        // Create position clone
+        Position pos = ctx.pos;
 
-    // Parse arguments
-    for (int i = 0; i < args.size(); ++i) {
-        const auto& arg = args[i];
+        MoveList searchMoves;
 
-        if (arg == "searchmoves") {
-            // User wants to search only some specific moves
-            i++;
-            for (Move move = Move(pos, args[i]); move != MOVE_INVALID && i < args.size(); i++) {
-                searchMoves.add(move);
+        // Parse arguments
+        for (int i = 0; i < args.size(); ++i) {
+            const auto &arg = args[i];
+
+            if (arg == "searchmoves") {
+                // User wants to search only some specific moves
+                i++;
+                for (Move move = Move(pos, args[i]); move != MOVE_INVALID && i < args.size(); i++) {
+                    searchMoves.add(move);
+                }
+            } else if (arg == "depth") {
+                // User wants to limit the search depth to a specific value
+                int depth;
+                bool succ = strutils::tryParseInteger(args[++i], depth);
+                if (succ && depth >= 1) {
+                    ctx.maxDepth = depth;
+                } else {
+                    // Invalid depth value
+                    std::cerr << "Unexpected depth value '" << args[i] << "'." << std::endl;
+                }
+                i++;
+            } else if (arg == "wtime") {
+                // Defines white color base time
+                readTime(args[++i], ctx.timeControl[CL_WHITE].time);
+                ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
+                i++;
+            } else if (arg == "winc") {
+                // Defines white color time increment
+                readTime(args[++i], ctx.timeControl[CL_WHITE].increment);
+                ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
+                i++;
+            } else if (arg == "btime") {
+                // Defines black color base time
+                readTime(args[++i], ctx.timeControl[CL_BLACK].time);
+                ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
+                i++;
+            } else if (arg == "binc") {
+                // Defines black color time increment
+                readTime(args[++i], ctx.timeControl[CL_BLACK].increment);
+                ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
+                i++;
+            } else if (arg == "movetime") {
+                // Defines the move time, a time in milliseconds for each move.
+                readTime(args[++i], ctx.timeControl[pos.getColorToMove()].time);
+                ctx.timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
+                i++;
             }
         }
-        else if (arg == "depth") {
-            // User wants to limit the search depth to a specific value
-            int depth;
-            bool succ = strutils::tryParseInteger(args[++i], depth);
-            if (succ && depth >= 1) {
-                ctx.maxDepth = depth;
-            }
-            else {
-                // Invalid depth value
-                std::cerr << "Unexpected depth value '" << args[i] << "'." << std::endl;
-            }
-            i++;
-        }
-        else if (arg == "wtime") {
-            // Defines white color base time
-            readTime(args[++i], ctx.timeControl[CL_WHITE].time);
-            ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
-            i++;
-        }
-        else if (arg == "winc") {
-            // Defines white color time increment
-            readTime(args[++i], ctx.timeControl[CL_WHITE].increment);
-            ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
-            i++;
-        }
-        else if (arg == "btime") {
-            // Defines black color base time
-            readTime(args[++i], ctx.timeControl[CL_BLACK].time);
-            ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
-            i++;
-        }
-        else if (arg == "binc") {
-            // Defines black color time increment
-            readTime(args[++i], ctx.timeControl[CL_BLACK].increment);
-            ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
-            i++;
-        }
-        else if (arg == "movetime") {
-            // Defines the move time, a time in milliseconds for each move.
-            readTime(args[++i], ctx.timeControl[pos.getColorToMove()].time);
-            ctx.timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
-            i++;
-        }
-    }
 
-    ai::SearchSettings settings;
+        ai::SearchSettings searchSettings;
 
-    // Check if searchmoves option was used
-    if (searchMoves.size() == 0) {
-        settings.moveFilter = nullptr;
-    }
-    else {
-        // Use the move search list as a filter for the moves to be searched.
-        settings.moveFilter = [searchMoves](Move m) {
-            return searchMoves.contains(m);
-        };
-    }
+        // Check if searchmoves option was used
+        if (searchMoves.size() == 0) {
+            searchSettings.moveFilter = nullptr;
+        } else {
+            // Use the move search list as a filter for the moves to be searched.
+            searchSettings.moveFilter = [searchMoves](Move m) {
+                return searchMoves.contains(m);
+            };
+        }
 
-    ai::SearchSettings searchSettings;
-    searchSettings.doDeepSearch = ctx.timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
-    int multiPvCount = ctx.multiPvCount;
+        searchSettings.ourTimeControl = ctx.timeControl[pos.getColorToMove()];
+        searchSettings.theirTimeControl = ctx.timeControl[getOppositeColor(pos.getColorToMove())];
+        searchSettings.clearPreviousTT = ctx.pos.getPlyCount() % 4 == 0; // Clear TT ever 4 plies
+        searchSettings.doDeepSearch = ctx.timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
+        int multiPvCount = ctx.multiPvCount;
 
-    // Start search concurrently
-    std::thread thread([search, searchSettings, pos, multiPvCount] {
-        // Only perform deep search if multiple pv mode was selected and time control type if infinite
-        // Non infinite time controls need to have constraints on time usage, so we shouldn't use
-        // deep search and display some lowerbound/upperbound scores sometimes instead.
-        // Infinite time controls, however, are meant to provide a more thorough analysis of a position.
-        search->searcher.search(pos, [searchSettings, search, multiPvCount](ai::SearchResults res) {
-            if (search->shouldStop) {
+        TimePoint startTime = Clock::now();
+
+        ctx.searcher.search(pos, [&ctx, startTime](ai::SearchResults res) {
+            if (ctx.shouldStopCurrentSearch) {
                 return true;
             }
 
             Clock clock;
 
             for (int i = 0; i < res.searchedVariations.size(); ++i) {
-                const auto& var = res.searchedVariations[i];
+                const auto &var = res.searchedVariations[i];
 
                 std::cout << "info depth " << res.searchedDepth;
 
@@ -425,23 +405,24 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
                 std::cout << " nodes " << res.visitedNodes;
                 std::cout << " nps " << res.getNPS();
 
-                std::cout << " time " << deltaMs(clock.now(), search->startTime);
+                std::cout << " time " << deltaMs(clock.now(), startTime);
 
                 std::cout << std::endl;
 
-                search->lastResults = res;
+                ctx.lastSearchResults = res;
 
-                if (i >= multiPvCount - 1) {
+                if (i >= ctx.multiPvCount - 1) {
                     // Enough variation printing
                     break;
                 }
             }
 
             return false;
-        },searchSettings);
-    });
+        }, searchSettings);
 
-    thread.detach();
+        std::cout << "bestmove " << ctx.lastSearchResults.bestMove << std::endl;
+        ctx.state = WAITING;
+    });
 }
 
 static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
@@ -471,6 +452,7 @@ static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "Time: " << elapsed << "ms" << std::endl;
     std::cout << "NPS: " << ui64(double(res) / double(elapsed + 1) * 1000) << std::endl;
 }
+
 static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
     for (const auto& arg: args) {
         Move move(ctx.pos, arg);
@@ -507,14 +489,12 @@ static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static void stopSearch(UCIContext& ctx) {
-    std::cout << "bestmove " << ctx.currentSearch->lastResults.bestMove << std::endl;
-
-    ctx.currentSearch->shouldStop = true;
-    ctx.currentSearch = nullptr;
+    ctx.shouldStopCurrentSearch = true;
+    ctx.searcher.stop();
 }
 
 static void cmdStop(UCIContext& ctx, const CommandArgs& args) {
-    if (ctx.currentSearch == nullptr) {
+    if (ctx.state != WORKING) {
         // No searches ongoing
         std::cerr << "Not searching at the moment." << std::endl;
         return;
@@ -631,109 +611,90 @@ static std::unordered_map<std::string, Command> generateCommands() {
     return cmds;
 }
 
-static void manageCurrentSearch(UCIContext& ctx) {
-    using namespace std::chrono;
-
-    if (ctx.currentSearch == nullptr) {
-        // No ongoing search
-        return;
-    }
-
-    Clock clock;
-
-    // Check for time control
-    Color col = ctx.pos.getColorToMove();
-    i64 elapsedMs = deltaMs(clock.now(), ctx.currentSearch->startTime);
-
-    const TimeControl& tc = ctx.timeControl[col];
-
-    switch (tc.mode) {
-        case TC_FISCHER: {
-            if (elapsedMs >= (tc.time / 24 - 1)) {
-                stopSearch(ctx);
-            }
-            break;
-        }
-
-        case TC_MOVETIME: {
-            // We have n seconds to perform a single move, use all possible time.
-            double movetime = tc.time;
-            double elapsed = elapsedMs;
-
-            if (elapsed >= (movetime - 100)) {
-                stopSearch(ctx);
-            }
-            break;
-        }
-
-        case TC_INFINITE:
-            break; // Do nothing.
-    }
-}
-
 //
 //  UCI Main loop functions:
 //
 
-int uciMain() {
-    std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
+static void handleInput(UCIContext& ctx, std::unordered_map<std::string, Command>& cmds) {
+    std::string in;
+    std::getline(std::cin, in);
 
-    input::initializeThread();
+    // Generate arguments
+    CommandArgs args;
 
+    // Process input
+    strutils::reduceWhitespace(in);
+    strutils::split(in, args, " ");
+
+    if (args.size() > 0) {
+        std::string cmd = std::string(*args.begin());
+        // First member of the list is the command itself, remove it.
+        args.erase(args.begin());
+
+        // Find function that matches the command
+        auto it = cmds.find(cmd);
+        if (it == cmds.end()) {
+            // Unknown command
+            std::cerr << "Unknown command '" << cmd << "'." << std::endl;
+        }
+        else {
+            // Command found, execute it.
+            Command& c = it->second;
+            try {
+                // First check if there's an argument count mismatch.
+                // If not, execute the command.
+                if (args.size() < c.minExpectedArgs) {
+                    std::cerr << "Expected at least " << c.minExpectedArgs << " argument(s) for '" << cmd
+                              << "', got " << args.size() << "." << std::endl;
+                }
+                else if (args.size() > c.minExpectedArgs && c.exactArgsCount) {
+                    std::cerr << "Expected only " << c.minExpectedArgs << " argument(s) for '" << cmd
+                              << "', got " << args.size() << "." << std::endl;
+                }
+                else {
+                    it->second.function(ctx, args);
+                }
+            }
+            catch (const std::exception& ex) {
+                std::cerr << ex.what() << std::endl;
+            }
+        }
+    }
+}
+
+static void inputThreadMain(UCIContext& ctx) {
     // Generate commands dictionary
     auto dict = generateCommands();
 
-    // Main loop
-    while (ctx->state != STOPPING) {
-        std::string in;
-        if (input::poll(in)) {
-            // Generate arguments
-            CommandArgs args;
-
-            // Process input
-            strutils::reduceWhitespace(in);
-            strutils::split(in, args, " ");
-
-            if (args.size() > 0) {
-                std::string cmd = std::string(*args.begin());
-                // First member of the list is the command itself, remove it.
-                args.erase(args.begin());
-
-                // Find function that matches the command
-                auto it = dict.find(cmd);
-                if (it == dict.end()) {
-                    // Unknown command
-                    std::cerr << "Unknown command '" << cmd << "'." << std::endl;
-                }
-                else {
-                    // Command found, execute it.
-                    Command& c = it->second;
-                    try {
-                        // First check if there's an argument count mismatch.
-                        // If not, execute the command.
-                        if (args.size() < c.minExpectedArgs) {
-                            std::cerr << "Expected at least " << c.minExpectedArgs << " argument(s) for '" << cmd
-                                      << "', got " << args.size() << "." << std::endl;
-                        }
-                        else if (args.size() > c.minExpectedArgs && c.exactArgsCount) {
-                            std::cerr << "Expected only " << c.minExpectedArgs << " argument(s) for '" << cmd
-                                      << "', got " << args.size() << "." << std::endl;
-                        }
-                        else {
-                            it->second.function(*ctx, args);
-                        }
-                    }
-                    catch (const std::exception& ex) {
-                        std::cerr << ex.what() << std::endl;
-                    }
-                }
-            }
-        }
-
-        manageCurrentSearch(*ctx);
+    while (ctx.state != STOPPING) {
+        handleInput(ctx, dict);
     }
+}
 
-    input::killThread();
+static void workerThreadMain(UCIContext& ctx) {
+    while (ctx.state != STOPPING) {
+        std::function<void()> work = nullptr;
+
+        ctx.workQueueLock.lock();
+        if (!ctx.workQueue.empty()) {
+            work = ctx.workQueue.front();
+            ctx.workQueue.pop();
+        }
+        ctx.workQueueLock.unlock();
+
+        if (work != nullptr) {
+            work();
+        }
+    }
+}
+
+int uciMain() {
+    std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
+
+    // Main loop
+    std::thread inputThread([&ctx]() { inputThreadMain(*ctx); });
+
+    workerThreadMain(*ctx);
 
     return 0;
 }

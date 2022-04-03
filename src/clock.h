@@ -3,6 +3,8 @@
 
 #include <chrono>
 
+#include "types.h"
+
 namespace lunachess {
 
 using Clock = std::chrono::steady_clock;

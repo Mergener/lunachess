@@ -1,5 +1,6 @@
 #include "search.h"
 
+#include <stdexcept>
 #include <algorithm>
 #include <thread>
 #include "../movegen.h"
@@ -42,7 +43,7 @@ void MoveSearcher::extractVariation(Move move, SearchedVariation& var) {
 }
 
 bool MoveSearcher::updateResults() {
-    // Sort variations before updating results
+    // Sort variations before updating lastSearchResults
     std::sort(m_LastResults.searchedVariations.begin(), m_LastResults.searchedVariations.end(),
           [](const SearchedVariation& a, const SearchedVariation& b) {
               if (a.type == TranspositionTable::EXACT && b.type != TranspositionTable::EXACT) {
@@ -80,8 +81,23 @@ int MoveSearcher::generateAndOrderMoves(MoveList& ml, int ply, Move pvMove) {
     return ml.size() - initialCount;
 }
 
+/**
+ * Pseudo-exception to be thrown when the search time is up.
+ */
+class TimeUpException : public std::exception {
+};
+
+constexpr int CHECK_TIME_NODE_INTERVAL = 4096;
+
 int MoveSearcher::quiesce(int ply, int alpha, int beta) {
     m_LastResults.visitedNodes++;
+
+    if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
+        (m_TimeManager.timeIsUp()
+         || m_ShouldStop)) {
+        throw TimeUpException();
+    }
+
     int standPat = m_Eval->evaluate(m_Pos);
 
     if (standPat >= beta) {
@@ -137,6 +153,12 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
 
     if (m_Pos.isDraw(1)) {
         return m_Eval->getDrawScore();
+    }
+
+    if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
+            (m_TimeManager.timeIsUp()
+            || m_ShouldStop)) {
+        throw TimeUpException();
     }
 
     bool isRoot = ply == 0;
@@ -330,103 +352,121 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
 }
 
 void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, SearchSettings settings) {
-    if (settings.clearPreviousTT) {
-        m_TT.clear();
-    }
+    while (m_Searching);
 
-    TranspositionTable::Entry ttEntry;
+    try {
+        m_Searching = true;
+        m_ShouldStop = false;
 
-    int drawScore = m_Eval->getDrawScore();
+        if (settings.clearPreviousTT) {
+            m_TT.clear();
+        }
 
-    m_Handler = handler;
-    m_Pos = pos;
+        TranspositionTable::Entry ttEntry;
 
-    // Generate and order all moves
-    MoveList moves;
+        int drawScore = m_Eval->getDrawScore();
 
-    Clock clock;
-    m_LastResults.visitedNodes = 1;
-    m_LastResults.searchStart = clock.now();
+        m_Handler = handler;
+        m_Pos = pos;
 
-    // Last results could have been filled with a previous search
-    m_LastResults.searchedVariations.clear();
+        // Generate and order all moves
+        MoveList moves;
 
-    generateAndOrderMoves(moves, 0, MOVE_INVALID);
-
-    // Add a variation object for each move being searched
-    // The indexes of the generated moves list will match
-    // the variations in this vector.
-    m_LastResults.searchedVariations.resize(moves.size());
-
-    // Check if no legal moves (stalemate/checkmate)
-    if (moves.size() == 0) {
-        int score = m_Pos.isCheck()
-                ? -MATE_SCORE // Checkmate
-                : drawScore;  // Stalemate
-
-        m_LastResults.bestScore = score;
-        m_LastResults.bestMove = MOVE_INVALID;
-
-        updateResults();
-        return;
-    }
-
-    m_LastResults.bestMove = moves[0];
-
-    int alpha = -HIGH_BETA;
-    int beta = HIGH_BETA;
-    int window = 9000;
-
-    ui64 posKey = m_Pos.getZobrist();
-    // Perform iterative deepening, starting at depth 1
-    for (int depth = 1; depth < MAX_SEARCH_DEPTH; depth++) {
+        Clock clock;
         m_LastResults.visitedNodes = 1;
-        m_LastResults.currDepthStart = clock.now();
+        m_LastResults.searchStart = clock.now();
 
-        // Perform the search
-        bool mustResearch = true;
-        while (mustResearch) {
-            m_LastResults.bestScore = searchInternal(depth, 0, alpha, beta, false);
+        // Last lastSearchResults could have been filled with a previous search
+        m_LastResults.searchedVariations.clear();
 
-            // Obtain the best move from the transposition table
-            TranspositionTable::Entry best;
-            m_TT.tryGet(posKey, best);
-            if (best.type != TranspositionTable::EXACT) {
-                alpha = -HIGH_BETA;
-                beta = HIGH_BETA;
-                mustResearch = true;
-                continue;
+        generateAndOrderMoves(moves, 0, MOVE_INVALID);
+
+        // Add a variation object for each move being searched
+        // The indexes of the generated moves list will match
+        // the variations in this vector.
+        m_LastResults.searchedVariations.resize(moves.size());
+
+        // Check if no legal moves (stalemate/checkmate)
+        if (moves.size() == 0) {
+            int score = m_Pos.isCheck()
+                        ? -MATE_SCORE // Checkmate
+                        : drawScore;  // Stalemate
+
+            m_LastResults.bestScore = score;
+            m_LastResults.bestMove = MOVE_INVALID;
+
+            updateResults();
+            return;
+        }
+
+        m_LastResults.bestMove = moves[0];
+
+        int alpha = -HIGH_BETA;
+        int beta = HIGH_BETA;
+        int window = 9000;
+
+        ui64 posKey = m_Pos.getZobrist();
+
+        m_TimeManager.start(settings.ourTimeControl);
+
+        // Perform iterative deepening, starting at depth 1
+        for (int depth = 1; depth < MAX_SEARCH_DEPTH && !m_TimeManager.timeIsUp() && !m_ShouldStop; depth++) {
+            m_LastResults.visitedNodes = 0;
+            m_LastResults.currDepthStart = clock.now();
+
+            // Perform the search
+            bool mustResearch = true;
+            try {
+                while (mustResearch) {
+                    m_LastResults.bestScore = searchInternal(depth, 0, alpha, beta, false);
+
+                    // Obtain the best move from the transposition table
+                    TranspositionTable::Entry best;
+                    m_TT.tryGet(posKey, best);
+                    if (best.type != TranspositionTable::EXACT) {
+                        alpha = -HIGH_BETA;
+                        beta = HIGH_BETA;
+                        mustResearch = true;
+                        continue;
+                    }
+
+                    m_LastResults.bestMove = best.move;
+                    m_LastResults.bestScore = best.score;
+                    m_LastResults.searchedDepth = depth;
+                    mustResearch = false;
+                }
+            }
+            catch (const TimeUpException &ex) {
+                // Time over
+                break;
             }
 
-            m_LastResults.bestMove = best.move;
-            m_LastResults.bestScore = best.score;
-            m_LastResults.searchedDepth = depth;
-            mustResearch = false;
-        }
+            for (int i = 0; i < moves.size(); ++i) {
+                Move move = moves[i];
+                extractVariation(move, m_LastResults.searchedVariations[i]);
+            }
+            if (updateResults()) {
+                // Search stop requested.
+                break;
+            }
 
-        for (int i = 0; i < moves.size(); ++i) {
-            Move move = moves[i];
-            extractVariation(move, m_LastResults.searchedVariations[i]);
-        }
-        if (updateResults()) {
-            // Search stop requested.
-            break;
-        }
+            moves.clear();
 
-        moves.clear();
+            movegen::generate(pos, moves);
 
-        movegen::generate(pos, moves);
-
-        if (depth > 5) {
-            window -= 1000 / (depth - 4);
-            alpha = m_LastResults.bestScore - window;
-            beta = m_LastResults.bestScore + window;
-        }
-        else {
-            alpha = -HIGH_BETA;
-            beta = HIGH_BETA;
+            if (depth > 5) {
+                window -= 1000 / (depth - 4);
+                alpha = m_LastResults.bestScore - window;
+                beta = m_LastResults.bestScore + window;
+            } else {
+                alpha = -HIGH_BETA;
+                beta = HIGH_BETA;
+            }
         }
     }
+    catch (const std::exception& ex) {
+    }
+    m_Searching = false;
 }
 
 }

@@ -19,10 +19,6 @@ bool TranspositionTable::maybeAdd(const Entry& entry) {
         m_Entries[entry.zobristKey] = entry;
         return true;
     }
-    else if (it->second.type != TranspositionTable::EXACT) {
-        m_Entries[entry.zobristKey] = entry;
-        return true;
-    }
     return false;
 }
 

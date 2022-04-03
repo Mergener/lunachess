@@ -5,11 +5,13 @@
 #include <functional>
 #include <optional>
 #include <vector>
+#include <atomic>
 
 #include "transpositiontable.h"
 #include "evaluator.h"
 #include "aimovegen.h"
 #include "basicevaluator.h"
+#include "timemanager.h"
 
 #include "../clock.h"
 #include "../position.h"
@@ -95,7 +97,7 @@ struct SearchResults {
 };
 
 /**
- * Handler for whenever a search obtains new results.
+ * Handler for whenever a search obtains new lastSearchResults.
  * Should return true if stopping the search is desired.
  */
 using SearchResultsHandler = std::function<bool(SearchResults)>;
@@ -119,10 +121,17 @@ struct SearchSettings {
     bool doDeepSearch = false;
 
     bool clearPreviousTT = true;
+
+    TimeControl ourTimeControl;
+    TimeControl theirTimeControl;
 };
 
 class MoveSearcher {
 public:
+    inline void stop() {
+        m_ShouldStop = true;
+    }
+
     void search(const Position& pos, SearchResultsHandler handler, SearchSettings settings = SearchSettings());
 
     /**
@@ -177,6 +186,9 @@ private:
     AIMoveFactory m_MvFactory;
     SearchResultsHandler m_Handler = [](SearchResults r){ return false; };
     std::shared_ptr<BasicEvaluator> m_Eval;
+    TimeManager m_TimeManager;
+    bool m_ShouldStop = false;
+    bool m_Searching = false;
 
     /**
      * Extracts the sequence of moves calculated after the given move.

@@ -315,6 +315,22 @@ inline constexpr int getManhattanDistance(Square a, Square b) {
 
 const char* getSquareName(Square s);
 
+//
+// Time control types
+//
+
+enum TimeControlMode {
+    TC_INFINITE,
+    TC_FISCHER,
+    TC_MOVETIME
+};
+
+struct TimeControl {
+    int time = 0;
+    int increment = 0;
+    TimeControlMode mode = TC_INFINITE;
+};
+
 } // lunachess
 
 #endif // LUNA_TYPES_H
