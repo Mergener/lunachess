@@ -64,11 +64,12 @@ int main(int argc, char* argv[]) {
     std::cin.tie();
 
     if (argc > 1 && std::string(argv[1]) == "train") {
-        int movetime = 1000;
+        constexpr int DEFAULT_MOVETIME = 1000;
+        int movetime = DEFAULT_MOVETIME;
 
         if (argc > 2) {
             if (!strutils::tryParseInteger(argv[2], movetime)) {
-                movetime = 250;
+                movetime = DEFAULT_MOVETIME;
             }
         }
 
