@@ -42,8 +42,8 @@ static int trainingMain(int movetime) {
     });
 
     gen::TrainingSettings settings;
-    settings.agentsPerGen = 16;
-    settings.selectNumber = 6;
+    settings.agentsPerGen = 10;
+    settings.selectNumber = 4;
     settings.savePath = "data/trainings/" + s_TrainingName;
     settings.movetime = movetime;
     settings.maxThreads = std::thread::hardware_concurrency() - 1;

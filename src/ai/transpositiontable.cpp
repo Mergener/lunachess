@@ -2,35 +2,28 @@
 
 namespace lunachess::ai {
 
-TranspositionTable::TranspositionTable() {
-}
-
-void TranspositionTable::remove(ui64 posKey) {
-    m_Entries.erase(posKey);
-}
-
 bool TranspositionTable::maybeAdd(const Entry& entry) {
-    auto it = m_Entries.find(entry.zobristKey);
-    if (it == m_Entries.cend()) {
-        m_Entries[entry.zobristKey] = entry;
+    Bucket& b = getBucket(entry.zobristKey);
+    if (!b.valid) {
+        b.entry = entry;
+        b.valid = true;
+        std::cout << b.entry.zobristKey << std::endl;
         return true;
     }
-    else if (it->second.depth < entry.depth) {
-        m_Entries[entry.zobristKey] = entry;
+    // We had a valid bucket, check if same key
+    if (b.entry.zobristKey != entry.zobristKey) {
+        // Different keys, always replace
+        b.entry = entry;
+        b.valid = true;
+        return true;
+    }
+    if (b.entry.depth < entry.depth) {
+        // New one has a higher depth, replace
+        b.entry = entry;
+        b.valid = true;
         return true;
     }
     return false;
-}
-
-bool TranspositionTable::tryGet(ui64 posKey, Entry& entry) const {
-    auto it = m_Entries.find(posKey);
-    if (it == m_Entries.cend()) {
-        return false;
-    }
-
-    entry = it->second;
-
-    return true;
 }
 
 }

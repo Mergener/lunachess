@@ -213,7 +213,7 @@ public:
 private:
     struct Status {
         Move lastMove = MOVE_INVALID;
-        ui64 zobrist = 0;
+        ui64 zobrist = 5454; // Any number
         int fiftyMoveCounter = 0;
 
         /** En-passant capture square */

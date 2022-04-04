@@ -270,6 +270,11 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
     int bestMoveIdx = 0;
 
     // Finally, do the search
+
+    // Setup principal variation
+    Move* pvStart = m_PvIt;
+    *m_PvIt++ = MOVE_INVALID;
+
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];
 
@@ -325,8 +330,14 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
         if (score > alpha) {
             alpha = score;
             bestMoveIdx = i;
+
+            Move* p = m_PvIt;
+            m_PvIt = pvStart;
+            *m_PvIt++ = move;
+            while ((*m_PvIt++ = *p++) != MOVE_INVALID);
         }
     }
+    m_PvIt = pvStart;
 
     // Store search data in transposition table
     Move bestMove = moves[bestMoveIdx];
@@ -357,10 +368,9 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
     try {
         m_Searching = true;
         m_ShouldStop = false;
+        m_PvIt = m_Pv.begin();
 
-        if (settings.clearPreviousTT) {
-            m_TT.clear();
-        }
+        std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
 
         TranspositionTable::Entry ttEntry;
 
@@ -384,7 +394,7 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
         // Add a variation object for each move being searched
         // The indexes of the generated moves list will match
         // the variations in this vector.
-        m_LastResults.searchedVariations.resize(moves.size());
+        m_LastResults.searchedVariations.resize(1);
 
         // Check if no legal moves (stalemate/checkmate)
         if (moves.size() == 0) {
@@ -415,36 +425,42 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
             m_LastResults.currDepthStart = clock.now();
 
             // Perform the search
-            bool mustResearch = true;
+            bool mustResearch = false;
             try {
-                while (mustResearch) {
+                do {
                     m_LastResults.bestScore = searchInternal(depth, 0, alpha, beta, false);
 
-                    // Obtain the best move from the transposition table
-                    TranspositionTable::Entry best;
-                    m_TT.tryGet(posKey, best);
-                    if (best.type != TranspositionTable::EXACT) {
-                        alpha = -HIGH_BETA;
-                        beta = HIGH_BETA;
-                        mustResearch = true;
-                        continue;
-                    }
-
-                    m_LastResults.bestMove = best.move;
-                    m_LastResults.bestScore = best.score;
+                    m_LastResults.bestMove = m_Pv[0];
                     m_LastResults.searchedDepth = depth;
-                    mustResearch = false;
-                }
+
+                    if (!mustResearch) {
+                        if (m_LastResults.bestScore == beta) {
+                            mustResearch = true;
+                            alpha = -HIGH_BETA;
+                            beta = HIGH_BETA;
+                        }
+                    }
+                    else {
+                        mustResearch = false;
+                    }
+                } while (mustResearch);
             }
             catch (const TimeUpException &ex) {
                 // Time over
                 break;
             }
 
-            for (int i = 0; i < moves.size(); ++i) {
-                Move move = moves[i];
-                extractVariation(move, m_LastResults.searchedVariations[i]);
+            auto& principalVariation = m_LastResults.searchedVariations[0];
+            principalVariation.moves.clear();
+            principalVariation.score = m_LastResults.bestScore;
+            principalVariation.type = TranspositionTable::EXACT;
+            for (auto move : m_Pv) {
+                if (move == MOVE_INVALID) {
+                    break;
+                }
+                principalVariation.moves.push_back(move);
             }
+
             if (updateResults()) {
                 // Search stop requested.
                 break;

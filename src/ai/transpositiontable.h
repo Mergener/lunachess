@@ -1,7 +1,7 @@
 #ifndef LUNA_AI_TRANSPOSITIONTABLE_H
 #define LUNA_AI_TRANSPOSITIONTABLE_H
 
-#include <unordered_map>
+#include <cstring>
 
 #include "../position.h"
 #include "../types.h"
@@ -10,6 +10,7 @@
 namespace lunachess::ai {
 
 class TranspositionTable {
+
 public:
     enum EntryType {
         // For PV-Nodes
@@ -31,50 +32,66 @@ public:
         int staticEval;
     };
 
+private:
+
+    struct Bucket {
+        Entry entry;
+        bool valid;
+    };
+
 public:
-    using Container = std::unordered_map<ui64, Entry>;
-    using Iterator = Container::iterator;
-    using ConstIterator = Container::const_iterator;
-
-    Iterator begin() { return m_Entries.begin(); }
-    Iterator end() { return m_Entries.end(); }
-    ConstIterator cbegin() const { return m_Entries.cbegin(); }
-    ConstIterator cend() const { return m_Entries.cend(); }
-
     /**
         Adds a given entry to the transposition table, except if
         an entry for the same position with higher depth exists.
     */
     bool maybeAdd(const Entry& entry);
 
+    inline bool tryGet(ui64 posKey, Entry& entry) const {
+        Bucket& bucket = getBucket(posKey);
+        if (bucket.valid && bucket.entry.zobristKey == posKey) {
+            entry = bucket.entry;
+            return true;
+        }
+        return false;
+    }
+
     inline bool tryGet(const Position& pos, Entry& entry) const {
         return tryGet(pos.getZobrist(), entry);
     }
 
-    inline void reserve(int size) {
-        m_Entries.reserve(size);
+    inline void remove(ui64 posKey) {
+        getBucket(posKey).valid = false;
     }
-
-    bool tryGet(ui64 posKey, Entry& entry) const;
 
     inline void remove(const Position& pos) {
         remove(pos.getZobrist());
     }
 
-    void remove(ui64 posKey);
+    /**
+     * Resizes the transposition table. Deletes all entries.
+     */
+    inline void resize(size_t hashSizeBytes) {
+        if (m_Buckets != nullptr) {
+            delete m_Buckets;
+        }
 
-    inline void clear() {
-        m_Entries.clear();
+        m_Capacity = hashSizeBytes / sizeof(Bucket);
+        m_Buckets = new Bucket[m_Capacity];
+        std::memset(m_Buckets, 0, m_Capacity * sizeof(Bucket));
     }
 
-    inline int count() const {
-        return m_Entries.size();
+    inline TranspositionTable(size_t hashSizeBytes = 128 * 1024 * 1024) {
+        resize(hashSizeBytes);
     }
-
-    TranspositionTable();
 
 private:
-    Container m_Entries;
+    static constexpr size_t REHASH_POLICY = 100;
+    Bucket* m_Buckets = nullptr;
+    size_t m_Capacity = 0;
+
+    inline Bucket& getBucket(ui64 key) const {
+        return m_Buckets[m_Capacity % key];
+    }
 };
 
 }

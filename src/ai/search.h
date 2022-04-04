@@ -1,6 +1,7 @@
 #ifndef LUNA_AI_SEARCH_H
 #define LUNA_AI_SEARCH_H
 
+#include <stack>
 #include <memory>
 #include <functional>
 #include <optional>
@@ -120,8 +121,6 @@ struct SearchSettings {
      */
     bool doDeepSearch = false;
 
-    bool clearPreviousTT = true;
-
     TimeControl ourTimeControl;
     TimeControl theirTimeControl;
 };
@@ -163,14 +162,14 @@ public:
     }
 
     inline MoveSearcher()
-        : m_Eval(new BasicEvaluator()) {
+        : m_Eval(new BasicEvaluator()), m_PvIt(m_Pv.begin()) {
     }
 
     /**
      * Constructs a move searcher with an externally created evaluator.
      */
     inline MoveSearcher(std::shared_ptr<BasicEvaluator> eval)
-        : m_Eval(eval) {
+        : m_Eval(eval), m_PvIt(m_Pv.begin()) {
     }
 
     inline BasicEvaluator& getEvaluator() { return *m_Eval; }
@@ -189,6 +188,9 @@ private:
     TimeManager m_TimeManager;
     bool m_ShouldStop = false;
     bool m_Searching = false;
+
+    std::array<Move, MAX_SEARCH_DEPTH> m_Pv;
+    Move* m_PvIt;
 
     /**
      * Extracts the sequence of moves calculated after the given move.

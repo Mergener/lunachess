@@ -359,9 +359,7 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
 
         searchSettings.ourTimeControl = ctx.timeControl[pos.getColorToMove()];
         searchSettings.theirTimeControl = ctx.timeControl[getOppositeColor(pos.getColorToMove())];
-        searchSettings.clearPreviousTT = ctx.pos.getPlyCount() % 4 == 0; // Clear TT ever 4 plies
         searchSettings.doDeepSearch = ctx.timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
-        int multiPvCount = ctx.multiPvCount;
 
         TimePoint startTime = Clock::now();
 
