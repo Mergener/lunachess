@@ -85,7 +85,6 @@ public:
     }
 
 private:
-    static constexpr size_t REHASH_POLICY = 100;
     Bucket* m_Buckets = nullptr;
     size_t m_Capacity = 0;
 

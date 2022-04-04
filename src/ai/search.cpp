@@ -84,7 +84,7 @@ int MoveSearcher::generateAndOrderMoves(MoveList& ml, int ply, Move pvMove) {
 /**
  * Pseudo-exception to be thrown when the search time is up.
  */
-class TimeUpException : public std::exception {
+class TimeUp {
 };
 
 constexpr int CHECK_TIME_NODE_INTERVAL = 4096;
@@ -95,7 +95,7 @@ int MoveSearcher::quiesce(int ply, int alpha, int beta) {
     if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
         (m_TimeManager.timeIsUp()
          || m_ShouldStop)) {
-        throw TimeUpException();
+        throw TimeUp();
     }
 
     int standPat = m_Eval->evaluate(m_Pos);
@@ -148,7 +148,7 @@ int MoveSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
-int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool nullMoveAllowed) {
+int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed) {
     m_LastResults.visitedNodes++;
 
     if (m_Pos.isDraw(1)) {
@@ -158,7 +158,7 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
     if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
             (m_TimeManager.timeIsUp()
             || m_ShouldStop)) {
-        throw TimeUpException();
+        throw TimeUp();
     }
 
     bool isRoot = ply == 0;
@@ -231,7 +231,7 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
         // Null move pruning allowed
         m_Pos.makeNullMove();
 
-        int score = -searchInternal(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
+        int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
             m_Pos.undoNullMove();
             return beta; // Prune
@@ -312,7 +312,7 @@ int MoveSearcher::searchInternal(int depth, int ply, int alpha, int beta, bool n
         // #----------------------------------------
 
         m_Pos.makeMove(move);
-        int score = -searchInternal(d, ply + 1, -beta, -alpha);
+        int score = -alphaBeta(d, ply + 1, -beta, -alpha);
         m_Pos.undoMove();
 
         if (score >= beta) {
@@ -428,7 +428,7 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
             bool mustResearch = false;
             try {
                 do {
-                    m_LastResults.bestScore = searchInternal(depth, 0, alpha, beta, false);
+                    m_LastResults.bestScore = alphaBeta(depth, 0, alpha, beta, false);
 
                     m_LastResults.bestMove = m_Pv[0];
                     m_LastResults.searchedDepth = depth;
@@ -445,7 +445,7 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
                     }
                 } while (mustResearch);
             }
-            catch (const TimeUpException &ex) {
+            catch (const TimeUp& t) {
                 // Time over
                 break;
             }

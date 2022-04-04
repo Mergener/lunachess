@@ -204,7 +204,7 @@ private:
 
     bool updateResults();
 
-    int searchInternal(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true);
+    int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true);
 
     int quiesce(int ply, int alpha, int beta);
 
