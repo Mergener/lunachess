@@ -80,7 +80,7 @@ public:
         std::memset(m_Buckets, 0, m_Capacity * sizeof(Bucket));
     }
 
-    inline TranspositionTable(size_t hashSizeBytes = 128 * 1024 * 1024) {
+    inline TranspositionTable(size_t hashSizeBytes = 256 * 1024 * 1024) {
         resize(hashSizeBytes);
     }
 
@@ -89,7 +89,7 @@ private:
     size_t m_Capacity = 0;
 
     inline Bucket& getBucket(ui64 key) const {
-        return m_Buckets[m_Capacity % key];
+        return m_Buckets[key % m_Capacity];
     }
 };
 

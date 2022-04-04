@@ -174,6 +174,7 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     // a search with equal or higher depth. Look for it in the TT.
     ui64 posKey = m_Pos.getZobrist();
     TranspositionTable::Entry ttEntry = {};
+    ttEntry.zobristKey = posKey;
     ttEntry.move = MOVE_INVALID;
 
     bool foundInTT = m_TT.tryGet(posKey, ttEntry);

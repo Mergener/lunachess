@@ -294,7 +294,6 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
 
     MoveList searchMoves;
 
-
     ai::SearchSettings searchSettings;
 
     // Parse arguments

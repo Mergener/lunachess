@@ -7,7 +7,6 @@ bool TranspositionTable::maybeAdd(const Entry& entry) {
     if (!b.valid) {
         b.entry = entry;
         b.valid = true;
-        std::cout << b.entry.zobristKey << std::endl;
         return true;
     }
     // We had a valid bucket, check if same key
