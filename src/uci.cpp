@@ -285,81 +285,82 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
         std::cerr << "Cannot call go while a search is currently running. Call 'stop' first." << std::endl;
         return;
     }
+    ctx.shouldStopCurrentSearch = false;
 
-    startWork(ctx, [&ctx, args] {
-        ctx.shouldStopCurrentSearch = false;
+    ctx.state = WORKING;
 
-        ctx.state = WORKING;
+    // Create position clone
+    Position pos = ctx.pos;
 
-        // Create position clone
-        Position pos = ctx.pos;
+    MoveList searchMoves;
 
-        MoveList searchMoves;
 
-        // Parse arguments
-        for (int i = 0; i < args.size(); ++i) {
-            const auto &arg = args[i];
+    ai::SearchSettings searchSettings;
 
-            if (arg == "searchmoves") {
-                // User wants to search only some specific moves
-                i++;
-                for (Move move = Move(pos, args[i]); move != MOVE_INVALID && i < args.size(); i++) {
-                    searchMoves.add(move);
-                }
-            } else if (arg == "depth") {
-                // User wants to limit the search depth to a specific value
-                int depth;
-                bool succ = strutils::tryParseInteger(args[++i], depth);
-                if (succ && depth >= 1) {
-                    ctx.maxDepth = depth;
-                } else {
-                    // Invalid depth value
-                    std::cerr << "Unexpected depth value '" << args[i] << "'." << std::endl;
-                }
-                i++;
-            } else if (arg == "wtime") {
-                // Defines white color base time
-                readTime(args[++i], ctx.timeControl[CL_WHITE].time);
-                ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
-                i++;
-            } else if (arg == "winc") {
-                // Defines white color time increment
-                readTime(args[++i], ctx.timeControl[CL_WHITE].increment);
-                ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
-                i++;
-            } else if (arg == "btime") {
-                // Defines black color base time
-                readTime(args[++i], ctx.timeControl[CL_BLACK].time);
-                ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
-                i++;
-            } else if (arg == "binc") {
-                // Defines black color time increment
-                readTime(args[++i], ctx.timeControl[CL_BLACK].increment);
-                ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
-                i++;
-            } else if (arg == "movetime") {
-                // Defines the move time, a time in milliseconds for each move.
-                readTime(args[++i], ctx.timeControl[pos.getColorToMove()].time);
-                ctx.timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
-                i++;
+    // Parse arguments
+    for (int i = 0; i < args.size(); ++i) {
+        const auto arg = args[i];
+
+        if (arg == "searchmoves") {
+            // User wants to search only some specific moves
+            i++;
+            for (Move move = Move(pos, args[i]); move != MOVE_INVALID && i < args.size(); i++) {
+                searchMoves.add(move);
             }
+        } else if (arg == "depth") {
+            // User wants to limit the search depth to a specific value
+            int depth;
+            bool succ = strutils::tryParseInteger(args[++i], depth);
+            if (succ && depth >= 1) {
+                ctx.maxDepth = depth;
+            } else {
+                // Invalid depth value
+                std::cerr << "Unexpected depth value '" << args[i] << "'." << std::endl;
+            }
+            i++;
+        } else if (arg == "wtime") {
+            // Defines white color base time
+            readTime(args[++i], ctx.timeControl[CL_WHITE].time);
+            ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
+            i++;
+        } else if (arg == "winc") {
+            // Defines white color time increment
+            readTime(args[++i], ctx.timeControl[CL_WHITE].increment);
+            ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
+            i++;
+        } else if (arg == "btime") {
+            // Defines black color base time
+            readTime(args[++i], ctx.timeControl[CL_BLACK].time);
+            ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
+            i++;
+        } else if (arg == "binc") {
+            // Defines black color time increment
+            readTime(args[++i], ctx.timeControl[CL_BLACK].increment);
+            ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
+            i++;
+        } else if (arg == "movetime") {
+            // Defines the move time, a time in milliseconds for each move.
+            readTime(args[++i], ctx.timeControl[pos.getColorToMove()].time);
+            ctx.timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
+            i++;
         }
+    }
 
-        ai::SearchSettings searchSettings;
+    // Check if searchmoves option was used
+    if (searchMoves.size() == 0) {
+        searchSettings.moveFilter = nullptr;
+    } else {
+        // Use the move search list as a filter for the moves to be searched.
+        searchSettings.moveFilter = [searchMoves](Move m) {
+            return searchMoves.contains(m);
+        };
+    }
 
-        // Check if searchmoves option was used
-        if (searchMoves.size() == 0) {
-            searchSettings.moveFilter = nullptr;
-        } else {
-            // Use the move search list as a filter for the moves to be searched.
-            searchSettings.moveFilter = [searchMoves](Move m) {
-                return searchMoves.contains(m);
-            };
-        }
+    searchSettings.ourTimeControl = ctx.timeControl[pos.getColorToMove()];
+    searchSettings.theirTimeControl = ctx.timeControl[getOppositeColor(pos.getColorToMove())];
+    searchSettings.doDeepSearch = ctx.timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
 
-        searchSettings.ourTimeControl = ctx.timeControl[pos.getColorToMove()];
-        searchSettings.theirTimeControl = ctx.timeControl[getOppositeColor(pos.getColorToMove())];
-        searchSettings.doDeepSearch = ctx.timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
+    startWork(ctx, [=, &ctx] {
 
         TimePoint startTime = Clock::now();
 

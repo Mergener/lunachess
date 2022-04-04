@@ -8,15 +8,18 @@ void TimeManager::start(const TimeControl& tc) {
 }
 
 bool TimeManager::timeIsUp() const {
+    i64 delta;
     switch (m_Tc.mode) {
         case TC_INFINITE:
             return false;
 
         case TC_MOVETIME:
-            return deltaMs(m_Clock.now(), m_Start) >= (m_Tc.time  - 50);
+            delta = deltaMs(m_Clock.now(), m_Start);
+            return delta >= (m_Tc.time  - 50);
 
         case TC_FISCHER:
-            return deltaMs(m_Clock.now(), m_Start) >= (m_Tc.time / 20);
+            delta = deltaMs(m_Clock.now(), m_Start);
+            return delta >= (m_Tc.time / 20);
     }
     return true;
 }
