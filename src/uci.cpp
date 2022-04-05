@@ -33,7 +33,6 @@ struct UCIContext {
 
     // Chess state
     Position pos = Position::getInitialPosition();
-    TimeControl timeControl[CL_COUNT];
 
     // UCI settings
     bool debugMode = false;
@@ -289,6 +288,8 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
 
     ctx.state = WORKING;
 
+    TimeControl timeControl[CL_COUNT];
+
     // Create position clone
     Position pos = ctx.pos;
 
@@ -316,32 +317,28 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
                 // Invalid depth value
                 std::cerr << "Unexpected depth value '" << args[i] << "'." << std::endl;
             }
-            i++;
         } else if (arg == "wtime") {
             // Defines white color base time
-            readTime(args[++i], ctx.timeControl[CL_WHITE].time);
-            ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
-            i++;
+            readTime(args[++i], timeControl[CL_WHITE].time);
+            timeControl[CL_WHITE].mode = TC_FISCHER;
         } else if (arg == "winc") {
             // Defines white color time increment
-            readTime(args[++i], ctx.timeControl[CL_WHITE].increment);
-            ctx.timeControl[CL_WHITE].mode = TC_FISCHER;
-            i++;
+            readTime(args[++i], timeControl[CL_WHITE].increment);
+            timeControl[CL_WHITE].mode = TC_FISCHER;
         } else if (arg == "btime") {
             // Defines black color base time
-            readTime(args[++i], ctx.timeControl[CL_BLACK].time);
-            ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
-            i++;
+            readTime(args[++i], timeControl[CL_BLACK].time);
+            timeControl[CL_BLACK].mode = TC_FISCHER;
         } else if (arg == "binc") {
             // Defines black color time increment
-            readTime(args[++i], ctx.timeControl[CL_BLACK].increment);
-            ctx.timeControl[CL_BLACK].mode = TC_FISCHER;
-            i++;
+            readTime(args[++i], timeControl[CL_BLACK].increment);
+            timeControl[CL_BLACK].mode = TC_FISCHER;
         } else if (arg == "movetime") {
             // Defines the move time, a time in milliseconds for each move.
-            readTime(args[++i], ctx.timeControl[pos.getColorToMove()].time);
-            ctx.timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
-            i++;
+            readTime(args[++i], timeControl[pos.getColorToMove()].time);
+            timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
+        } else if (arg == "infinite") {
+            timeControl[pos.getColorToMove()].mode = TC_INFINITE;
         }
     }
 
@@ -355,9 +352,9 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
         };
     }
 
-    searchSettings.ourTimeControl = ctx.timeControl[pos.getColorToMove()];
-    searchSettings.theirTimeControl = ctx.timeControl[getOppositeColor(pos.getColorToMove())];
-    searchSettings.doDeepSearch = ctx.timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
+    searchSettings.ourTimeControl = timeControl[pos.getColorToMove()];
+    searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
+    searchSettings.doDeepSearch = timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
 
     startWork(ctx, [=, &ctx] {
 
