@@ -208,6 +208,8 @@ private:
 
     int quiesce(int ply, int alpha, int beta);
 
+    void pushMoveToPv(Move*& pvStart, Move move);
+
     int generateAndOrderMoves(MoveList& ml, int ply, Move pvMove);
     int generateAndOrderMovesQuiesce(MoveList& ml, int ply);
 };

@@ -356,6 +356,8 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
     searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
     searchSettings.doDeepSearch = timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
 
+    //ctx.searcher.getTT().clear();
+
     startWork(ctx, [=, &ctx] {
 
         TimePoint startTime = Clock::now();

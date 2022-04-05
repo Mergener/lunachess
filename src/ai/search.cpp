@@ -148,6 +148,13 @@ int MoveSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
+void MoveSearcher::pushMoveToPv(Move*& pvStart, Move move) {
+    Move* p = m_PvIt;
+    m_PvIt = pvStart;
+    *m_PvIt++ = move;
+    while ((*m_PvIt++ = *p++) != MOVE_INVALID);
+}
+
 int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed) {
     m_LastResults.visitedNodes++;
 
@@ -167,6 +174,10 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     int staticEval;
     Move hashMove = MOVE_INVALID;
 
+    // Setup principal variation
+    Move* pvStart = m_PvIt;
+    *m_PvIt++ = MOVE_INVALID;
+
     // #----------------------------------------
     // # TRANSPOSITION TABLE PROBING
     // #----------------------------------------
@@ -181,6 +192,8 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     if (foundInTT) {
         if (ttEntry.depth >= depth) {
             if (ttEntry.type == TranspositionTable::EXACT) {
+                pushMoveToPv(pvStart, ttEntry.move);
+                m_PvIt = pvStart;
                 return ttEntry.score;
             } else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
                 alpha = std::max(alpha, ttEntry.score);
@@ -189,6 +202,7 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
             }
 
             if (alpha >= beta) {
+                m_PvIt = pvStart;
                 return ttEntry.score;
             }
         }
@@ -235,6 +249,7 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
         int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
             m_Pos.undoNullMove();
+            m_PvIt = pvStart;
             return beta; // Prune
         }
 
@@ -271,10 +286,6 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     int bestMoveIdx = 0;
 
     // Finally, do the search
-
-    // Setup principal variation
-    Move* pvStart = m_PvIt;
-    *m_PvIt++ = MOVE_INVALID;
 
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];
@@ -332,10 +343,7 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
             alpha = score;
             bestMoveIdx = i;
 
-            Move* p = m_PvIt;
-            m_PvIt = pvStart;
-            *m_PvIt++ = move;
-            while ((*m_PvIt++ = *p++) != MOVE_INVALID);
+            pushMoveToPv(pvStart, move);
         }
     }
     m_PvIt = pvStart;
