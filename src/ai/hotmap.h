@@ -51,10 +51,13 @@ public:
         std::fill(m_Values.begin() + i, m_Values.end(), 0);
     }
 
-    inline auto begin() { return m_Values.begin(); }
-    inline auto end() { return m_Values.end(); }
-    inline auto cbegin() const { return m_Values.cbegin(); }
-    inline auto cend() const { return m_Values.cend(); }
+    using Iterator = short*;
+    using ConstIterator = const short*;
+
+    inline Iterator begin() { return &m_Values[0]; }
+    inline Iterator end() { return &m_Values[SQ_COUNT]; }
+    inline ConstIterator cbegin() const { return &m_Values[0]; }
+    inline ConstIterator cend() const { return &m_Values[SQ_COUNT]; }
 
 private:
     std::array<short, SQ_COUNT> m_Values;

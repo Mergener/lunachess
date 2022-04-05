@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cstdint>
+#include <algorithm>
 
 #include "debug.h"
 
@@ -301,13 +302,13 @@ inline constexpr Square getCastleRookDestSquare(Color color, Side side) {
     return CASTLE_ROOK_SQ[color][side];
 }
 
-inline constexpr int getChebyshevDistance(Square a, Square b) {
+inline int getChebyshevDistance(Square a, Square b) {
     int fileDist = std::abs(getFile(a) - getFile(b));
     int rankDist = std::abs(getRank(a) - getRank(b));
     return std::max(fileDist, rankDist);
 }
 
-inline constexpr int getManhattanDistance(Square a, Square b) {
+inline int getManhattanDistance(Square a, Square b) {
     int fileDist = std::abs(getFile(a) - getFile(b));
     int rankDist = std::abs(getRank(a) - getRank(b));
     return fileDist + rankDist;

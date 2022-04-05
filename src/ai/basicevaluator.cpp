@@ -25,7 +25,7 @@ static bool tryLoadScoreTable(const std::string& path, ScoreTable& ret) {
 
         return true;
     }
-    catch (const std::exception& e) {
+    catch (const std::exception&) {
         return false;
     }
 }
@@ -39,7 +39,7 @@ static void writeScoreTable(const std::string& path, const ScoreTable& st) {
 
         stream << st;
     }
-    catch (const std::exception& e) {
+    catch (const std::exception&) {
         std::cerr << "Couldn't write score table at path '" + path + "'" << std::endl;
     }
 }

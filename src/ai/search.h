@@ -189,8 +189,9 @@ private:
     bool m_ShouldStop = false;
     bool m_Searching = false;
 
-    std::array<Move, MAX_SEARCH_DEPTH> m_Pv;
-    Move* m_PvIt;
+    using TPV = std::array<Move, MAX_SEARCH_DEPTH>;
+    TPV m_Pv;
+    TPV::iterator m_PvIt;
 
     /**
      * Extracts the sequence of moves calculated after the given move.
@@ -208,7 +209,7 @@ private:
 
     int quiesce(int ply, int alpha, int beta);
 
-    void pushMoveToPv(Move*& pvStart, Move move);
+    void pushMoveToPv(TPV::iterator& pvStart, Move move);
 
     int generateAndOrderMoves(MoveList& ml, int ply, Move pvMove);
     int generateAndOrderMovesQuiesce(MoveList& ml, int ply);

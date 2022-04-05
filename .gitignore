@@ -1,14 +1,19 @@
+# Common binary formats
 *.exe
 *.dll
 *.lib
 *.o
-*.a
 *.out
+*.a
 *.obj
+
+# IDE generated directories/files
 *.vs
 *.idea
 *.vscode
+CMakeSettings.json
 
+# Temporary/binary directories
 data/*
 out/*
 temp/*

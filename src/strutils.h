@@ -34,7 +34,7 @@ bool tryParseInteger(std::string_view sv, TInt& ret) {
     }
 
     ret = 0;
-    i64 mult = 1;
+    TInt mult = 1;
     int i = 0;
 
     if (sv[0] == '-') {

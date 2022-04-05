@@ -148,8 +148,8 @@ int MoveSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
-void MoveSearcher::pushMoveToPv(Move*& pvStart, Move move) {
-    Move* p = m_PvIt;
+void MoveSearcher::pushMoveToPv(TPV::iterator& pvStart, Move move) {
+    TPV::iterator p = m_PvIt;
     m_PvIt = pvStart;
     *m_PvIt++ = move;
     while ((*m_PvIt++ = *p++) != MOVE_INVALID);
@@ -175,7 +175,7 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     Move hashMove = MOVE_INVALID;
 
     // Setup principal variation
-    Move* pvStart = m_PvIt;
+    TPV::iterator pvStart = m_PvIt;
     *m_PvIt++ = MOVE_INVALID;
 
     // #----------------------------------------
@@ -454,7 +454,7 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
                     }
                 } while (mustResearch);
             }
-            catch (const TimeUp& t) {
+            catch (const TimeUp&) {
                 // Time over
                 break;
             }

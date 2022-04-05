@@ -303,7 +303,6 @@ int Training::Game::play(Agent& white, Agent& black, int movetime) {
     };
 
     int ret;
-    Agent* winner;
 
     std::cout << "Game between agents " << white.getName() << " and " << black.getName()
               << " has finished. Result: ";
@@ -363,7 +362,7 @@ void Training::playGames() {
                 try {
                     playRound(a, b);
                 }
-                catch (const std::exception& e) {
+                catch (const std::exception&) {
                     runningThreads--;
                     return;
                 }
