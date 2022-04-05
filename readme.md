@@ -39,7 +39,7 @@ cmake -S . -B builds
 ```
 
 After that, ```cd``` onto ```builds``` and call ```make```. This will generate binaries for
-lunachess (both the engine static library and executable) and lunatest (the Luna testing suite).
+Luna.
 
 - Visual Studio 2019/2022 
 
