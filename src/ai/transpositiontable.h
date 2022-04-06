@@ -67,6 +67,10 @@ public:
         remove(pos.getZobrist());
     }
 
+    inline void clear() {
+        std::memset(m_Buckets, 0, m_Capacity * sizeof(Bucket));
+    }
+
     /**
      * Resizes the transposition table. Deletes all entries.
      */
