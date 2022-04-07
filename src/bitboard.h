@@ -27,7 +27,6 @@ public:
         return m_BB & (C64(1) << square);
     }
 
-
     inline Bitboard& operator&=(Bitboard other) {
         m_BB &= other.m_BB;
         return *this;
@@ -37,6 +36,12 @@ public:
         m_BB |= other.m_BB;
         return *this;
     }
+
+    inline Bitboard operator^=(Bitboard other) {
+        m_BB ^= other.m_BB;
+        return *this;
+    }
+
 #if 0
     inline constexpr Bitboard operator~() const {
         return ~m_BB;
