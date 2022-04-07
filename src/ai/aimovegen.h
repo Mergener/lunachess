@@ -23,6 +23,7 @@ struct MoveOrderingScores {
     int castlesScore = 50;
     int placementDeltaMultiplier = 5;
     int mvvLvaPctFactor = 20;
+    int killerMoveScore = 1500;
 
     int mvvLva[PT_COUNT][PT_COUNT] = {
         /*         x-    xP    xN    xB    xR    xQ    xK  */
@@ -45,8 +46,8 @@ struct MoveOrderingScores {
  */
 class AIMoveFactory {
 public:
-    int generateMoves(MoveList& ml, Position& pos, int currPly, Move pvMove = MOVE_INVALID);
-    int generateNoisyMoves(MoveList& ml, Position& pos, int currPly, Move pvMove = MOVE_INVALID);
+    int generateMoves(MoveList& ml, const Position& pos, int currPly, Move pvMove = MOVE_INVALID);
+    int generateNoisyMoves(MoveList& ml, const Position& pos, int currPly, Move pvMove = MOVE_INVALID);
 
     inline void storeKillerMove(Move move, int ply) {
         m_Killers[ply][1] = m_Killers[ply][0];
@@ -100,107 +101,15 @@ private:
         NO,
     };
 
-    struct SortContext {
-        int currPly = 0;
-        Move pvMove;
-        HasGoodSee hasGoodSee[SQ_COUNT][SQ_COUNT];
-
-        inline SortContext() {
-            std::memset(hasGoodSee, 0, sizeof(hasGoodSee));
-        }
-    };
-
     template <bool NOISY>
-    bool compareMoves(Position& pos, Move a, Move b, SortContext& ctx) const {
-        int aScore = 0;
-        int bScore = 0;
-
-        // PV moves (hash moves) always come first
-        if (a == ctx.pvMove) {
-            return true;
-        }
-        if (b == ctx.pvMove) {
-            return false;
-        }
-
-        // Then come good captures
-        if constexpr (NOISY) {
-            // First see if they have got their SEE evaluated yet
-            if (ctx.hasGoodSee[a.getSource()][a.getDest()] == UNKNOWN) {
-                ctx.hasGoodSee[a.getSource()][a.getDest()] = posutils::hasGoodSEE(pos, a)
-                        ? YES : NO;
-            }
-            if (ctx.hasGoodSee[b.getSource()][b.getDest()] == UNKNOWN) {
-                ctx.hasGoodSee[b.getSource()][b.getDest()] = posutils::hasGoodSEE(pos, b)
-                                                             ? YES : NO;
-            }
-            // They have their SEE evaluated, compare
-            bool aHasGoodSee = ctx.hasGoodSee[a.getSource()][a.getDest()] == YES;
-            bool bHasGoodSee = ctx.hasGoodSee[b.getSource()][b.getDest()] == YES;
-
-            if (aHasGoodSee && !bHasGoodSee) {
-                return true;
-            }
-            if (!aHasGoodSee && bHasGoodSee) {
-                return false;
-            }
-            // Both have the same SEE.
-        }
-        // Then come killer moves
-        bool aIsKiller = isKillerMove(a, ctx.currPly);
-        bool bIsKiller = isKillerMove(b, ctx.currPly);
-        if (aIsKiller && !bIsKiller) {
-            return true;
-        }
-        if (bIsKiller && !aIsKiller) {
-            return false;
-        }
-
-        // Then history heuristic moves
-        if constexpr (!NOISY) {
-            Color us = a.getSourcePiece().getColor();
-
-            int histA = m_History[us][a.getSource()][a.getDest()];
-            int histB = m_History[us][b.getSource()][b.getDest()];
-            if (histA > histB) {
-                aScore += m_Scores.historyScore;
-            } else {
-                bScore += m_Scores.historyScore;
-            }
-        }
-        else {
-        }
-
-        aScore += scoreMove<NOISY>(pos, a, ctx.currPly);
-        bScore += scoreMove<NOISY>(pos, b, ctx.currPly);
-
-        return aScore > bScore;
-    }
-
-    template <bool NOISY>
-    int scoreMove(Position& pos, Move move, int currPly) const {
+    int scoreMove(const Position& pos, Move move, int currPly) const {
         int total = 0;
 
         // Check if killer move
-        if (move == m_Killers[currPly][0] || move == m_Killers[currPly][1]) {
-            //total += m_Scores.killerMoveScore;
+        if (isKillerMove(move, currPly)) {
+            total += m_Scores.killerMoveScore;
         }
 
-        if constexpr (NOISY) {
-            // Noisy moves only
-            if (move.is<MTM_CAPTURE>()) {
-                total += m_Scores.captureBaseScore;
-                total += m_Scores.mvvLva[move.getSourcePiece().getType()][move.getDestPiece().getType()]
-                        * m_Scores.mvvLvaPctFactor / 100;
-            }
-
-            if (move.is<MTM_PROMOTION>()) {
-                total += m_Scores.promotionBaseScore;
-                total += m_Scores.promotionPieceTypeScore * getPointValue(move.getPromotionPiece());
-            }
-            return total;
-        }
-        // Quiet moves only
         if (move.is<MTM_CASTLES>()) {
             // Castling is usually a good option when available
             total += m_Scores.castlesScore;
@@ -212,17 +121,6 @@ private:
         total -= getPointValue(move.getSourcePiece().getType());
 
         return total;
-    }
-
-    template <bool NOISY>
-    void sortMoves(Position& pos, int currPly, Move pvMove, MoveList::Iterator begin, MoveList::Iterator end) const {
-        SortContext ctx;
-        ctx.currPly = currPly;
-        ctx.pvMove = pvMove;
-
-        std::sort(begin, end, [this, &pos, currPly, ctx](Move a, Move b) {
-            return compareMoves<NOISY>(pos, a, b, ctx);
-        });
     }
 };
 
