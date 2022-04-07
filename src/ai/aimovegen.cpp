@@ -97,20 +97,6 @@ int AIMoveFactory::getHotmapDelta(Move move) {
     return ret;
 }
 
-int AIMoveFactory::generateMoves(MoveList &ml, Position &pos, int currPly, Move pvMove) {
-    int count = ml.size();
-
-    // Generate noisy moves
-    generateNoisyMoves(ml, pos, currPly, pvMove);
-
-    // Generate remaining moves
-    int noisyCount = ml.size() - count;
-    movegen::generate<MTM_QUIET>(pos, ml);
-    sortMoves<false>(pos, currPly, pvMove, ml.begin() + noisyCount, ml.end());
-
-    return ml.size() - count;
-}
-
 int AIMoveFactory::generateNoisyMoves(MoveList &ml, Position &pos, int currPly, Move pvMove) {
     int count = ml.size();
 
@@ -124,9 +110,73 @@ int AIMoveFactory::generateNoisyMoves(MoveList &ml, Position &pos, int currPly, 
     return ml.size() - count;
 }
 
-void AIMoveFactory::storeKillerMove(Move move, int ply) {
-    m_Killers[ply][1] = m_Killers[ply][0];
-    m_Killers[ply][0] = move;
+static bool compareMvvLva(const MoveOrderingScores& s, Move a, Move b) {
+    return s.mvvLva[a.getSourcePiece().getType()][a.getDestPiece().getType()] >
+           s.mvvLva[b.getSourcePiece().getType()][b.getDestPiece().getType()];
+}
+
+static MoveList::Iterator findBadCaptureBegin(const Position& pos,
+                                          MoveList::Iterator capturesBegin,
+                                          MoveList::Iterator capturesEnd) {
+    for (auto it = capturesBegin; it != capturesEnd; ++it) {
+        bool see = posutils::hasGoodSEE(pos, *it);
+        if (!see) {
+            return it;
+        }
+    }
+    return capturesEnd;
+}
+
+int AIMoveFactory::generateMoves(MoveList &ml, Position &pos, int currPly, Move pvMove) {
+    int count = ml.size();
+
+    auto it = ml.begin();
+    // Place hash move at first
+    if (pvMove != MOVE_INVALID) {
+        ml.add(pvMove);
+        it++;
+    }
+
+    // Now, generate all promotion captures and order them by MVV-LVA
+    movegen::generate<BIT(MT_PROMOTION_CAPTURE)>(pos, ml);
+    std::sort(it, ml.end(), [this](Move a, Move b) {
+        return compareMvvLva(m_Scores, a, b);
+    });
+
+    // Promotion captures generated, now generate simple promotions
+    // Note that those are already generated in descending order from
+    // highest promotion piece value to lowest.
+    movegen::generate<BIT(MT_SIMPLE_PROMOTION)>(pos, ml);
+
+    // For simple captures, we'll use an auxiliary list
+    MoveList simpleCaptures;
+    movegen::generate<BIT(MT_SIMPLE_CAPTURE)>(pos, simpleCaptures);
+    auto badCapturesBegin = findBadCaptureBegin(pos, simpleCaptures.begin(), simpleCaptures.end());
+
+    // Sort the good captures in mvv-lva order
+    std::sort(simpleCaptures.begin(), badCapturesBegin, [this](Move a, Move b) {
+        return compareMvvLva(m_Scores, a, b);
+    });
+    // Transfer them to the main list
+    for (auto captIt = simpleCaptures.begin(); captIt != badCapturesBegin; ++captIt) {
+        ml.add(*captIt);
+    }
+
+    // Generate en passant captures
+    movegen::generate<BIT(MT_EN_PASSANT_CAPTURE)>(pos, ml);
+
+    // Generate quiet moves and sort them
+    auto quietBegin = ml.end();
+    movegen::generate<MTM_QUIET>(pos, ml);
+    std::sort(quietBegin, ml.end(), [this, pos, currPly](Move a, Move b) {
+        return scoreMove<false>(pos, a, currPly) > scoreMove<false>(pos, b, currPly);
+    });
+
+    return ml.size() - count;
+}
+
+void AIMoveFactory::initialize() {
+    
 }
 
 }

@@ -428,7 +428,7 @@ void generateKingMoves(const Position &pos, MoveList &ml) {
  * @param ml The move list to append generated moves to.
  * @return The number of generated moves.
  */
-template<MoveTypeMask ALLOWED_FLAGS_MASK = MTM_ALL, bool PSEUDO_LEGAL = false>
+template<ui64 ALLOWED_FLAGS_MASK = MTM_ALL, bool PSEUDO_LEGAL = false>
 int generate(const Position &pos, MoveList &ml) {
     int initialCount = ml.size();
 

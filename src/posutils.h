@@ -97,6 +97,8 @@ inline FileState getFileState(const Position& pos, BoardFile f) {
     return FS_SEMIOPEN;
 }
 
+bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
+
 } // posutils
 
 } // lunachess

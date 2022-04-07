@@ -132,6 +132,10 @@ int MoveSearcher::quiesce(int ply, int alpha, int beta) {
 
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];
+        //if (move.getType() == MT_SIMPLE_CAPTURE &&
+        //    !posutils::hasGoodSEE(m_Pos, move)) {
+        //    continue;
+        //}
 
         m_Pos.makeMove(move);
         int score = -quiesce(ply + 1, -beta, -alpha);
@@ -283,9 +287,8 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
         return drawScore;
     }
 
-    int bestMoveIdx = 0;
-
     // Finally, do the search
+    int bestMoveIdx = 0;
 
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];

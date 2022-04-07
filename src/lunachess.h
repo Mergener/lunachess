@@ -16,7 +16,7 @@
 
 namespace lunachess {
 
-void initialize();
+void initializeEverything();
 
 }
 

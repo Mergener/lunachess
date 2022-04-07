@@ -29,17 +29,14 @@ enum MoveType {
 
 };
 
-enum MoveTypeMask : ui64 {
-
-    MTM_CASTLES   = bits::makeMask<MT_CASTLES_SHORT, MT_CASTLES_LONG>(),
-    MTM_CAPTURE   = bits::makeMask<MT_SIMPLE_CAPTURE, MT_EN_PASSANT_CAPTURE, MT_PROMOTION_CAPTURE>(),
-    MTM_SPECIAL   = bits::makeMask<MT_DOUBLE_PUSH, MT_CASTLES_SHORT, MT_CASTLES_LONG, MT_EN_PASSANT_CAPTURE, MT_SIMPLE_PROMOTION, MT_PROMOTION_CAPTURE>(),
-    MTM_PROMOTION = bits::makeMask<MT_SIMPLE_PROMOTION, MT_PROMOTION_CAPTURE>(),
-    MTM_QUIET     = bits::makeMask<MT_NORMAL, MT_CASTLES_LONG, MT_CASTLES_SHORT, MT_DOUBLE_PUSH>(),
-    MTM_ALL       = BITMASK(MT_COUNT),
-    MTM_NOISY     = MTM_ALL & (~MTM_QUIET)
-
-};
+using MoveTypeMask = ui64;
+static constexpr MoveTypeMask MTM_CASTLES   = bits::makeMask<MT_CASTLES_SHORT, MT_CASTLES_LONG>();
+static constexpr MoveTypeMask MTM_CAPTURE   = bits::makeMask<MT_SIMPLE_CAPTURE, MT_EN_PASSANT_CAPTURE, MT_PROMOTION_CAPTURE>();
+static constexpr MoveTypeMask MTM_SPECIAL   = bits::makeMask<MT_DOUBLE_PUSH, MT_CASTLES_SHORT, MT_CASTLES_LONG, MT_EN_PASSANT_CAPTURE, MT_SIMPLE_PROMOTION, MT_PROMOTION_CAPTURE>();
+static constexpr MoveTypeMask MTM_PROMOTION = bits::makeMask<MT_SIMPLE_PROMOTION, MT_PROMOTION_CAPTURE>();
+static constexpr MoveTypeMask MTM_QUIET     = bits::makeMask<MT_NORMAL, MT_CASTLES_LONG, MT_CASTLES_SHORT, MT_DOUBLE_PUSH>();
+static constexpr MoveTypeMask MTM_ALL       = BITMASK(MT_COUNT);
+static constexpr MoveTypeMask MTM_NOISY     = MTM_ALL & (~MTM_QUIET);
 
 class Move {
 

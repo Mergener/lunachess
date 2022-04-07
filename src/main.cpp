@@ -58,7 +58,7 @@ static int trainingMain(int movetime) {
 }
 
 int main(int argc, char* argv[]) {
-    lunachess::initialize();
+    lunachess::initializeEverything();
 
     std::ios_base::sync_with_stdio(false);
     std::cin.tie();
