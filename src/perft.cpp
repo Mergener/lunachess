@@ -14,7 +14,7 @@ static ui64 perftInternal(Position& pos, int depth) {
     MoveList moves;
 
     ui64 n;
-    n = movegen::generate<MTM_ALL, PSEUDO_LEGAL>(pos, moves);
+    n = movegen::generate<MTM_ALL, PTM_ALL, PSEUDO_LEGAL>(pos, moves);
 
     if (depth <= 1) {
         if constexpr (LOG) {

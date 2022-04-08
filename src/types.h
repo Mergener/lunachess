@@ -82,7 +82,6 @@ inline constexpr int getPiecePointValue(PieceType pt) {
 
 const char* getPieceTypeName(PieceType pt);
 
-
 enum Directions {
 
 	DIR_NORTH = 8,

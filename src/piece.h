@@ -22,6 +22,11 @@
 
 namespace lunachess {
 
+using PieceTypeMask = ui64;
+static constexpr PieceTypeMask PTM_SLIDERS  = bits::makeMask<PT_BISHOP, PT_ROOK, PT_QUEEN>();
+static constexpr PieceTypeMask PTM_DIAGONAL = bits::makeMask<PT_BISHOP, PT_QUEEN>();
+static constexpr PieceTypeMask PTM_ALL = BITMASK(PT_COUNT);
+
 class Piece {
 
 //

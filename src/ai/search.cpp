@@ -315,6 +315,7 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
         // #----------------------------------------
         // # LATE MOVE REDUCTIONS
         // #----------------------------------------
+
         constexpr int LMR_REDUCTION = 1;
         constexpr int LMR_MIN_DEPTH = LMR_REDUCTION + 1;
         if (foundInTT && d > LMR_MIN_DEPTH &&
@@ -384,6 +385,7 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
 
         std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
 
+        m_MvFactory.resetHistory();
         TranspositionTable::Entry ttEntry;
 
         int drawScore = m_Eval->getDrawScore();
@@ -425,7 +427,6 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
 
         int alpha = -HIGH_BETA;
         int beta = HIGH_BETA;
-        int window = 9000;
 
         ui64 posKey = m_Pos.getZobrist();
 
@@ -439,23 +440,10 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
             // Perform the search
             bool mustResearch = false;
             try {
-                do {
-                    m_LastResults.bestScore = alphaBeta(depth, 0, alpha, beta, false);
+                m_LastResults.bestScore = alphaBeta(depth, 0, alpha, beta, false);
 
-                    m_LastResults.bestMove = m_Pv[0];
-                    m_LastResults.searchedDepth = depth;
-
-                    if (!mustResearch) {
-                        if (m_LastResults.bestScore == beta) {
-                            mustResearch = true;
-                            alpha = -HIGH_BETA;
-                            beta = HIGH_BETA;
-                        }
-                    }
-                    else {
-                        mustResearch = false;
-                    }
-                } while (mustResearch);
+                m_LastResults.bestMove = m_Pv[0];
+                m_LastResults.searchedDepth = depth;
             }
             catch (const TimeUp&) {
                 // Time over
@@ -481,15 +469,6 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
             moves.clear();
 
             movegen::generate(pos, moves);
-
-            if (depth > 5) {
-                window -= 1000 / (depth - 4);
-                alpha = m_LastResults.bestScore - window;
-                beta = m_LastResults.bestScore + window;
-            } else {
-                alpha = -HIGH_BETA;
-                beta = HIGH_BETA;
-            }
         }
     }
     catch (const std::exception& ex) {

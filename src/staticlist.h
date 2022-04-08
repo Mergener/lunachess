@@ -2,6 +2,7 @@
 #define LUNA_STATICLIST_H
 
 #include <type_traits>
+#include <iostream>
 
 #include "debug.h"
 
@@ -22,8 +23,8 @@ public:
     using ConstIterator = const TVal*;
 
     inline void insert(const TVal& val, int index) {
-        for (int i = index; i < m_Size; ++i) {
-            m_Arr[i + 1] = m_Arr[i];
+        for (int i = m_Size; i > index; --i) {
+            m_Arr[i] = m_Arr[i - 1];
         }
         m_Arr[index] = val;
         m_Size++;
@@ -97,6 +98,19 @@ private:
     TVal m_Arr[CAPACITY];
     int m_Size = 0;
 };
+
+template <typename T, int CAPACITY>
+std::ostream& operator<<(std::ostream& stream, const StaticList<T, CAPACITY>& l) {
+    stream << "['";
+    for (int i = 0; i < l.size() - 1; ++i) {
+        stream << l[i] << "', '";
+    }
+    if (l.size() > 0) {
+        stream << l[l.size() - 1];
+    }
+    stream << "']";
+    return stream;
+}
 
 }
 

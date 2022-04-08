@@ -84,11 +84,11 @@ int AIMoveFactory::getHotmapDelta(Move move) {
     Piece srcPiece = move.getSourcePiece();
     Color us = srcPiece.getColor();
 
-    //const Hotmap& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
+    const Hotmap& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
 
-    const Hotmap& hotmap = srcPiece.getType() == PT_KING
-            ? Hotmap::defaultKingMgHotmap
-            : Hotmap::defaultMiddlegameMaps[srcPiece.getType()].getHotmap(SQ_E1);
+    //const Hotmap& hotmap = srcPiece.getType() == PT_KING
+    //        ? Hotmap::defaultKingMgHotmap
+    //        : Hotmap::defaultMiddlegameMaps[srcPiece.getType()].getHotmap(SQ_E1);
 
     int srcVal = hotmap.getValue(move.getSource(), us);
     int dstVal = hotmap.getValue(move.getDest(), us);
@@ -145,16 +145,13 @@ int AIMoveFactory::generateNoisyMoves(MoveList &ml, const Position &pos, int cur
     return ml.size() - count;
 }
 
-static MoveList::Iterator findBadCaptureBegin(const Position& pos,
-                                          MoveList::Iterator capturesBegin,
-                                          MoveList::Iterator capturesEnd) {
-    for (auto it = capturesBegin; it != capturesEnd; ++it) {
-        bool see = posutils::hasGoodSEE(pos, *it);
-        if (!see) {
-            return it;
-        }
-    }
-    return capturesEnd;
+int AIMoveFactory::scoreQuietMove(const Position& pos, Move move) const {
+    int total = 0;
+
+    // Hotmap delta
+    total += getHotmapDelta(move) * m_Scores.placementDeltaMultiplier;
+
+    return total;
 }
 
 int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly, Move pvMove) {
@@ -171,31 +168,76 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     // highest promotion piece value to lowest.
     movegen::generate<BIT(MT_SIMPLE_PROMOTION)>(pos, ml);
 
-    // For simple captures, we'll use an auxiliary list
+    // For simple captures, we'll use auxiliary lists
     MoveList simpleCaptures;
-    movegen::generate<BIT(MT_SIMPLE_CAPTURE)>(pos, simpleCaptures);
-    auto badCapturesBegin = findBadCaptureBegin(pos, simpleCaptures.begin(), simpleCaptures.end());
 
-    // Sort the good captures in mvv-lva order
-    std::sort(simpleCaptures.begin(), badCapturesBegin, [this](Move a, Move b) {
+    movegen::generate<BIT(MT_SIMPLE_CAPTURE)>(pos, simpleCaptures);
+
+    // Compute the SEE for each simple capture
+    bool seeTable[SQ_COUNT][SQ_COUNT];
+    for (auto m: simpleCaptures) {
+        seeTable[m.getSource()][m.getDest()] = posutils::hasGoodSEE(pos, m);
+    }
+
+    // Sort the captures in see > mvv-lva order
+    std::sort(simpleCaptures.begin(), simpleCaptures.end(), [this, &seeTable](Move a, Move b) {
+        bool aHasGoodSEE = seeTable[a.getSource()][a.getDest()];
+        bool bHasGoodSEE = seeTable[b.getSource()][b.getDest()];
+
+        if (aHasGoodSEE && !bHasGoodSEE) {
+            return true;
+        }
+        if (!aHasGoodSEE && bHasGoodSEE) {
+            return false;
+        }
+
         return compareMvvLva(m_Scores, a, b);
     });
-    // Transfer them to the main list
-    for (auto captIt = simpleCaptures.begin(); captIt != badCapturesBegin; ++captIt) {
-        ml.add(*captIt);
+
+    // Transfer good captures to the main list
+    auto badCapturesBegin = simpleCaptures.end();
+    for (auto captIt = simpleCaptures.begin(); captIt != simpleCaptures.end(); ++captIt) {
+        Move m = *captIt;
+
+        // Bad SEE for move, we only want to send good captures now.
+        if (!seeTable[m.getSource()][m.getDest()]) {
+            badCapturesBegin = captIt;
+            break;
+        }
+
+        ml.add(m);
     }
 
     // Generate en passant captures
-    movegen::generate<BIT(MT_EN_PASSANT_CAPTURE)>(pos, ml);
+    movegen::generate<BIT(MT_EN_PASSANT_CAPTURE), BIT(PT_PAWN)>(pos, ml);
 
     // Generate quiet moves and sort them
     auto quietBegin = ml.end();
     movegen::generate<MTM_QUIET>(pos, ml);
     std::sort(quietBegin, ml.end(), [this, pos, currPly](Move a, Move b) {
-        return scoreMove<false>(pos, a, currPly) > scoreMove<false>(pos, b, currPly);
+        bool aIsKiller = isKillerMove(a, currPly);
+        bool bIsKiller = isKillerMove(b, currPly);
+        if (aIsKiller && !bIsKiller) {
+            return true;
+        }
+        if (!aIsKiller && bIsKiller) {
+            return false;
+        }
+
+        int aHist = getMoveHistory(a);
+        int bHist = getMoveHistory(b);
+        if (aHist > bHist) {
+            return true;
+        }
+        if (aHist < bHist) {
+            return false;
+        }
+
+        return scoreQuietMove(pos, a) > scoreQuietMove(pos, b);
     });
 
-    // Finally, transfer bad captures to the main list and sort them by mvv-lva
+    // Transfer bad captures to the main list. Note that they are
+    // already sorted by mvv-lva
     for (auto captIt = badCapturesBegin; captIt != simpleCaptures.end(); ++captIt) {
         ml.add(*captIt);
     }
@@ -210,7 +252,6 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     }
 
     int ret = ml.size() - count;
-
     return ret;
 }
 

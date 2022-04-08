@@ -413,6 +413,34 @@ void generateKingMoves(const Position &pos, MoveList &ml) {
     }
 }
 
+template <Color C, MoveTypeMask ALLOWED_MOVE_TYPES, PieceTypeMask ALLOWED_PIECE_TYPES>
+void generateAll(const Position& pos, MoveList& ml) {
+    constexpr bool GEN_PAWN   = (ALLOWED_PIECE_TYPES & BIT(PT_PAWN)) != 0;
+    constexpr bool GEN_KNIGHT = (ALLOWED_PIECE_TYPES & BIT(PT_KNIGHT)) != 0;
+    constexpr bool GEN_BISHOP = (ALLOWED_PIECE_TYPES & BIT(PT_BISHOP)) != 0;
+    constexpr bool GEN_ROOK   = (ALLOWED_PIECE_TYPES & BIT(PT_ROOK)) != 0;
+    constexpr bool GEN_QUEEN  = (ALLOWED_PIECE_TYPES & BIT(PT_QUEEN)) != 0;
+    constexpr bool GEN_KING   = (ALLOWED_PIECE_TYPES & BIT(PT_KING)) != 0;
+
+    if constexpr (GEN_PAWN)
+        utils::generatePawnMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
+
+    if constexpr (GEN_KNIGHT)
+        utils::generateKnightMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
+
+    if constexpr (GEN_BISHOP)
+        utils::generateBishopMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
+
+    if constexpr (GEN_ROOK)
+        utils::generateRookMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
+
+    if constexpr (GEN_QUEEN)
+        utils::generateQueenMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
+
+    if constexpr (GEN_KING)
+        utils::generateKingMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
+}
+
 } // utils
 
 /**
@@ -424,30 +452,20 @@ void generateKingMoves(const Position &pos, MoveList &ml) {
  * Use move type masks to generate only specific
  * types of moves if desired.
  *
- * @tparam ALLOWED_FLAGS_MASK Mask containing which types of moves should be generated.
+ * @tparam ALLOWED_MOVE_TYPES Mask containing which types of moves should be generated.
  * @param ml The move list to append generated moves to.
  * @return The number of generated moves.
  */
-template<ui64 ALLOWED_FLAGS_MASK = MTM_ALL, bool PSEUDO_LEGAL = false>
+template<MoveTypeMask ALLOWED_MOVE_TYPES = MTM_ALL, PieceTypeMask ALLOWED_PIECE_TYPES = PTM_ALL, bool PSEUDO_LEGAL = false>
 int generate(const Position &pos, MoveList &ml) {
     int initialCount = ml.size();
-
     if (pos.getColorToMove() == CL_WHITE) {
         // Generate moves with white pieces
-        utils::generatePawnMoves<CL_WHITE, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateKnightMoves<CL_WHITE, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateBishopMoves<CL_WHITE, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateRookMoves<CL_WHITE, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateQueenMoves<CL_WHITE, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateKingMoves<CL_WHITE, ALLOWED_FLAGS_MASK>(pos, ml);
+        utils::generateAll<CL_WHITE, ALLOWED_MOVE_TYPES, ALLOWED_PIECE_TYPES>(pos, ml);
+
     } else {
         // Generate moves with black pieces
-        utils::generatePawnMoves<CL_BLACK, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateKnightMoves<CL_BLACK, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateBishopMoves<CL_BLACK, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateRookMoves<CL_BLACK, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateQueenMoves<CL_BLACK, ALLOWED_FLAGS_MASK>(pos, ml);
-        utils::generateKingMoves<CL_BLACK, ALLOWED_FLAGS_MASK>(pos, ml);
+        utils::generateAll<CL_BLACK, ALLOWED_MOVE_TYPES, ALLOWED_PIECE_TYPES>(pos, ml);
     }
 
     if constexpr (!PSEUDO_LEGAL) {

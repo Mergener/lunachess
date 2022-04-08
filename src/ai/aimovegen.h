@@ -17,28 +17,18 @@ namespace lunachess::ai {
 struct MoveOrderingScores {
     // Individual scores -- scores claimed
     // by individual moves
-    int promotionBaseScore = 5000;
-    int promotionPieceTypeScore = 100;
-    int captureBaseScore = 3000;
-    int castlesScore = 50;
-    int placementDeltaMultiplier = 5;
-    int mvvLvaPctFactor = 20;
-    int killerMoveScore = 1500;
+    int placementDeltaMultiplier = 2;
 
     int mvvLva[PT_COUNT][PT_COUNT] = {
         /*         x-    xP    xN    xB    xR    xQ    xK  */
         /* -- */   0,    0,    0,    0,    0,    0,    0,
-        /* Px */   0,    0,   200,  250,  350,  800,  9999,
-        /* Nx */   0,  -100,   0,    50,  200,  800,  9999,
-        /* Bx */   0,   -60,  -10,   0,   180,  800,  9999,
-        /* Rx */   0,  -250, -150, -100,  500,  800,  9999, 
-        /* Qx */   0,  -700, -600, -650, -300,  300,  9999,
-        /* Kx */   0,    0,    0,    0,    0,    0,   9999
+        /* Px */   0,   105,  205,  305,  405,  505,  9999,
+        /* Nx */   0,   104,  204,  304,  404,  504,  9999,
+        /* Bx */   0,   103,  203,  303,  403,  503,  9999,
+        /* Rx */   0,   102,  202,  302,  600,  502,  9999,
+        /* Qx */   0,   101,  201,  301,  401,  501,  9999,
+        /* Kx */   0,   100,  200,  300,  400,  500,  9999,
     };
-
-    // Comparative scores -- awarded if a move A has
-    // something that B doesn't
-    int historyScore = 400;
 };
 
 /**
@@ -62,7 +52,9 @@ public:
         std::memset(m_History, 0, sizeof(m_History));
     }
 
-    AIMoveFactory() = default;
+    inline AIMoveFactory() {
+        resetHistory();
+    }
     inline AIMoveFactory(const MoveOrderingScores& scores)
         : m_Scores(scores) {
         resetHistory();
@@ -76,52 +68,26 @@ private:
     Move m_Killers[128][2];
     int m_History[CL_COUNT][SQ_COUNT][SQ_COUNT];
 
+    inline int getMoveHistory(Move move) {
+        return m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()];
+    }
+
     inline bool isKillerMove(Move move, int ply) const {
         return move == m_Killers[ply][0]
             || move == m_Killers[ply][1];
     }
+
+    int scoreQuietMove(const Position& pos, Move move) const;
 
     static inline bool isSquareAttackedByPawn(const Position& pos, Square s, Color pawnColor) {
         return pos.getAttacks(pawnColor, PT_PAWN).contains(s);
     }
 
     static inline constexpr int getPointValue(PieceType pt) {
-        constexpr int PT_VALUE[PT_COUNT] {
-                0, 1, 3, 3, 5, 9, 99999
-        };
-
-        return PT_VALUE[pt];
+        return getPiecePointValue(pt);
     }
 
     static int getHotmapDelta(Move move);
-
-    enum HasGoodSee : ui8 {
-        UNKNOWN,
-        YES,
-        NO,
-    };
-
-    template <bool NOISY>
-    int scoreMove(const Position& pos, Move move, int currPly) const {
-        int total = 0;
-
-        // Check if killer move
-        if (isKillerMove(move, currPly)) {
-            total += m_Scores.killerMoveScore;
-        }
-
-        if (move.is<MTM_CASTLES>()) {
-            // Castling is usually a good option when available
-            total += m_Scores.castlesScore;
-        }
-
-        // Hotmap delta
-        total += getHotmapDelta(move) * m_Scores.placementDeltaMultiplier;
-
-        total -= getPointValue(move.getSourcePiece().getType());
-
-        return total;
-    }
 };
 
 }
