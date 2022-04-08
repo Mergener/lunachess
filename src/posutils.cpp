@@ -83,6 +83,9 @@ bool hasGoodSEE(const Position& pos, Move move, int threshold) {
 
         // Find least value attacker from current player
         atkSqr = getLeastValueAttacker(pos, atks, occ, targetSqr, c);
+        if (atkSqr == SQ_INVALID) {
+            break;
+        }
         atks.remove(atkSqr);
         occ.remove(atkSqr);
 
