@@ -112,14 +112,7 @@ struct SearchSettings {
      */
     MoveSearchFilter moveFilter = nullptr;
 
-    /**
-     * If set to true, will not prune any nodes from the root of the search.
-     * Thus, all evaluated variations from the root will have their exact score.
-     * When false, only the principal variation is guaranteed to have its exact score returned.
-     * Note that deep search highly increases search time, and should only be used when knowing
-     * the scores of variations beside the PV is useful.
-     */
-    bool doDeepSearch = false;
+    int multiPvCount = 1;
 
     TimeControl ourTimeControl;
     TimeControl theirTimeControl;
@@ -205,7 +198,7 @@ private:
 
     bool updateResults();
 
-    int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true);
+    int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
 
     int quiesce(int ply, int alpha, int beta);
 

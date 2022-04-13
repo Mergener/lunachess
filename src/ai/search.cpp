@@ -132,10 +132,10 @@ int MoveSearcher::quiesce(int ply, int alpha, int beta) {
 
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];
-        //if (move.getType() == MT_SIMPLE_CAPTURE &&
-        //    !posutils::hasGoodSEE(m_Pos, move)) {
-        //    continue;
-        //}
+        if (move.getType() == MT_SIMPLE_CAPTURE &&
+            !posutils::hasGoodSEE(m_Pos, move)) {
+            continue;
+        }
 
         m_Pos.makeMove(move);
         int score = -quiesce(ply + 1, -beta, -alpha);
@@ -159,7 +159,7 @@ void MoveSearcher::pushMoveToPv(TPV::iterator& pvStart, Move move) {
     while ((*m_PvIt++ = *p++) != MOVE_INVALID);
 }
 
-int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed) {
+int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed, MoveList* searchMoves) {
     m_LastResults.visitedNodes++;
 
     if (m_Pos.isDraw(1)) {
@@ -194,11 +194,18 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
 
     bool foundInTT = m_TT.tryGet(posKey, ttEntry);
     if (foundInTT) {
+        hashMove = ttEntry.move;
+
         if (ttEntry.depth >= depth) {
             if (ttEntry.type == TranspositionTable::EXACT) {
-                pushMoveToPv(pvStart, ttEntry.move);
-                m_PvIt = pvStart;
-                return ttEntry.score;
+                if (searchMoves == nullptr || searchMoves->contains(ttEntry.move)) {
+                    // Only use transposition table exact moves if we're either not using
+                    // an external provided search moves list or the one we're using
+                    // includes the move found in the TT
+                    pushMoveToPv(pvStart, ttEntry.move);
+                    m_PvIt = pvStart;
+                    return ttEntry.score;
+                }
             } else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
                 alpha = std::max(alpha, ttEntry.score);
             } else if (ttEntry.type == TranspositionTable::UPPERBOUND) {
@@ -215,7 +222,6 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     else {
         staticEval = m_Eval->evaluate(m_Pos);
     }
-    hashMove = ttEntry.move;
     // #----------------------------------------
 
     if (depth <= 0) {
@@ -278,8 +284,11 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
 
     // Generate moves
     MoveList moves;
-    int moveCount = generateAndOrderMoves(moves, ply, hashMove);
-    if (moveCount == 0) {
+    if (searchMoves == nullptr) {
+        generateAndOrderMoves(moves, ply, hashMove);
+        searchMoves = &moves;
+    }
+    if (searchMoves->size() == 0) {
         // Either stalemate or checkmate
         if (isCheck) {
             return -MATE_SCORE + ply;
@@ -290,8 +299,9 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     // Finally, do the search
     int bestMoveIdx = 0;
 
-    for (int i = 0; i < moveCount; ++i) {
-        Move move = moves[i];
+    bool canReduce = true;
+    for (int i = 0; i < searchMoves->size(); ++i) {
+        Move move = (*searchMoves)[i];
 
         int d = depth;
 
@@ -312,20 +322,6 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
         }
         // #----------------------------------------
 
-        // #----------------------------------------
-        // # LATE MOVE REDUCTIONS
-        // #----------------------------------------
-
-        constexpr int LMR_REDUCTION = 1;
-        constexpr int LMR_MIN_DEPTH = LMR_REDUCTION + 1;
-        if (foundInTT && d > LMR_MIN_DEPTH &&
-            ttEntry.type == TranspositionTable::UPPERBOUND &&
-            i > 4 &&
-            !isCheck &&
-            move.is<MTM_NOISY>()) {
-            d -= LMR_REDUCTION;
-        }
-        // #----------------------------------------
 
         m_Pos.makeMove(move);
         int score = -alphaBeta(d, ply + 1, -beta, -alpha);
@@ -353,7 +349,8 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     m_PvIt = pvStart;
 
     // Store search data in transposition table
-    Move bestMove = moves[bestMoveIdx];
+    Move bestMove = (*searchMoves)[bestMoveIdx];
+
     if (alpha <= originalAlpha) {
         // Fail low
         ttEntry.type = TranspositionTable::UPPERBOUND;
@@ -375,15 +372,21 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     return alpha;
 }
 
+static void filterMoves(MoveList& ml, MoveSearchFilter filter) {
+    for (int i = ml.size() - 1; i >= 0; i--) {
+        auto move = ml[i];
+        if (!filter(move)) {
+            ml.removeAt(i);
+        }
+    }
+}
+
 void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, SearchSettings settings) {
     while (m_Searching);
 
     try {
         m_Searching = true;
         m_ShouldStop = false;
-        m_PvIt = m_Pv.begin();
-
-        std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
 
         m_MvFactory.resetHistory();
         TranspositionTable::Entry ttEntry;
@@ -395,22 +398,20 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
 
         // Generate and order all moves
         MoveList moves;
+        generateAndOrderMoves(moves, 0, MOVE_INVALID);
 
-        Clock clock;
+        // Filter out undesired moves
+        if (settings.moveFilter != nullptr) {
+            filterMoves(moves, settings.moveFilter);
+        }
+
         m_LastResults.visitedNodes = 1;
-        m_LastResults.searchStart = clock.now();
+        m_LastResults.searchStart = Clock::now();
 
         // Last lastSearchResults could have been filled with a previous search
         m_LastResults.searchedVariations.clear();
 
-        generateAndOrderMoves(moves, 0, MOVE_INVALID);
-
-        // Add a variation object for each move being searched
-        // The indexes of the generated moves list will match
-        // the variations in this vector.
-        m_LastResults.searchedVariations.resize(1);
-
-        // Check if no legal moves (stalemate/checkmate)
+        // Check if no moves (stalemate/checkmate)
         if (moves.size() == 0) {
             int score = m_Pos.isCheck()
                         ? -MATE_SCORE // Checkmate
@@ -434,41 +435,58 @@ void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, Sea
 
         // Perform iterative deepening, starting at depth 1
         for (int depth = 1; depth < MAX_SEARCH_DEPTH && !m_TimeManager.timeIsUp() && !m_ShouldStop; depth++) {
-            m_LastResults.visitedNodes = 0;
-            m_LastResults.currDepthStart = clock.now();
+            for (int multipv = 0; multipv < settings.multiPvCount; ++multipv) {
+                std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
+                m_PvIt = m_Pv.begin();
 
-            // Perform the search
-            bool mustResearch = false;
-            try {
-                m_LastResults.bestScore = alphaBeta(depth, 0, alpha, beta, false);
+                m_LastResults.visitedNodes = 0;
+                m_LastResults.currDepthStart = Clock::now();
 
-                m_LastResults.bestMove = m_Pv[0];
-                m_LastResults.searchedDepth = depth;
-            }
-            catch (const TimeUp&) {
-                // Time over
-                break;
-            }
+                // Perform the search
+                try {
+                    int score = alphaBeta(depth, 0, alpha, beta, false, &moves);
 
-            auto& principalVariation = m_LastResults.searchedVariations[0];
-            principalVariation.moves.clear();
-            principalVariation.score = m_LastResults.bestScore;
-            principalVariation.type = TranspositionTable::EXACT;
-            for (auto move : m_Pv) {
-                if (move == MOVE_INVALID) {
+                    if (multipv == 0) {
+                        m_LastResults.bestScore = score;
+                        m_LastResults.bestMove = m_Pv[0];
+                        m_LastResults.searchedDepth = depth;
+                    }
+
+                    moves.remove(m_Pv[0]);
+                }
+                catch (const TimeUp &) {
+                    // Time over
                     break;
                 }
-                principalVariation.moves.push_back(move);
+
+                auto& pv = m_LastResults.searchedVariations[multipv];
+                pv.moves.clear();
+                pv.score = m_LastResults.bestScore;
+                pv.type = TranspositionTable::EXACT;
+                for (auto move: m_Pv) {
+                    if (move == MOVE_INVALID) {
+                        break;
+                    }
+                    pv.moves.push_back(move);
+                }
+
+                if (updateResults()) {
+                    // Search stop requested.
+                    break;
+                }
             }
 
-            if (updateResults()) {
-                // Search stop requested.
+            if (m_TimeManager.timeIsUp()) {
                 break;
             }
 
+            // Re-generate moves list with new ordering
             moves.clear();
 
             movegen::generate(pos, moves);
+            if (settings.moveFilter != nullptr) {
+                filterMoves(moves, settings.moveFilter);
+            }
         }
     }
     catch (const std::exception& ex) {

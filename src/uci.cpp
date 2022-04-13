@@ -1,15 +1,15 @@
 #include "uci.h"
 
-#include <iostream>
-#include <thread>
-#include <memory>
-#include <functional>
-#include <string>
-#include <vector>
-#include <queue>
 #include <cstdlib>
 #include <fstream>
 #include <future>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <queue>
+#include <string>
+#include <thread>
+#include <vector>
 
 #include "perft.h"
 #include "strutils.h"
@@ -33,6 +33,7 @@ struct UCIContext {
 
     // Chess state
     Position pos = Position::getInitialPosition();
+    std::vector<Move> moveHistory;
 
     // UCI settings
     bool debugMode = false;
@@ -106,6 +107,7 @@ static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "id name LunaChess" << std::endl;
     std::cout << "id author Thomas Mergener" << std::endl;
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
+    displayOption(ctx, "Hash", "spin", strutils::toString(ai::TranspositionTable::DEFAULT_SIZE_MB), "1", "1048576");
     std::cout << "uciok" << std::endl;
 }
 
@@ -135,6 +137,12 @@ static void processOption(UCIContext& ctx, std::string_view option, std::string_
         int count;
         if (strutils::tryParseInteger(value, count)) {
             ctx.multiPvCount = count;
+        }
+    }
+    else if (option == "Hash") {
+        size_t size;
+        if (strutils::tryParseInteger(value, size)) {
+            ctx.searcher.getTT().resize(size * 1024 * 1024);
         }
     }
 }
@@ -205,12 +213,14 @@ static void playMovesAfterPos(UCIContext& ctx,
         }
 
         ctx.pos.makeMove(move);
+        ctx.moveHistory.push_back(move);
         legalMoves.clear();
     }
 }
 
 static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
     if (args[0] == "startpos") {
+        ctx.moveHistory.clear();
         ctx.pos = Position::getInitialPosition();
 
         if (args.size() > 1) {
@@ -232,6 +242,7 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
         return;
     }
 
+    ctx.moveHistory.clear();
     int movesArgsIdx = -1;
 
     // FEN argument given, process it
@@ -274,9 +285,6 @@ static bool readTime(std::string_view sv, int& dest) {
         return false;
     }
     return true;
-}
-
-static void infoPrintScore(int score) {
 }
 
 static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
@@ -354,10 +362,9 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
 
     searchSettings.ourTimeControl = timeControl[pos.getColorToMove()];
     searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
-    searchSettings.doDeepSearch = timeControl[pos.getColorToMove()].mode == TC_INFINITE && ctx.multiPvCount > 1;
+    searchSettings.multiPvCount = ctx.multiPvCount;
 
-    
-    //ctx.searcher.getTT().clear();
+    ctx.searcher.getTT().clear();
 
     startWork(ctx, [=, &ctx] {
 
@@ -465,6 +472,7 @@ static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
         }
 
         ctx.pos.makeMove(move);
+        ctx.moveHistory.push_back(move);
     }
     std::cout << ctx.pos << std::endl;
 }
@@ -481,6 +489,7 @@ static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
 
     for (int i = 0; i < n; ++i) {
         ctx.pos.undoMove();
+        ctx.moveHistory.pop_back();
     }
 
     std::cout << ctx.pos << std::endl;
@@ -508,6 +517,14 @@ static void cmdGetpos(UCIContext& ctx, const CommandArgs& args) {
 static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos.toFen() << std::endl;
 }
+
+static void cmdMovehist(UCIContext& ctx, const CommandArgs& args) {
+    for (Move m: ctx.moveHistory) {
+        std::cout << m << " ";
+    }
+    std::cout << std::endl;
+}
+
 #ifndef NDEBUG
 static void cmdAttacks(UCIContext& ctx, const CommandArgs& args) {
     Color c = ctx.pos.getColorToMove();
@@ -598,6 +615,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["takeback"] = Command(cmdTakeback, 0, false);
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["getfen"] = Command(cmdGetfen, 0);
+    cmds["movehist"] = Command(cmdMovehist, 0);
 
 #ifndef NDEBUG
     // Debug commands
