@@ -12,7 +12,9 @@ namespace lunachess::ai {
 class TranspositionTable {
 
 public:
-    enum EntryType {
+    static constexpr size_t DEFAULT_SIZE_MB = 32;
+
+    enum EntryType : ui8 {
         // For PV-Nodes
         EXACT,
 
@@ -25,11 +27,11 @@ public:
 
     struct Entry {
         ui64 zobristKey;
-        EntryType type;
-        int score;
-        int depth;
         Move move;
-        int staticEval;
+        i32 score;
+        i32 staticEval;
+        ui8 depth;
+        EntryType type;
     };
 
 private:
@@ -84,7 +86,7 @@ public:
         std::memset(m_Buckets, 0, m_Capacity * sizeof(Bucket));
     }
 
-    inline TranspositionTable(size_t hashSizeBytes = 256 * 1024 * 1024) {
+    inline TranspositionTable(size_t hashSizeBytes = DEFAULT_SIZE_MB * 1024 * 1024) {
         resize(hashSizeBytes);
     }
 
