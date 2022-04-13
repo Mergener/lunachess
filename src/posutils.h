@@ -99,6 +99,14 @@ inline FileState getFileState(const Position& pos, BoardFile f) {
 
 bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
 
+namespace specialpos {
+
+inline Position getKiwipete() {
+    return Position::fromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -").value();
+}
+
+} // specialpos
+
 } // posutils
 
 } // lunachess
