@@ -9,6 +9,7 @@ namespace lunachess::ai {
 class TimeManager {
 public:
     void start(const TimeControl& tc);
+
     bool timeIsUp() const;
 
 private:

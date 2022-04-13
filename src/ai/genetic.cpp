@@ -192,7 +192,6 @@ Training::Training(const TrainingSettings& settings)
     m_CurrGeneration.agents.emplace_back(0);
     m_CurrGeneration.generateAgents(settings.agentsPerGen - 1, agentGenSettings);
 
-
     std::cout << "Generated " << settings.agentsPerGen << " agents." << std::endl;
 }
 
@@ -222,7 +221,6 @@ static SearchResults doMoveSearch(const Position& pos, MoveSearcher& searcher, i
     SearchResults res;
 
     SearchSettings searchSettings;
-    searchSettings.doDeepSearch = false;
 
     Clock clock;
     auto start = clock.now();

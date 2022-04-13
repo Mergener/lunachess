@@ -62,6 +62,7 @@ int main(int argc, char* argv[]) {
 
     std::ios_base::sync_with_stdio(false);
     std::cin.tie();
+    std::cout << std::boolalpha;
 
     if (argc > 1 && std::string(argv[1]) == "train") {
         constexpr int DEFAULT_MOVETIME = 1000;
@@ -75,6 +76,5 @@ int main(int argc, char* argv[]) {
 
         return trainingMain(movetime);
     }
-
     return uciMain();
 }

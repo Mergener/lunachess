@@ -86,12 +86,9 @@ int AIMoveFactory::getHotmapDelta(Move move) {
 
     const Hotmap& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
 
-    //const Hotmap& hotmap = srcPiece.getType() == PT_KING
-    //        ? Hotmap::defaultKingMgHotmap
-    //        : Hotmap::defaultMiddlegameMaps[srcPiece.getType()].getHotmap(SQ_E1);
-
-    int srcVal = hotmap.getValue(move.getSource(), us);
     int dstVal = hotmap.getValue(move.getDest(), us);
+    int srcVal = hotmap.getValue(move.getSource(), us);
+
     int ret = dstVal - srcVal;
 
     return ret;
