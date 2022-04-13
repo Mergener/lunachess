@@ -501,9 +501,21 @@ int BasicEvaluator::evaluatePlacement(const Position& pos, Color c, int gpf, con
     return total;
 }
 
+int BasicEvaluator::evaluateNearKingAttacks(const Position& pos, Color c, int gpf) const {
+    int score = -adjustScores(m_MgScores.nearKingSquareAttacksScore, m_EgScores.nearKingSquareAttacksScore, gpf);
+
+    Color them = getOppositeColor(c);
+
+    Bitboard nearKingSquares = bbs::getKingAttacks(pos.getKingSquare(c));
+    Bitboard theirAttacks = pos.getAttacks(them, PT_NONE);
+
+    return Bitboard(nearKingSquares & theirAttacks).count() * score;
+}
+
 int BasicEvaluator::getDrawScore() const {
     return 0;
 }
+
 int BasicEvaluator::getGamePhaseFactor(const Position& pos) const {
     constexpr int STARTING_MATERIAL_COUNT = 62; // Excluding pawns
 
@@ -720,17 +732,6 @@ int BasicEvaluator::evaluateBishopPair(const Position &pos, Color c, int gpf) co
     int bishopPairScore = adjustScores(m_MgScores.bishopPairScore, m_EgScores.bishopPairScore, gpf);
 
     return std::min(lightSquaredBishops.count(), darkSquaredBishops.count()) * bishopPairScore;
-}
-
-int BasicEvaluator::evaluateNearKingAttacks(const Position& pos, Color c, int gpf) const {
-    int score = -adjustScores(m_MgScores.nearKingSquareAttacksScore, m_EgScores.nearKingSquareAttacksScore, gpf);
-
-    Color them = getOppositeColor(c);
-
-    Bitboard nearKingSquares = bbs::getKingAttacks(pos.getKingSquare(c));
-    Bitboard theirAttacks = pos.getAttacks(them, PT_NONE);
-
-    return Bitboard(nearKingSquares & theirAttacks).count() * score;
 }
 
 int BasicEvaluator::evaluateOutposts(const Position &pos, Color c, int gpf) const {
