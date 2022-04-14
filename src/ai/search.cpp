@@ -7,26 +7,6 @@
 
 namespace lunachess::ai {
 
-void SearchResults::sortVariations() {
-    // Sort variations before updating lastSearchResults
-    std::sort(searchedVariations.begin(), searchedVariations.end(),
-    [](const SearchedVariation& a, const SearchedVariation& b) {
-        if (a.type == TranspositionTable::EXACT && b.type != TranspositionTable::EXACT) {
-            return true;
-        }
-        if (a.type != TranspositionTable::EXACT && b.type == TranspositionTable::EXACT) {
-            return false;
-        }
-        if (a.score > b.score) {
-            return true;
-        }
-        if (a.score < b.score) {
-            return false;
-        }
-        return false;
-    });
-}
-
 int AlphaBetaSearcher::generateAndOrderMovesQuiesce(MoveList& ml, int ply) {
     int initialCount = ml.size();
 

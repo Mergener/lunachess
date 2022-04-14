@@ -95,11 +95,6 @@ struct SearchResults {
     inline const ui64 getNPS() const {
         return static_cast<ui64>(static_cast<double>(visitedNodes) / getCurrDepthTime() * 1000);
     }
-
-private:
-    friend class AlphaBetaSearcher;
-
-    void sortVariations();
 };
 
 struct SearchSettings {
