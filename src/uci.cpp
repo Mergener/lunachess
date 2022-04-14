@@ -49,7 +49,7 @@ struct UCIContext {
 
     // Search settings
     int maxDepth = ai::MAX_SEARCH_DEPTH;
-    ai::MoveSearcher searcher;
+    ai::AlphaBetaSearcher searcher;
     ai::SearchResults lastSearchResults;
     bool shouldStopCurrentSearch = false;
 };
@@ -364,68 +364,51 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
     searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
     searchSettings.multiPvCount = ctx.multiPvCount;
 
+    TimePoint startTime = Clock::now();
+    searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
+        ai::SearchedVariation& var = res.searchedVariations[pv];
+
+        std::cout << "info depth " << res.searchedDepth;
+
+        std::cout << " multipv " << pv + 1;
+
+        // Print score
+        if (std::abs(var.score) < ai::FORCED_MATE_THRESHOLD) {
+            std::cout << " score cp " << var.score / 10;
+        } else {
+            // Forced checkmate found
+            int mateScore = var.score > 0 ? ai::MATE_SCORE : -ai::MATE_SCORE;
+            int pliesToMate = mateScore - var.score + 1;
+            std::cout << " score mate " << pliesToMate / 2;
+        }
+
+        // Is it lowerbound, upperbound, or exact (do nothing)?
+        if (var.type == ai::TranspositionTable::LOWERBOUND) {
+            std::cout << " lowerbound";
+        } else if (var.type == ai::TranspositionTable::UPPERBOUND) {
+            std::cout << " upperbound";
+        }
+
+        // Show the line itself
+        std::cout << " pv";
+        for (Move m: var.moves) {
+            std::cout << " " << m;
+        }
+
+        std::cout << " nodes " << res.visitedNodes;
+        std::cout << " nps " << res.getNPS();
+
+        std::cout << " time " << deltaMs(Clock::now(), startTime);
+
+        std::cout << std::endl;
+    };
+
     ctx.searcher.getTT().clear();
 
     startWork(ctx, [=, &ctx] {
+        ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
+        std::cout << "bestmove " << res.bestMove << std::endl;
 
-        TimePoint startTime = Clock::now();
-
-        ctx.searcher.search(pos, [&ctx, startTime](ai::SearchResults res) {
-            if (ctx.shouldStopCurrentSearch) {
-                return true;
-            }
-
-            Clock clock;
-
-            for (int i = 0; i < res.searchedVariations.size(); ++i) {
-                const auto &var = res.searchedVariations[i];
-
-                std::cout << "info depth " << res.searchedDepth;
-
-                std::cout << " multipv " << i + 1;
-
-                // Print score
-                if (std::abs(var.score) < ai::FORCED_MATE_THRESHOLD) {
-                    std::cout << " score cp " << var.score / 10;
-                } else {
-                    // Forced checkmate found
-                    int mateScore = var.score > 0 ? ai::MATE_SCORE : -ai::MATE_SCORE;
-                    int pliesToMate = mateScore - var.score + 1;
-                    std::cout << " score mate " << pliesToMate / 2;
-                }
-
-                // Is it lowerbound, upperbound, or exact (do nothing)?
-                if (var.type == ai::TranspositionTable::LOWERBOUND) {
-                    std::cout << " lowerbound";
-                } else if (var.type == ai::TranspositionTable::UPPERBOUND) {
-                    std::cout << " upperbound";
-                }
-
-                // Show the line itself
-                std::cout << " pv";
-                for (Move m: var.moves) {
-                    std::cout << " " << m;
-                }
-
-                std::cout << " nodes " << res.visitedNodes;
-                std::cout << " nps " << res.getNPS();
-
-                std::cout << " time " << deltaMs(clock.now(), startTime);
-
-                std::cout << std::endl;
-
-                ctx.lastSearchResults = res;
-
-                if (i >= ctx.multiPvCount - 1) {
-                    // Enough variation printing
-                    break;
-                }
-            }
-
-            return false;
-        }, searchSettings);
-
-        std::cout << "bestmove " << ctx.lastSearchResults.bestMove << std::endl;
         ctx.state = WAITING;
     });
 }

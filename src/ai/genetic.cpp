@@ -162,8 +162,8 @@ BasicEvaluator crossover(const BasicEvaluator& a, const BasicEvaluator& b) {
     return ret;
 }
 
-MoveSearcher crossover(const MoveSearcher& a, const MoveSearcher& b) {
-    MoveSearcher ret;
+AlphaBetaSearcher crossover(const AlphaBetaSearcher& a, const AlphaBetaSearcher& b) {
+    AlphaBetaSearcher ret;
 
     ret.getEvaluator() = crossover(a.getEvaluator(), b.getEvaluator());
 
@@ -215,32 +215,12 @@ void Training::start() {
     }
 }
 
-static SearchResults doMoveSearch(const Position& pos, MoveSearcher& searcher, int maxTime) {
-    namespace chrono = std::chrono;
-
-    SearchResults res;
-
+static SearchResults doMoveSearch(const Position& pos, AlphaBetaSearcher& searcher, int maxTime) {
     SearchSettings searchSettings;
+    searchSettings.ourTimeControl.time = maxTime;
+    searchSettings.ourTimeControl.mode = TC_MOVETIME;
 
-    Clock clock;
-    auto start = clock.now();
-
-    searcher.search(pos, [&res, start, maxTime](auto r) {
-        res = r;
-
-        if (res.bestScore >= FORCED_MATE_THRESHOLD) {
-            return true;
-        }
-
-        Clock clock;
-        constexpr int EXPECTED_BRANCH_FACTOR = 4;
-        i64 elapsed = deltaMs(clock.now(), start);
-        if (elapsed * EXPECTED_BRANCH_FACTOR > maxTime) {
-            return true;
-        }
-
-        return false;
-    }, searchSettings);
+    SearchResults res = searcher.search(pos, searchSettings);
 
     return res;
 }
@@ -249,7 +229,7 @@ int Training::Game::play(Agent& white, Agent& black, int movetime) {
     agentIds[CL_WHITE] = white.getId();
     agentIds[CL_BLACK] = black.getId();
 
-    MoveSearcher searchers[CL_COUNT] = {
+    AlphaBetaSearcher searchers[CL_COUNT] = {
         white.getEvaluatorPtr(),
         black.getEvaluatorPtr()
     };

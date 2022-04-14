@@ -95,36 +95,45 @@ struct SearchResults {
     inline const ui64 getNPS() const {
         return static_cast<ui64>(static_cast<double>(visitedNodes) / getCurrDepthTime() * 1000);
     }
+
+private:
+    friend class AlphaBetaSearcher;
+
+    void sortVariations();
 };
 
-/**
- * Handler for whenever a search obtains new lastSearchResults.
- * Should return true if stopping the search is desired.
- */
-using SearchResultsHandler = std::function<bool(SearchResults)>;
-
-using MoveSearchFilter = std::function<bool(Move)>;
-
 struct SearchSettings {
+    //
+    // General settings
+    //
+    int multiPvCount = 1;
+
     /**
      * Predicate that should return true only to moves that should be searched in the root node.
      * If moveFilter == nullptr, then the search will not filter out any moves.
      */
-    MoveSearchFilter moveFilter = nullptr;
+    std::function<bool(Move)> moveFilter = nullptr;
 
-    int multiPvCount = 1;
-
+    //
+    // Time control settings
+    //
     TimeControl ourTimeControl;
     TimeControl theirTimeControl;
+
+    //
+    // Event handlers
+    //
+    std::function<void(SearchResults)> onDepthFinish;
+    std::function<void(SearchResults, int pvIdx)> onPvFinish;
 };
 
-class MoveSearcher {
+class AlphaBetaSearcher {
 public:
     inline void stop() {
         m_ShouldStop = true;
     }
 
-    void search(const Position& pos, SearchResultsHandler handler, SearchSettings settings = SearchSettings());
+    SearchResults search(const Position& pos, SearchSettings settings = SearchSettings());
 
     /**
      * Performs a quiescence search. The quiescence search only searches for 'noisy' moves.
@@ -141,27 +150,14 @@ public:
         return quiesce(ply, alpha, beta);
     }
 
-    /**
-     * Searches a given position until the provided depth is reached.
-     */
-    inline SearchResults searchToDepth(const Position& pos, int depth, SearchSettings settings = SearchSettings()) {
-        search(pos, [depth](SearchResults res) {
-            if (res.searchedDepth >= depth) {
-                return true;
-            }
-            return false;
-        }, settings);
-        return m_LastResults;
-    }
-
-    inline MoveSearcher()
+    inline AlphaBetaSearcher()
         : m_Eval(new BasicEvaluator()), m_PvIt(m_Pv.begin()) {
     }
 
     /**
      * Constructs a move searcher with an externally created evaluator.
      */
-    inline MoveSearcher(std::shared_ptr<BasicEvaluator> eval)
+    inline AlphaBetaSearcher(std::shared_ptr<BasicEvaluator> eval)
         : m_Eval(eval), m_PvIt(m_Pv.begin()) {
     }
 
@@ -176,7 +172,6 @@ private:
     TranspositionTable m_TT;
     SearchResults m_LastResults;
     AIMoveFactory m_MvFactory;
-    SearchResultsHandler m_Handler = [](SearchResults r){ return false; };
     std::shared_ptr<BasicEvaluator> m_Eval;
     TimeManager m_TimeManager;
     bool m_ShouldStop = false;
@@ -185,18 +180,6 @@ private:
     using TPV = std::array<Move, MAX_SEARCH_DEPTH>;
     TPV m_Pv;
     TPV::iterator m_PvIt;
-
-    /**
-     * Extracts the sequence of moves calculated after the given move.
-     * @param move The move that starts the sequence.
-     * @param var The variation object to store all moves that were calculated
-     * as the best after the first move, as well as the bestScore. Also stores the 'move' parameter itself.
-     * The moves are stored in the order they were played in the variation, from first
-     * to last move.
-     */
-    void extractVariation(Move move, SearchedVariation& var);
-
-    bool updateResults();
 
     int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
 

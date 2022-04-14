@@ -26,7 +26,7 @@ void mutate(ScoreTable& scores, const MutationSettings& settings = MutationSetti
 
 ScoreTable crossover(const ScoreTable& a, const ScoreTable& b);
 BasicEvaluator crossover(const BasicEvaluator& a, const BasicEvaluator& b);
-MoveSearcher crossover(const MoveSearcher& a, const MoveSearcher& b);
+AlphaBetaSearcher crossover(const AlphaBetaSearcher& a, const AlphaBetaSearcher& b);
 
 struct TrainingSettings {
     // Genetic settings

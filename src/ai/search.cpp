@@ -7,65 +7,27 @@
 
 namespace lunachess::ai {
 
-void MoveSearcher::extractVariation(Move move, SearchedVariation& var) {
-    var.moves.clear();
-
-    // Add the initial move
-    m_Pos.makeMove(move);
-    var.moves.push_back(move);
-
-    // Search the transposition table for the moves that came afterwards
-    TranspositionTable::Entry entry;
-
-    bool firstEntry = true;
-
-    while (m_TT.tryGet(m_Pos.getZobrist(), entry)) {
-        if (firstEntry) {
-            firstEntry = false;
-            var.score = -entry.score;
-            var.type = entry.type;
-        }
-
-        var.moves.push_back(entry.move);
-        m_Pos.makeMove(entry.move);
-
-        // Prevent infinite loops by checking for a draw by repetition
-        if (m_Pos.isRepetitionDraw(1)) {
-            break;
-        }
-    }
-
-    // Reset the position to the state before extracting the variation
-    for (int i = 0; i < var.moves.size(); ++i) {
-        // Undo all moves
-        m_Pos.undoMove();
-    }
-}
-
-bool MoveSearcher::updateResults() {
+void SearchResults::sortVariations() {
     // Sort variations before updating lastSearchResults
-    std::sort(m_LastResults.searchedVariations.begin(), m_LastResults.searchedVariations.end(),
-          [](const SearchedVariation& a, const SearchedVariation& b) {
-              if (a.type == TranspositionTable::EXACT && b.type != TranspositionTable::EXACT) {
-                  return true;
-              }
-              if (a.type != TranspositionTable::EXACT && b.type == TranspositionTable::EXACT) {
-                  return false;
-              }
-              if (a.score > b.score) {
-                  return true;
-              }
-              if (a.score < b.score) {
-                  return false;
-              }
-              return false;
-          });
-    bool ret = m_Handler(m_LastResults);
-
-    return ret;
+    std::sort(searchedVariations.begin(), searchedVariations.end(),
+    [](const SearchedVariation& a, const SearchedVariation& b) {
+        if (a.type == TranspositionTable::EXACT && b.type != TranspositionTable::EXACT) {
+            return true;
+        }
+        if (a.type != TranspositionTable::EXACT && b.type == TranspositionTable::EXACT) {
+            return false;
+        }
+        if (a.score > b.score) {
+            return true;
+        }
+        if (a.score < b.score) {
+            return false;
+        }
+        return false;
+    });
 }
 
-int MoveSearcher::generateAndOrderMovesQuiesce(MoveList& ml, int ply) {
+int AlphaBetaSearcher::generateAndOrderMovesQuiesce(MoveList& ml, int ply) {
     int initialCount = ml.size();
 
     m_MvFactory.generateNoisyMoves(ml, m_Pos, ply);
@@ -73,7 +35,7 @@ int MoveSearcher::generateAndOrderMovesQuiesce(MoveList& ml, int ply) {
     return ml.size() - initialCount;
 }
 
-int MoveSearcher::generateAndOrderMoves(MoveList& ml, int ply, Move pvMove) {
+int AlphaBetaSearcher::generateAndOrderMoves(MoveList& ml, int ply, Move pvMove) {
     int initialCount = ml.size();
 
     m_MvFactory.generateMoves(ml, m_Pos, ply, pvMove);
@@ -89,7 +51,7 @@ class TimeUp {
 
 constexpr int CHECK_TIME_NODE_INTERVAL = 4096;
 
-int MoveSearcher::quiesce(int ply, int alpha, int beta) {
+int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     m_LastResults.visitedNodes++;
 
     if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
@@ -152,14 +114,14 @@ int MoveSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
-void MoveSearcher::pushMoveToPv(TPV::iterator& pvStart, Move move) {
-    TPV::iterator p = m_PvIt;
+void AlphaBetaSearcher::pushMoveToPv(TPV::iterator& pvStart, Move move) {
+    auto p = m_PvIt;
     m_PvIt = pvStart;
     *m_PvIt++ = move;
     while ((*m_PvIt++ = *p++) != MOVE_INVALID);
 }
 
-int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed, MoveList* searchMoves) {
+int AlphaBetaSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed, MoveList* searchMoves) {
     m_LastResults.visitedNodes++;
 
     if (m_Pos.isDraw(1)) {
@@ -179,7 +141,7 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     Move hashMove = MOVE_INVALID;
 
     // Setup principal variation
-    TPV::iterator pvStart = m_PvIt;
+    auto pvStart = m_PvIt;
     *m_PvIt++ = MOVE_INVALID;
 
     // #----------------------------------------
@@ -372,7 +334,11 @@ int MoveSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMo
     return alpha;
 }
 
-static void filterMoves(MoveList& ml, MoveSearchFilter filter) {
+static void filterMoves(MoveList& ml, std::function<bool(Move)> filter) {
+    if (filter == nullptr) {
+        return;
+    }
+
     for (int i = ml.size() - 1; i >= 0; i--) {
         auto move = ml[i];
         if (!filter(move)) {
@@ -381,117 +347,130 @@ static void filterMoves(MoveList& ml, MoveSearchFilter filter) {
     }
 }
 
-void MoveSearcher::search(const Position& pos, SearchResultsHandler handler, SearchSettings settings) {
-    while (m_Searching);
+SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings settings) {
+    while (m_Searching); // Wait current search.
 
-    try {
-        m_Searching = true;
-        m_ShouldStop = false;
+    // Reset everything
+    m_Searching = true;
+    m_ShouldStop = false;
+    m_MvFactory.resetHistory();
 
-        m_MvFactory.resetHistory();
-        TranspositionTable::Entry ttEntry;
+    // Setup variables
+    m_Pos = pos;
+    int drawScore = m_Eval->getDrawScore();
 
-        int drawScore = m_Eval->getDrawScore();
+    // Generate and order all moves
+    MoveList moves;
+    generateAndOrderMoves(moves, 0, MOVE_INVALID);
 
-        m_Handler = handler;
-        m_Pos = pos;
+    // If no moves were generated, position is a stalemate or checkmate.
+    if (moves.size() == 0) {
+        int score = m_Pos.isCheck()
+                    ? -MATE_SCORE // Checkmate
+                    : drawScore;  // Stalemate
 
-        // Generate and order all moves
-        MoveList moves;
-        generateAndOrderMoves(moves, 0, MOVE_INVALID);
+        m_LastResults.bestScore = score;
+        m_LastResults.bestMove = MOVE_INVALID;
 
-        // Filter out undesired moves
-        if (settings.moveFilter != nullptr) {
-            filterMoves(moves, settings.moveFilter);
+        return m_LastResults;
+    }
+
+    // Filter out undesired moves
+    filterMoves(moves, settings.moveFilter);
+
+    // Setup results object
+    m_LastResults.visitedNodes = 1;
+    m_LastResults.searchStart = Clock::now();
+
+    // Last lastSearchResults could have been filled with a previous search
+    m_LastResults.searchedVariations.clear();
+
+    m_LastResults.bestMove = moves[0];
+    m_LastResults.searchedVariations.resize(moves.size());
+
+    int alpha = -HIGH_BETA;
+    int beta = HIGH_BETA;
+
+    // Notify the time manager that we're starting a search
+    m_TimeManager.start(settings.ourTimeControl);
+
+    // Perform iterative deepening, starting at depth 1
+    for (int depth = 1; depth < MAX_SEARCH_DEPTH && !m_TimeManager.timeIsUp() && !m_ShouldStop; depth++) {
+        if (m_TimeManager.timeIsUp() || m_ShouldStop) {
+            break;
         }
-
-        m_LastResults.visitedNodes = 1;
-        m_LastResults.searchStart = Clock::now();
-
-        // Last lastSearchResults could have been filled with a previous search
-        m_LastResults.searchedVariations.clear();
-
-        // Check if no moves (stalemate/checkmate)
-        if (moves.size() == 0) {
-            int score = m_Pos.isCheck()
-                        ? -MATE_SCORE // Checkmate
-                        : drawScore;  // Stalemate
-
-            m_LastResults.bestScore = score;
-            m_LastResults.bestMove = MOVE_INVALID;
-
-            updateResults();
-            return;
-        }
-
-        m_LastResults.bestMove = moves[0];
-
-        int alpha = -HIGH_BETA;
-        int beta = HIGH_BETA;
-
-        ui64 posKey = m_Pos.getZobrist();
-
-        m_TimeManager.start(settings.ourTimeControl);
-
-        // Perform iterative deepening, starting at depth 1
-        for (int depth = 1; depth < MAX_SEARCH_DEPTH && !m_TimeManager.timeIsUp() && !m_ShouldStop; depth++) {
-            for (int multipv = 0; multipv < settings.multiPvCount; ++multipv) {
-                std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
-                m_PvIt = m_Pv.begin();
-
-                m_LastResults.visitedNodes = 0;
-                m_LastResults.currDepthStart = Clock::now();
-
-                // Perform the search
-                try {
-                    int score = alphaBeta(depth, 0, alpha, beta, false, &moves);
-
-                    if (multipv == 0) {
-                        m_LastResults.bestScore = score;
-                        m_LastResults.bestMove = m_Pv[0];
-                        m_LastResults.searchedDepth = depth;
-                    }
-
-                    moves.remove(m_Pv[0]);
-                }
-                catch (const TimeUp &) {
-                    // Time over
-                    break;
-                }
-
-                auto& pv = m_LastResults.searchedVariations[multipv];
-                pv.moves.clear();
-                pv.score = m_LastResults.bestScore;
-                pv.type = TranspositionTable::EXACT;
-                for (auto move: m_Pv) {
-                    if (move == MOVE_INVALID) {
-                        break;
-                    }
-                    pv.moves.push_back(move);
-                }
-
-                if (updateResults()) {
-                    // Search stop requested.
-                    break;
-                }
-            }
-
-            if (m_TimeManager.timeIsUp()) {
+        // Caller might be asking for a multi-pv search. Search the number of pvs requested
+        // or until all moves were searched
+        for (int multipv = 0; multipv < settings.multiPvCount && moves.size() > 0; ++multipv) {
+            if (m_TimeManager.timeIsUp() || m_ShouldStop) {
                 break;
             }
 
-            // Re-generate moves list with new ordering
-            moves.clear();
+            // For each new pv to be searched, clear the previous pv array
+            std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
+            m_PvIt = m_Pv.begin();
 
-            movegen::generate(pos, moves);
-            if (settings.moveFilter != nullptr) {
-                filterMoves(moves, settings.moveFilter);
+            // Prepare results object for this search
+            m_LastResults.visitedNodes = 0;
+            m_LastResults.currDepthStart = Clock::now();
+
+            // Perform the search
+            try {
+                int score = alphaBeta(depth, 0, alpha, beta, false, &moves);
+
+                if (multipv == 0) {
+                    // multipv == 0 means that this is the true principal variation.
+                    // The score and move found in this pv search are the best for the
+                    // position being searched.
+                    m_LastResults.bestScore = score;
+                    m_LastResults.bestMove = m_Pv[0];
+                    m_LastResults.searchedDepth = depth;
+                }
+
+                moves.remove(m_Pv[0]);
+            }
+            catch (const TimeUp &) {
+                // Time over
+                break;
+            }
+
+            // We finished the search on this variation at this depth.
+            // Now, properly fill the searched variation object for this pv
+            // in the results object.
+            auto& pv = m_LastResults.searchedVariations[multipv];
+            pv.score = m_LastResults.bestScore;
+            pv.type = TranspositionTable::EXACT;
+
+            // Add the moves searched now, deleting previous moves stored
+            // in the variation.
+            pv.moves.clear();
+            for (auto move: m_Pv) {
+                if (move == MOVE_INVALID) {
+                    // PV array is MOVE_INVALID terminated.
+                    break;
+                }
+                pv.moves.push_back(move);
+            }
+
+            // Notify handler
+            if (settings.onPvFinish != nullptr) {
+                settings.onPvFinish(m_LastResults, multipv);
             }
         }
+
+        // Re-generate moves list with new ordering
+        moves.clear();
+        generateAndOrderMoves(moves, 0, m_LastResults.bestMove);
+        filterMoves(moves, settings.moveFilter);
+
+        if (settings.onDepthFinish != nullptr) {
+            settings.onDepthFinish(m_LastResults);
+        }
     }
-    catch (const std::exception& ex) {
-    }
+
     m_Searching = false;
+
+    return m_LastResults;
 }
 
 }
