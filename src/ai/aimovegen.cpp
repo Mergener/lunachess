@@ -105,8 +105,6 @@ int AIMoveFactory::generateNoisyMoves(MoveList &ml, const Position &pos, int cur
     movegen::generate<MTM_NOISY>(pos, ml);
 
     // Moves generated, look for pv move
-    MoveList::Iterator begin = ml.begin() + count;
-
     std::sort(ml.begin(), ml.end(), [this](Move a, Move b) {
         bool aIsPromCapture = a.getType() == MT_PROMOTION_CAPTURE;
         bool bIsPromCapture = b.getType() == MT_PROMOTION_CAPTURE;
@@ -145,8 +143,10 @@ int AIMoveFactory::generateNoisyMoves(MoveList &ml, const Position &pos, int cur
 int AIMoveFactory::scoreQuietMove(const Position& pos, Move move) const {
     int total = 0;
 
-    // Hotmap delta
     total += getHotmapDelta(move) * m_Scores.placementDeltaMultiplier;
+
+    //int guardValue = posutils::guardValue(pos, move.getDest(), pos.getColorToMove()) * m_Scores.guardValueMultiplier;
+    //total += guardValue;
 
     return total;
 }
@@ -212,6 +212,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     auto quietBegin = ml.end();
     movegen::generate<MTM_QUIET>(pos, ml);
     std::sort(quietBegin, ml.end(), [this, pos, currPly](Move a, Move b) {
+        // Killer move heuristic
         bool aIsKiller = isKillerMove(a, currPly);
         bool bIsKiller = isKillerMove(b, currPly);
         if (aIsKiller && !bIsKiller) {
@@ -221,6 +222,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
             return false;
         }
 
+        // History heuristic
         int aHist = getMoveHistory(a);
         int bHist = getMoveHistory(b);
         if (aHist > bHist) {

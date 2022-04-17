@@ -117,4 +117,32 @@ bool hasGoodSEE(const Position& pos, Move move, int threshold) {
     return totalGain >= threshold;
 }
 
+int guardValue(const Position& pos, Square s, Color us) {
+    constexpr int CAPTURE_STRENGTH[] = { 0, 9, 6, 5, 2, 1, 1 };
+
+    bool attacked = false;
+    bool defended = false;
+    int gv = 0;
+    Bitboard atks = getAllAttackersSEE(pos, s);
+
+    for (Square atk : atks) {
+        Piece p = pos.getPieceAt(atk);
+        if (p.getColor() == us) {
+            attacked = true;
+            gv += CAPTURE_STRENGTH[p.getType()];
+        }
+        else {
+            defended = true;
+            gv -= CAPTURE_STRENGTH[p.getType()];
+        }
+    }
+    if (attacked && defended) {
+        Piece p = pos.getPieceAt(s);
+        if (p.getColor() != us) {
+            gv -= CAPTURE_STRENGTH[p.getType()];
+        }
+    }
+    return gv;
+}
+
 } // lunachess::posutils

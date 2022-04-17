@@ -17,17 +17,18 @@ namespace lunachess::ai {
 struct MoveOrderingScores {
     // Individual scores -- scores claimed
     // by individual moves
-    int placementDeltaMultiplier = 2;
+    int placementDeltaMultiplier = 4;
+    int guardValueMultiplier = 6;
 
     int mvvLva[PT_COUNT][PT_COUNT] = {
         /*         x-    xP    xN    xB    xR    xQ    xK  */
-        /* -- */   0,    0,    0,    0,    0,    0,    0,
-        /* Px */   0,   105,  205,  305,  405,  505,  9999,
-        /* Nx */   0,   104,  204,  304,  404,  504,  9999,
-        /* Bx */   0,   103,  203,  303,  403,  503,  9999,
-        /* Rx */   0,   102,  202,  302,  600,  502,  9999,
-        /* Qx */   0,   101,  201,  301,  401,  501,  9999,
-        /* Kx */   0,   100,  200,  300,  400,  500,  9999,
+        /* -- */ { 0,    0,    0,    0,    0,    0,    0   },
+        /* Px */ { 0,   105,  205,  305,  405,  505,  9999 },
+        /* Nx */ { 0,   104,  204,  304,  404,  504,  9999 },
+        /* Bx */ { 0,   103,  203,  303,  403,  503,  9999 },
+        /* Rx */ { 0,   102,  202,  302,  600,  502,  9999 },
+        /* Qx */ { 0,   101,  201,  301,  401,  501,  9999 },
+        /* Kx */ { 0,   100,  200,  300,  400,  500,  9999 },
     };
 };
 
@@ -78,10 +79,6 @@ private:
     }
 
     int scoreQuietMove(const Position& pos, Move move) const;
-
-    static inline bool isSquareAttackedByPawn(const Position& pos, Square s, Color pawnColor) {
-        return pos.getAttacks(pawnColor, PT_PAWN).contains(s);
-    }
 
     static inline constexpr int getPointValue(PieceType pt) {
         return getPiecePointValue(pt);

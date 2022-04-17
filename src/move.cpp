@@ -29,7 +29,7 @@ Move::Move(const Position& pos, std::string_view sv) {
 Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPieceType)
     : Move(src, dst, pos.getPieceAt(src), pos.getPieceAt(dst), MT_NORMAL, promotionPieceType) {
 
-    MoveType type;
+    MoveType type = MT_NORMAL;
 
     if (getSourcePiece().getType() == PT_PAWN) {
         // Pawn moves
@@ -75,9 +75,6 @@ Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPiece
     else if (getDestPiece() != PIECE_NONE) {
         // Certain capture
         type = MT_SIMPLE_CAPTURE;
-    }
-    else {
-        type = MT_NORMAL;
     }
 
     m_Data |= (type & BITMASK(6)) << 23;

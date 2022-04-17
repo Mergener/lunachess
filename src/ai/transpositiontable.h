@@ -26,19 +26,19 @@ public:
     };
 
     struct Entry {
-        ui64 zobristKey;
-        Move move;
-        i32 score;
-        i32 staticEval;
-        ui8 depth;
-        EntryType type;
+        ui64 zobristKey = 0;
+        Move move = MOVE_INVALID;
+        i32 score = 0;
+        i32 staticEval = 0;
+        ui8 depth = 0;
+        EntryType type = {};
     };
 
 private:
 
     struct Bucket {
         Entry entry;
-        bool valid;
+        bool valid = false;
     };
 
 public:
@@ -48,7 +48,14 @@ public:
     */
     bool maybeAdd(const Entry& entry);
 
-    inline bool tryGet(ui64 posKey, Entry& entry) const {
+    /**
+     * Probes the transposition table for an entry.
+     *
+     * @param posKey The zobrist key of the position to probe.
+     * @param entry Reference to the entry object to receive the data.
+     * @return True if an entry with a matching key was found, false otherwise.
+     */
+    inline bool probe(ui64 posKey, Entry& entry) const {
         Bucket& bucket = getBucket(posKey);
         if (bucket.valid && bucket.entry.zobristKey == posKey) {
             entry = bucket.entry;
@@ -57,8 +64,8 @@ public:
         return false;
     }
 
-    inline bool tryGet(const Position& pos, Entry& entry) const {
-        return tryGet(pos.getZobrist(), entry);
+    inline bool probe(const Position& pos, Entry& entry) const {
+        return probe(pos.getZobrist(), entry);
     }
 
     inline void remove(ui64 posKey) {

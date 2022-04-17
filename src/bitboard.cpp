@@ -201,7 +201,7 @@ static void generateSliderBitboards() {
         int bishopShift = BISHOP_SHIFTS[s];
         ui64 bishopEntries = (C64(1) << (64 - bishopShift));
 
-        for (int i = 0; i < bishopEntries; ++i) {
+        for (ui64 i = 0; i < bishopEntries; ++i) {
             Bitboard occ = generateOccupancy(BISHOP_MASKS[s], i);
             ui64 key = (occ * BISHOP_MAGICS[s]) >> bishopShift;
             g_BishopAttacks[s][key] = generateBishopAttacks(s, occ);
@@ -211,7 +211,7 @@ static void generateSliderBitboards() {
         int rookShift = ROOK_SHIFTS[s];
         ui64 rookEntries = (C64(1) << (64 - rookShift));
 
-        for (int i = 0; i < rookEntries; ++i) {
+        for (ui64 i = 0; i < rookEntries; ++i) {
             Bitboard occ = generateOccupancy(ROOK_MASKS[s], i);
             ui64 key = (occ * ROOK_MAGICS[s]) >> rookShift;
             g_RookAttacks[s][key] = generateRookAttacks(s, occ);

@@ -99,6 +99,8 @@ inline FileState getFileState(const Position& pos, BoardFile f) {
 
 bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
 
+int guardValue(const Position& pos, Square s, Color pov);
+
 namespace specialpos {
 
 inline Position getKiwipete() {

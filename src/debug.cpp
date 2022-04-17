@@ -5,8 +5,6 @@
 
 namespace lunachess::debug {
 
-static bool s_Initialized = false;
-
 class AssertionFailureException : public std::runtime_error {
 public:
     AssertionFailureException()

@@ -41,20 +41,15 @@ struct UCIContext {
 
     // Internal state
     UCIState state = WAITING;
-    std::queue<std::string> inputQueue;
-    Lock inputQueueLock;
 
     std::queue<std::function<void()>> workQueue;
     Lock workQueueLock;
 
     // Search settings
-    int maxDepth = ai::MAX_SEARCH_DEPTH;
     ai::AlphaBetaSearcher searcher;
-    ai::SearchResults lastSearchResults;
-    bool shouldStopCurrentSearch = false;
 };
 
-static void startWork(UCIContext& ctx, std::function<void()> work) {
+static void schedule(UCIContext& ctx, std::function<void()> work) {
     ctx.workQueueLock.lock();
     ctx.workQueue.push(work);
     ctx.workQueueLock.unlock();
@@ -287,82 +282,147 @@ static bool readTime(std::string_view sv, int& dest) {
     return true;
 }
 
-static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
-    if (ctx.state != WAITING) {
-        std::cerr << "Cannot call go while a search is currently running. Call 'stop' first." << std::endl;
-        return;
+static void goSimulate(UCIContext& ctx, ai::SearchSettings& searchSettings) {
+    constexpr TimeControlMode FALLBACK_TC_MODE = TC_FISCHER;
+    constexpr ui64 FALLBACK_TC_TIME = 180000;
+    constexpr ui64 FALLBACK_TC_INC = 2000;
+
+    TimeControl wtc;
+    TimeControl btc;
+
+    if (ctx.pos.getColorToMove() == CL_WHITE) {
+        wtc = searchSettings.ourTimeControl;
+        btc = searchSettings.theirTimeControl;
     }
-    ctx.shouldStopCurrentSearch = false;
+    else {
+        wtc = searchSettings.theirTimeControl;
+        btc = searchSettings.ourTimeControl;
+    }
 
-    ctx.state = WORKING;
+    if (wtc.mode == TC_INFINITE &&
+        searchSettings.maxDepth >= ai::MAX_SEARCH_DEPTH) {
+        std::cout << "White time control is set to 'infinite' mode without depth limit.";
+        std::cout << " Their time control is being altered to 3+2 blitz.";
+        std::cout << std::endl;
+        wtc.mode = FALLBACK_TC_MODE;
+        wtc.time = FALLBACK_TC_TIME;
+        wtc.increment = FALLBACK_TC_INC;
+    }
+    if (btc.mode == TC_INFINITE &&
+        searchSettings.maxDepth >= ai::MAX_SEARCH_DEPTH) {
+        std::cout << "Black time control is set to 'infinite' mode without depth limit.";
+        std::cout << " Their time control is being altered to 3+2 blitz.";
+        std::cout << std::endl;
+        btc.mode = FALLBACK_TC_MODE;
+        btc.time = FALLBACK_TC_TIME;
+        btc.increment = FALLBACK_TC_INC;
+    }
 
-    TimeControl timeControl[CL_COUNT];
+    if (ctx.pos.getColorToMove() == CL_WHITE) {
+        searchSettings.ourTimeControl = wtc;
+        searchSettings.theirTimeControl = btc;
+    }
+    else {
+        searchSettings.ourTimeControl = btc;
+        searchSettings.theirTimeControl = wtc;
+    }
 
-    // Create position clone
-    Position pos = ctx.pos;
+    schedule(ctx, [=, &ctx] {
+        std::vector<Move> gameHistory;
+        ai::SearchSettings settings = searchSettings;
+        ChessResult res = RES_UNFINISHED;
 
-    MoveList searchMoves;
+        Position pos = ctx.pos;
 
-    ai::SearchSettings searchSettings;
+        try {
+            while (res == RES_UNFINISHED) {
+                ai::SearchResults sres = ctx.searcher.search(pos, settings);
+                if (ctx.state == STOPPING) {
+                    break;
+                }
 
-    // Parse arguments
-    for (int i = 0; i < args.size(); ++i) {
-        const auto arg = args[i];
+                pos.makeMove(sres.bestMove);
+                gameHistory.push_back(sres.bestMove);
+                if (settings.ourTimeControl.mode == TC_FISCHER) {
+                    settings.ourTimeControl.time -= sres.getSearchTime();
+                    settings.ourTimeControl.time += settings.ourTimeControl.increment;
+                }
 
-        if (arg == "searchmoves") {
-            // User wants to search only some specific moves
-            i++;
-            for (Move move = Move(pos, args[i]); move != MOVE_INVALID && i < args.size(); i++) {
-                searchMoves.add(move);
+                std::cout << "move " << sres.bestMove
+                          << " score cp " << sres.bestScore / 10
+                          << " depth " << sres.searchedDepth
+                          << " time " << sres.getSearchTime()
+                          << std::endl;
+
+                bool hasTime = settings.ourTimeControl.mode == TC_INFINITE
+                        || settings.ourTimeControl.time > 0;
+
+                res = pos.getResult(CL_WHITE, hasTime);
+
+                std::swap(settings.ourTimeControl, settings.theirTimeControl);
             }
-        } else if (arg == "depth") {
-            // User wants to limit the search depth to a specific value
-            int depth;
-            bool succ = strutils::tryParseInteger(args[++i], depth);
-            if (succ && depth >= 1) {
-                ctx.maxDepth = depth;
-            } else {
-                // Invalid depth value
-                std::cerr << "Unexpected depth value '" << args[i] << "'." << std::endl;
-            }
-        } else if (arg == "wtime") {
-            // Defines white color base time
-            readTime(args[++i], timeControl[CL_WHITE].time);
-            timeControl[CL_WHITE].mode = TC_FISCHER;
-        } else if (arg == "winc") {
-            // Defines white color time increment
-            readTime(args[++i], timeControl[CL_WHITE].increment);
-            timeControl[CL_WHITE].mode = TC_FISCHER;
-        } else if (arg == "btime") {
-            // Defines black color base time
-            readTime(args[++i], timeControl[CL_BLACK].time);
-            timeControl[CL_BLACK].mode = TC_FISCHER;
-        } else if (arg == "binc") {
-            // Defines black color time increment
-            readTime(args[++i], timeControl[CL_BLACK].increment);
-            timeControl[CL_BLACK].mode = TC_FISCHER;
-        } else if (arg == "movetime") {
-            // Defines the move time, a time in milliseconds for each move.
-            readTime(args[++i], timeControl[pos.getColorToMove()].time);
-            timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
-        } else if (arg == "infinite") {
-            timeControl[pos.getColorToMove()].mode = TC_INFINITE;
         }
-    }
+        catch (const std::exception& ex) {
+            ctx.state = WAITING;
+            std::cerr << "Game aborted, error";
+            throw ex;
+        }
 
-    // Check if searchmoves option was used
-    if (searchMoves.size() == 0) {
-        searchSettings.moveFilter = nullptr;
-    } else {
-        // Use the move search list as a filter for the moves to be searched.
-        searchSettings.moveFilter = [searchMoves](Move m) {
-            return searchMoves.contains(m);
-        };
-    }
+        switch (res) {
+            case RES_UNFINISHED:
+                std::cout << "Game aborted." << std::endl;
+                break;
 
-    searchSettings.ourTimeControl = timeControl[pos.getColorToMove()];
-    searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
-    searchSettings.multiPvCount = ctx.multiPvCount;
+            case RES_DRAW_STALEMATE:
+                std::cout << "Draw by stalemate." << std::endl;
+                break;
+
+            case RES_DRAW_REPETITION:
+                std::cout << "Draw by repetition." << std::endl;
+                break;
+
+            case RES_DRAW_TIME_NOMAT:
+                std::cout << "Draw by insufficient material and timeout." << std::endl;
+                break;
+
+            case RES_DRAW_NOMAT:
+                std::cout << "Draw by insufficient material." << std::endl;
+                break;
+
+            case RES_DRAW_RULE50:
+                std::cout << "Draw by 50 move rule." << std::endl;
+                break;
+
+            case RES_WIN_CHECKMATE:
+                std::cout << "White wins by checkmate." << std::endl;
+                break;
+
+            case RES_WIN_TIME:
+                std::cout << "White wins on time." << std::endl;
+                break;
+
+            case RES_WIN_RESIGN:
+                std::cout << "White wins by resignation." << std::endl;
+                break;
+
+            case RES_LOSS_CHECKMATE:
+                std::cout << "Black wins by checkmate." << std::endl;
+                break;
+
+            case RES_LOSS_TIME:
+                std::cout << "Black wins on time." << std::endl;
+                break;
+
+            case RES_LOSS_RESIGN:
+                std::cout << "Black wins by resignation." << std::endl;
+                break;
+        }
+
+        ctx.state = WAITING;
+    });
+}
+
+static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& searchSettings) {
 
     TimePoint startTime = Clock::now();
     searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
@@ -405,12 +465,106 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
 
     ctx.searcher.getTT().clear();
 
-    startWork(ctx, [=, &ctx] {
+    schedule(ctx, [=, &ctx] {
         ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
         std::cout << "bestmove " << res.bestMove << std::endl;
 
         ctx.state = WAITING;
     });
+}
+
+static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
+    if (ctx.state != WAITING) {
+        std::cerr << "Cannot call go while a search is currently running. Call 'stop' first." << std::endl;
+        return;
+    }
+    // Create position clone
+    Position pos = ctx.pos;
+
+    enum {
+        SEARCH,
+        SIMULATE
+    } goMode = SEARCH;
+
+    ctx.state = WORKING;
+
+    TimeControl timeControl[CL_COUNT];
+
+    MoveList searchMoves;
+
+    ai::SearchSettings searchSettings;
+
+    // Parse arguments
+    for (int i = 0; i < args.size(); ++i) {
+        const auto arg = args[i];
+
+        if (arg == "searchmoves") {
+            // User wants to search only some specific moves
+            i++;
+            for (Move move = Move(pos, args[i]); move != MOVE_INVALID && i < args.size(); i++) {
+                searchMoves.add(move);
+            }
+        } else if (arg == "depth") {
+            // User wants to limit the search depth to a specific value
+            int depth;
+            bool succ = strutils::tryParseInteger(args[++i], depth);
+            if (succ && depth >= 1) {
+                searchSettings.maxDepth = depth;
+            } else {
+                // Invalid depth value
+                std::cerr << "Unexpected depth value '" << args[i] << "'." << std::endl;
+            }
+        } else if (arg == "wtime") {
+            // Defines white color base time
+            readTime(args[++i], timeControl[CL_WHITE].time);
+            timeControl[CL_WHITE].mode = TC_FISCHER;
+        } else if (arg == "winc") {
+            // Defines white color time increment
+            readTime(args[++i], timeControl[CL_WHITE].increment);
+            timeControl[CL_WHITE].mode = TC_FISCHER;
+        } else if (arg == "btime") {
+            // Defines black color base time
+            readTime(args[++i], timeControl[CL_BLACK].time);
+            timeControl[CL_BLACK].mode = TC_FISCHER;
+        } else if (arg == "binc") {
+            // Defines black color time increment
+            readTime(args[++i], timeControl[CL_BLACK].increment);
+            timeControl[CL_BLACK].mode = TC_FISCHER;
+        } else if (arg == "movetime") {
+            // Defines the move time, a time in milliseconds for each move.
+            readTime(args[++i], timeControl[pos.getColorToMove()].time);
+            timeControl[pos.getColorToMove()].mode = TC_MOVETIME;
+        } else if (arg == "infinite") {
+            timeControl[pos.getColorToMove()].mode = TC_INFINITE;
+        }
+        else if (arg == "simulate") {
+            goMode = SIMULATE;
+        }
+    }
+
+    // Check if searchmoves option was used
+    if (searchMoves.size() == 0) {
+        searchSettings.moveFilter = nullptr;
+    } else {
+        // Use the move search list as a filter for the moves to be searched.
+        searchSettings.moveFilter = [searchMoves](Move m) {
+            return searchMoves.contains(m);
+        };
+    }
+
+    searchSettings.ourTimeControl = timeControl[pos.getColorToMove()];
+    searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
+    searchSettings.multiPvCount = ctx.multiPvCount;
+
+    switch (goMode) {
+        case SEARCH:
+            goSearch(ctx, pos, searchSettings);
+            break;
+
+        case SIMULATE:
+            goSimulate(ctx, searchSettings);
+            break;
+    }
 }
 
 static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
@@ -479,8 +633,8 @@ static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static void stopSearch(UCIContext& ctx) {
-    ctx.shouldStopCurrentSearch = true;
     ctx.searcher.stop();
+    ctx.state = STOPPING;
 }
 
 static void cmdStop(UCIContext& ctx, const CommandArgs& args) {
@@ -642,11 +796,11 @@ static void handleInput(UCIContext& ctx, std::unordered_map<std::string, Command
             try {
                 // First check if there's an argument count mismatch.
                 // If not, execute the command.
-                if (args.size() < c.minExpectedArgs) {
+                if (args.size() < size_t(c.minExpectedArgs)) {
                     std::cerr << "Expected at least " << c.minExpectedArgs << " argument(s) for '" << cmd
                               << "', got " << args.size() << "." << std::endl;
                 }
-                else if (args.size() > c.minExpectedArgs && c.exactArgsCount) {
+                else if (args.size() > size_t(c.minExpectedArgs) && c.exactArgsCount) {
                     std::cerr << "Expected only " << c.minExpectedArgs << " argument(s) for '" << cmd
                               << "', got " << args.size() << "." << std::endl;
                 }

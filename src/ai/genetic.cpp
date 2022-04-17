@@ -329,8 +329,8 @@ void Training::playRound(Agent &a, Agent &b) {
 void Training::playGames() {
     std::atomic_int runningThreads = 0; // The number of threads that can be spawned
 
-    for (int i = 0; i < m_CurrGeneration.agents.size() - 1; ++i) {
-        for (int j = i + 1; j < m_CurrGeneration.agents.size(); ++j) {
+    for (size_t i = 0; i < m_CurrGeneration.agents.size() - 1; ++i) {
+        for (size_t j = i + 1; j < m_CurrGeneration.agents.size(); ++j) {
             save(m_Settings.savePath);
             // Procedure that runs a game between two agents
             auto proc = [this, i, j, &runningThreads]() {
@@ -369,7 +369,7 @@ void Training::playGames() {
 void Training::reproduceAgents() {
     for (int i = 0; i < m_Settings.selectNumber - 1; ++i) {
         for (int j = 0; j < m_Settings.selectNumber; ++j) {
-            if (m_CurrGeneration.agents.size() == m_Settings.agentsPerGen) {
+            if (m_CurrGeneration.agents.size() == size_t(m_Settings.agentsPerGen)) {
                 // We generated enough agents
                 break;
             }
@@ -459,9 +459,7 @@ void Training::Generation::save(const fs::path& path) const {
     // Save all games
     fs::path gamesPath = path / "games";
     fs::create_directory(gamesPath);
-    for (int i = 0; i < games.size(); ++i) {
-        const auto& g = games[i];
-
+    for (const auto& g: games) {
         g.save(gamesPath);
     }
 }

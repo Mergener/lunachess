@@ -154,8 +154,8 @@ std::ostream& operator<<(std::ostream& stream, const SerialValue& v) {
             stream << static_cast<i32>(list.size()) << std::endl;
 
             // Add elements
-            for (i32 i = 0; i < list.size(); ++i) {
-                stream << list[i] << std::endl;
+            for (const auto& el : list) {
+                stream << el << std::endl;
             }
             break;
         }

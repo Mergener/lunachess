@@ -6,17 +6,19 @@
 
 namespace lunachess::ai {
 
+class SearchResults;
+
 class TimeManager {
 public:
     void start(const TimeControl& tc);
+    void onNewDepth(const SearchResults& res);
 
     bool timeIsUp() const;
 
 private:
-    Clock m_Clock;
     TimePoint m_Start;
+    i64 m_TargetTime;
     TimeControl m_Tc;
-    bool m_ForceStop = false;
 };
 
 }

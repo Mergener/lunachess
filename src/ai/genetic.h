@@ -115,7 +115,7 @@ private:
         }
 
         inline int getFitness() const {
-            return m_Wins[CL_WHITE] * 4 - m_Losses[CL_WHITE] * 5 - m_Draws[CL_WHITE],
+            return m_Wins[CL_WHITE] * 4 - m_Losses[CL_WHITE] * 5 - m_Draws[CL_WHITE] +
                    m_Wins[CL_BLACK] * 5 - m_Losses[CL_BLACK] * 4 + m_Draws[CL_BLACK];
         }
 

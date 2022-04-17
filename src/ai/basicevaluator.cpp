@@ -544,7 +544,7 @@ int BasicEvaluator::evaluate(const Position& pos) const {
     int bishopPair = evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
     int mobility = evaluateMobility(pos, us, gpf) - evaluateMobility(pos, them, gpf);
     int outposts = evaluateOutposts(pos, us, gpf) - evaluateOutposts(pos, them, gpf);
-    int pawnComplex = evaluatePawnComplex(pos, us, gpf) - evaluatePawnComplex(pos, them, gpf);
+    //int pawnComplex = evaluatePawnComplex(pos, us, gpf) - evaluatePawnComplex(pos, them, gpf);
     int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
 
     // King safety
@@ -554,8 +554,8 @@ int BasicEvaluator::evaluate(const Position& pos) const {
     //int nearKingAttacks = evaluateNearKingAttacks(pos, us, gpf) - evaluateNearKingAttacks(pos, them, gpf);
 
     int total = placement + bishopPair + mobility
-            + outposts + pawnComplex + xrays
-            + doublePawns + pawnChains
+            + outposts + xrays
+            + doublePawns + pawnChains +
             + tropism + pawnShield + kingExposure +
             + material;
 

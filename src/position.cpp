@@ -3,6 +3,7 @@
 #include "debug.h"
 #include "zobrist.h"
 #include "posutils.h"
+#include "movegen.h"
 
 #include <sstream>
 
@@ -42,7 +43,6 @@ void Position::updateAttacks() {
 
         // Get their king's square to check for checks
         Square theirKing = getKingSquare(them);
-        Bitboard theirPieces = getBitboard(Piece(them, PT_NONE));
 
         Bitboard pawns = getBitboard(Piece(c, PT_PAWN));
         Bitboard knights = getBitboard(Piece(c, PT_KNIGHT));
@@ -111,8 +111,6 @@ void Position::scanPins(Bitboard attackers, Square kingSquare, Color pinnedColor
 }
 
 void Position::updatePins() {
-    Bitboard occ = getCompositeBitboard();
-
     m_Pinned = 0;
 
     for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
@@ -440,6 +438,54 @@ Square Position::getSmallestAttackerSquare(Square s, Color c) const {
     return SQ_INVALID;
 }
 
+ChessResult Position::getResult(Color us, bool colorToMoveHasTime) const {
+    Color currPlayer = getColorToMove();
+
+    // Draw by 50 move rule
+    if (is50MoveRuleDraw()) {
+        return RES_DRAW_RULE50;
+    }
+    // Draw by repetition
+    if (isRepetitionDraw()) {
+        return RES_DRAW_REPETITION;
+    }
+
+    // Check for timeouts
+    bool currPlayerOpponentHasMat = colorHasSufficientMaterial(getOppositeColor(currPlayer));
+    if (!colorToMoveHasTime) {
+        if (!currPlayerOpponentHasMat) {
+            // Color to move's time has ended, but their opponent didn't have
+            // enough mating material
+            return RES_DRAW_TIME_NOMAT;
+        }
+        // Color to move's time has ended and their opponent had enough
+        // mating material
+        return us == currPlayer ? RES_LOSS_TIME : RES_WIN_TIME;
+    }
+    // Check for insufficient material draw
+    bool currPlayerHasMat = colorHasSufficientMaterial(currPlayer);
+    if (!currPlayerHasMat && !currPlayerOpponentHasMat) {
+        return RES_DRAW_NOMAT;
+    }
+
+    // No basic draws, check for checkmates/stalemates
+    MoveList legalMoves;
+    movegen::generate(*this, legalMoves);
+    if (legalMoves.size() > 0) {
+        // Game still has legal moves and is not a draw
+        return RES_UNFINISHED;
+    }
+
+    // Legal move count is zero
+    if (!isCheck()) {
+        // Draw by stalemate
+        return RES_DRAW_STALEMATE;
+    }
+
+    // We have a checkmate on board
+    return currPlayer == us ? RES_LOSS_CHECKMATE : RES_WIN_CHECKMATE;
+}
+
 Position::Position() {
     std::fill(m_Pieces.begin(), m_Pieces.end(), PIECE_NONE);
     m_PrevStatuses.reserve(64);
@@ -573,7 +619,7 @@ std::string Position::toFen() const {
 std::optional<Position> Position::fromFen(std::string_view fen) {
     try {
         char c;
-        int i = 0;
+        size_t i = 0;
 
         Position pos;
 

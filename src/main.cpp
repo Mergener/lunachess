@@ -76,5 +76,6 @@ int main(int argc, char* argv[]) {
 
         return trainingMain(movetime);
     }
+
     return uciMain();
 }

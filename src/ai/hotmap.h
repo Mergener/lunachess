@@ -41,7 +41,7 @@ public:
     }
 
     inline Hotmap(const std::initializer_list<short>& values) {
-        int i;
+        size_t i;
         auto it = values.begin();
         for (i = 0; i < values.size() && i < SQ_COUNT; ++i) {
             m_Values[i] = *it;

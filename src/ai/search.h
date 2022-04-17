@@ -77,7 +77,7 @@ struct SearchResults {
     /**
      * How much time we've been searching.
      */
-    inline const ui64 getSearchTime() const {
+    inline ui64 getSearchTime() const {
         return deltaMs(Clock::now(), searchStart);
     }
 
@@ -85,14 +85,14 @@ struct SearchResults {
      * How much time we've been searching in the current depth.
      * Read 'currDepthStart' documentation for more precise information.
      */
-    inline const ui64 getCurrDepthTime() const {
+    inline ui64 getCurrDepthTime() const {
         return deltaMs(Clock::now(), currDepthStart) + 1;
     }
 
     /**
      * The number of nodes being searched every second.
      */
-    inline const ui64 getNPS() const {
+    inline ui64 getNPS() const {
         return static_cast<ui64>(static_cast<double>(visitedNodes) / getCurrDepthTime() * 1000);
     }
 };
@@ -102,6 +102,7 @@ struct SearchSettings {
     // General settings
     //
     int multiPvCount = 1;
+    int maxDepth = MAX_SEARCH_DEPTH;
 
     /**
      * Predicate that should return true only to moves that should be searched in the root node.
