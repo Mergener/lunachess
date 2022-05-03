@@ -104,7 +104,8 @@ void AlphaBetaSearcher::pushMoveToPv(TPV::iterator& pvStart, Move move) {
 int AlphaBetaSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed, MoveList* searchMoves) {
     m_LastResults.visitedNodes++;
 
-    if (m_Pos.isDraw(1)) {
+    bool isRoot = ply == 0;
+    if (m_Pos.isDraw(1) && !isRoot) {
         return m_Eval->getDrawScore();
     }
 
@@ -114,7 +115,6 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool n
         throw TimeUp();
     }
 
-    bool isRoot = ply == 0;
     const int originalDepth = depth;
     const int originalAlpha = alpha;
     int staticEval;
@@ -146,6 +146,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool n
                     // includes the move found in the TT
                     pushMoveToPv(pvStart, ttEntry.move);
                     m_PvIt = pvStart;
+
                     return ttEntry.score;
                 }
             } else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
@@ -273,9 +274,8 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool n
 
             bestMoveIdx = i;
 
-            if (!move.is<MTM_NOISY>()) {
+            if (move.is<MTM_QUIET>()) {
                 m_MvFactory.storeHistory(move, d);
-                m_MvFactory.storeKillerMove(move, ply);
             }
             break;
         }
@@ -297,6 +297,9 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply, int alpha, int beta, bool n
     }
     else if (alpha >= beta) {
         // Fail high
+        if (bestMove.is<MTM_QUIET>()) {
+            m_MvFactory.storeKillerMove(bestMove, ply);
+        }
         ttEntry.type = TranspositionTable::LOWERBOUND;
     }
     else {
@@ -369,9 +372,6 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
         m_LastResults.bestMove = moves[0];
         m_LastResults.searchedVariations.resize(moves.size());
 
-        int alpha = -HIGH_BETA;
-        int beta = HIGH_BETA;
-
         // Notify the time manager that we're starting a search
         m_TimeManager.start(settings.ourTimeControl);
 
@@ -390,7 +390,6 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
 
                 // For each new pv to be searched, clear the previous pv array
                 std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
-                m_PvIt = m_Pv.begin();
 
                 // Prepare results object for this search
                 m_LastResults.visitedNodes = 0;
@@ -398,17 +397,31 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
 
                 // Perform the search
                 try {
-                    auto pvType = TranspositionTable::EXACT;
-                    int score = alphaBeta(depth, 0, alpha, beta, false, &moves);
-                    if (score >= beta) {
-                        // Research if multipv == 0
-                        if (multipv == 0) {
-                            score = alphaBeta(depth, 0, -HIGH_BETA, HIGH_BETA, false, &moves);
+                    TranspositionTable::Entry ttEntry;
+                    int alpha, beta, score;
+                    int window = 1000;
+
+                    do {
+                        m_TT.remove(m_Pos);
+
+                        if (depth < 4) {
+                            alpha = -HIGH_BETA;
+                            beta = HIGH_BETA;
                         }
                         else {
-                            pvType = TranspositionTable::LOWERBOUND;
+                            int prevScore = m_LastResults.searchedVariations[multipv].score;
+                            alpha = prevScore - window;
+                            beta = prevScore + window;
                         }
-                    }
+                        m_PvIt = m_Pv.begin();
+
+                        score = alphaBeta(depth, 0, -HIGH_BETA, HIGH_BETA, false, &moves);
+                        m_TT.probe(m_Pos, ttEntry);
+
+                        window = std::min(HIGH_BETA / 2, window * window / 500);
+
+                    } while (ttEntry.type != TranspositionTable::EXACT);
+
 
                     if (multipv == 0) {
                         // multipv == 0 means that this is the true principal variation.
@@ -424,7 +437,7 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                     // in the results object.
                     auto &pv = m_LastResults.searchedVariations[multipv];
                     pv.score = score;
-                    pv.type = pvType;
+                    pv.type = ttEntry.type;
 
                     moves.remove(m_Pv[0]);
 
@@ -441,8 +454,10 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                     }
 
                     // Check for further moves in transposition table
-                    TranspositionTable::Entry ttEntry;
                     while (m_TT.probe(m_Pos, ttEntry)) {
+                        if (m_Pos.isRepetitionDraw()) {
+                            break;
+                        }
                         pv.moves.push_back(ttEntry.move);
                         m_Pos.makeMove(ttEntry.move);
                     }
@@ -471,20 +486,6 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
             m_TimeManager.onNewDepth(m_LastResults);
             if (settings.onDepthFinish != nullptr) {
                 settings.onDepthFinish(m_LastResults);
-            }
-
-            // #----------------------------------------
-            // # ASPIRATION WINDOWS
-            // #----------------------------------------
-            // Set alpha and beta values to an aspiration
-            // window -- a range of values that we expect the score
-            // to be, according to previous iterations.
-            constexpr int ASP_WINDOW_MIN_DEPTH = 4;
-            if (depth >= ASP_WINDOW_MIN_DEPTH) {
-                constexpr int BASE_WINDOW = 6000;
-                int window = std::max(500, BASE_WINDOW / ((depth - ASP_WINDOW_MIN_DEPTH) / 2 + 1));
-                alpha = m_LastResults.bestScore - window;
-                beta = m_LastResults.bestScore + window;
             }
         }
 

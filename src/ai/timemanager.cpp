@@ -15,7 +15,7 @@ void TimeManager::start(const TimeControl& tc) {
             break;
 
         case TC_FISCHER:
-            m_TargetTime = tc.time / 18;
+            m_TargetTime = std::min(tc.time - 50, tc.time / 20 + tc.increment * 3 / 2);
             break;
 
         default:
@@ -37,7 +37,7 @@ void TimeManager::onNewDepth(const SearchResults& res) {
     // to finish the search in our speculated target time, it is better
     // to not go further onto the search.
 
-    constexpr int EXPECTED_BRANCH_FACTOR = 5;
+    constexpr int EXPECTED_BRANCH_FACTOR = 4;
     i64 depthTime = res.getCurrDepthTime();
     i64 totalTime = res.getSearchTime();
 

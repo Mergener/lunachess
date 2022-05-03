@@ -66,9 +66,9 @@ void mutate(ScoreTable& scores, const MutationSettings& settings) {
     scores.outsidePasserPercentBonus = std::max(0, mutate(scores.outsidePasserPercentBonus, mutChance));
     scores.goodComplexScore = std::max(0, mutate(scores.goodComplexScore, mutChance));
 
-    //for (int& t: scores.tropismScore) {
-    //    t = mutate(t, mutChance);
-    //}
+    for (int& t: scores.tropismScore) {
+        t = mutate(t, mutChance);
+    }
 
     for (int& x: scores.xrayScores) {
         x = mutate(x, mutChance, -0, 0, -2, 2);
@@ -162,14 +162,6 @@ BasicEvaluator crossover(const BasicEvaluator& a, const BasicEvaluator& b) {
     return ret;
 }
 
-AlphaBetaSearcher crossover(const AlphaBetaSearcher& a, const AlphaBetaSearcher& b) {
-    AlphaBetaSearcher ret;
-
-    ret.getEvaluator() = crossover(a.getEvaluator(), b.getEvaluator());
-
-    return ret;
-}
-
 //
 // Genetic Training
 //
@@ -217,8 +209,10 @@ void Training::start() {
 
 static SearchResults doMoveSearch(const Position& pos, AlphaBetaSearcher& searcher, int maxTime) {
     SearchSettings searchSettings;
+
     searchSettings.ourTimeControl.time = maxTime;
     searchSettings.ourTimeControl.mode = TC_MOVETIME;
+    searchSettings.theirTimeControl = searchSettings.ourTimeControl;
 
     SearchResults res = searcher.search(pos, searchSettings);
 
@@ -226,6 +220,7 @@ static SearchResults doMoveSearch(const Position& pos, AlphaBetaSearcher& search
 }
 
 int Training::Game::play(Agent& white, Agent& black, int movetime) {
+    // Initialize some values
     agentIds[CL_WHITE] = white.getId();
     agentIds[CL_BLACK] = black.getId();
 
@@ -234,76 +229,54 @@ int Training::Game::play(Agent& white, Agent& black, int movetime) {
         black.getEvaluatorPtr()
     };
 
+    Position pos = Position::getInitialPosition();
+
+    ChessResult gameResult = pos.getResult(CL_WHITE);
+
     std::cout << "Starting training game between agents " << white.getName() << " and "
               << black.getName() << "." << std::endl;
 
-    Position pos = Position::getInitialPosition();
-
-    MoveList ml;
-    bool draw = false;
-
-    while (true) {
+    while (gameResult == RES_UNFINISHED) {
         Agent& currentAgent = pos.getColorToMove() == CL_WHITE ? white : black;
-
-        ml.clear();
-
-        movegen::generate(pos, ml);
-
-        if (ml.size() == 0) {
-            // Checkmate/stalemate
-            if (!pos.isCheck()) {
-                // Stalemate
-                draw = true;
-            }
-            break;
-        }
-
-        if (pos.isDraw()) {
-            draw = true;
-            break;
-        }
 
         SearchResults res = doMoveSearch(pos, searchers[pos.getColorToMove()], movetime);
 
-        Move bestMove;
+        // Something went really wrong with the search
         if (res.bestMove == MOVE_INVALID) {
-            bestMove = moves[0];
-        }
-        else {
-            bestMove = res.bestMove;
+            throw std::runtime_error(std::string("Agent '") + currentAgent.getName() + "' played MOVE_INVALID. Aborting game.");
         }
 
+        Move bestMove = res.bestMove;
         pos.makeMove(bestMove);
+
+        // We want to keep track of all the moves to save later
         moves.push_back(bestMove);
 
         std::cout << "Agent " << currentAgent.getName() << " played " << res.bestMove
                   << ". (pov score " << res.bestScore << " depth " << res.searchedDepth << ")" << std::endl;
     };
 
-    int ret;
-
     std::cout << "Game between agents " << white.getName() << " and " << black.getName()
               << " has finished. Result: ";
 
-    if (draw) {
+    // Note that 'gameResult' is holding the result in white's POV.
+    // Thus, a 'win' is a win for white, a loss is a win for black.
+    if (isDraw(gameResult)) {
         white.addDraw(CL_WHITE);
         black.addDraw(CL_BLACK);
         std::cout << "Draw." << std::endl;
         return 0;
     }
-    else if (pos.getColorToMove() == CL_WHITE) {
+    if (isLoss(gameResult)) {
         white.addLoss(CL_WHITE);
         black.addWin(CL_BLACK);
         std::cout << "Agent "  << black.getName() << " (black) wins!" << std::endl;
-        ret = -1;
+        return -1;
     }
-    else {
-        white.addWin(CL_WHITE);
-        black.addLoss(CL_BLACK);
-        std::cout << "Agent "  << white.getName() << " (white) wins!" << std::endl;
-        ret = 1;
-    }
-    return ret;
+    white.addWin(CL_WHITE);
+    black.addLoss(CL_BLACK);
+    std::cout << "Agent "  << white.getName() << " (white) wins!" << std::endl;
+    return 1;
 }
 
 void Training::playRound(Agent &a, Agent &b) {
@@ -467,14 +440,20 @@ void Training::Generation::save(const fs::path& path) const {
 void Training::Agent::save(const fs::path& path) const {
     fs::create_directory(path);
 
+    // Save middlegame scores
     std::ofstream mgStream(path / "mg.scores");
     mgStream << getEvaluator().getMiddlegameScores() << std::endl;
     mgStream.close();
 
+    // Save endgame scores
     std::ofstream egStream(path / "eg.scores");
     egStream << getEvaluator().getEndgameScores() << std::endl;
     egStream.close();
 
+    // Save the agent's profile
+    // The profile contains some specific data about the agent and its
+    // performance in the training. Is discarded when an agent
+    // is promoted to the engine's main evaluator.
     std::ofstream profileStream(path / "profile");
 
     SerialObject obj;

@@ -49,6 +49,18 @@ enum ChessResult {
     RES_LOSS_END = RES_LOSS_RESIGN
 };
 
+inline constexpr bool isWin(ChessResult r) {
+    return r >= RES_WIN_BEGIN && r <= RES_WIN_END;
+}
+
+inline constexpr bool isLoss(ChessResult r) {
+    return r >= RES_LOSS_BEGIN && r <= RES_LOSS_END;
+}
+
+inline constexpr bool isDraw(ChessResult r) {
+    return r >= RES_DRAW_BEGIN && r <= RES_DRAW_END;
+}
+
 class Position {
 public:
     //

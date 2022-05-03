@@ -546,7 +546,7 @@ int BasicEvaluator::evaluate(const Position& pos) const {
     int outposts = evaluateOutposts(pos, us, gpf) - evaluateOutposts(pos, them, gpf);
     //int pawnComplex = evaluatePawnComplex(pos, us, gpf) - evaluatePawnComplex(pos, them, gpf);
     int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
-
+    
     // King safety
     int tropism = evaluateTropism(pos, us, gpf) - evaluateTropism(pos, them, gpf);
     int pawnShield = evaluatePawnShield(pos, us, gpf) - evaluatePawnShield(pos, them, gpf);

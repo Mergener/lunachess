@@ -177,6 +177,8 @@ private:
     TPV m_Pv;
     TPV::iterator m_PvIt;
 
+    TPV m_pv;
+
     int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
 
     int quiesce(int ply, int alpha, int beta);

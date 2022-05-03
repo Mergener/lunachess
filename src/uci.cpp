@@ -463,7 +463,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
-    ctx.searcher.getTT().clear();
+    //ctx.searcher.getTT().clear();
 
     schedule(ctx, [=, &ctx] {
         ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
@@ -634,7 +634,6 @@ static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
 
 static void stopSearch(UCIContext& ctx) {
     ctx.searcher.stop();
-    ctx.state = STOPPING;
 }
 
 static void cmdStop(UCIContext& ctx, const CommandArgs& args) {

@@ -58,24 +58,30 @@ static int trainingMain(int movetime) {
 }
 
 int main(int argc, char* argv[]) {
-    lunachess::initializeEverything();
+    try {
+        lunachess::initializeEverything();
 
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie();
-    std::cout << std::boolalpha;
+        std::ios_base::sync_with_stdio(false);
+        std::cin.tie();
+        std::cout << std::boolalpha;
 
-    if (argc > 1 && std::string(argv[1]) == "train") {
-        constexpr int DEFAULT_MOVETIME = 1000;
-        int movetime = DEFAULT_MOVETIME;
+        if (argc > 1 && std::string(argv[1]) == "train") {
+            constexpr int DEFAULT_MOVETIME = 1000;
+            int movetime = DEFAULT_MOVETIME;
 
-        if (argc > 2) {
-            if (!strutils::tryParseInteger(argv[2], movetime)) {
-                movetime = DEFAULT_MOVETIME;
+            if (argc > 2) {
+                if (!strutils::tryParseInteger(argv[2], movetime)) {
+                    movetime = DEFAULT_MOVETIME;
+                }
             }
+
+            return trainingMain(movetime);
         }
 
-        return trainingMain(movetime);
+        return uciMain();
     }
-
-    return uciMain();
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        throw e;
+    }
 }
