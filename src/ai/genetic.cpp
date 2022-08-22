@@ -223,10 +223,10 @@ int Training::Game::play(Agent& white, Agent& black, int movetime) {
     // Initialize some values
     agentIds[CL_WHITE] = white.getId();
     agentIds[CL_BLACK] = black.getId();
-
+    
     AlphaBetaSearcher searchers[CL_COUNT] = {
-        white.getEvaluatorPtr(),
-        black.getEvaluatorPtr()
+        AlphaBetaSearcher(white.getEvaluatorPtr()),
+        AlphaBetaSearcher(black.getEvaluatorPtr())
     };
 
     Position pos = Position::getInitialPosition();

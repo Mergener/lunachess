@@ -18,6 +18,7 @@
 #include "clock.h"
 
 #include "ai/search.h"
+#include "ai/neural/nn.h"
 
 namespace lunachess {
 
@@ -47,6 +48,8 @@ struct UCIContext {
 
     // Search settings
     ai::AlphaBetaSearcher searcher;
+
+    ai::neural::NeuralEvaluator neural;
 };
 
 static void schedule(UCIContext& ctx, std::function<void()> work) {
@@ -730,6 +733,10 @@ static void cmdBetween(UCIContext& ctx, const CommandArgs& args) {
 }
 #endif
 
+static void cmdNeural(UCIContext& ctx, const CommandArgs& args) {
+    std::cout << ctx.neural.evaluate(ctx.pos) << std::endl;
+}
+
 static std::unordered_map<std::string, Command> generateCommands() {
     std::unordered_map<std::string, Command> cmds;
 
@@ -752,6 +759,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["getfen"] = Command(cmdGetfen, 0);
     cmds["movehist"] = Command(cmdMovehist, 0);
+    cmds["neural"] = Command(cmdNeural, 0);
 
 #ifndef NDEBUG
     // Debug commands

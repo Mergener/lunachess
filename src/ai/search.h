@@ -12,6 +12,7 @@
 #include "evaluator.h"
 #include "aimovegen.h"
 #include "basicevaluator.h"
+#include "neural/nn.h"
 #include "timemanager.h"
 
 #include "../clock.h"
@@ -147,18 +148,15 @@ public:
     }
 
     inline AlphaBetaSearcher()
-        : m_Eval(new BasicEvaluator()), m_PvIt(m_Pv.begin()) {
+        : m_Eval(new neural::NeuralEvaluator()) {
     }
 
     /**
      * Constructs a move searcher with an externally created evaluator.
      */
-    inline AlphaBetaSearcher(std::shared_ptr<BasicEvaluator> eval)
-        : m_Eval(eval), m_PvIt(m_Pv.begin()) {
+    inline AlphaBetaSearcher(std::shared_ptr<Evaluator> eval)
+        : m_Eval(eval) {
     }
-
-    inline BasicEvaluator& getEvaluator() { return *m_Eval; }
-    inline const BasicEvaluator& getEvaluator() const { return *m_Eval; }
 
     inline const TranspositionTable& getTT() const { return m_TT; }
     inline TranspositionTable& getTT() { return m_TT; }
@@ -168,7 +166,7 @@ private:
     TranspositionTable m_TT;
     SearchResults m_LastResults;
     AIMoveFactory m_MvFactory;
-    std::shared_ptr<BasicEvaluator> m_Eval;
+    std::shared_ptr<Evaluator> m_Eval;
     TimeManager m_TimeManager;
     bool m_ShouldStop = false;
     bool m_Searching = false;
@@ -176,8 +174,6 @@ private:
     using TPV = std::array<Move, MAX_SEARCH_DEPTH>;
     TPV m_Pv;
     TPV::iterator m_PvIt;
-
-    TPV m_pv;
 
     int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
 

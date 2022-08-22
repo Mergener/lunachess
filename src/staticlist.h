@@ -24,21 +24,33 @@ public:
 
     inline void insert(const TVal& val, int index) {
         for (int i = m_Size; i > index; --i) {
-            m_Arr[i] = m_Arr[i - 1];
+            (*this)[i] = (*this)[i - 1];
         }
-        m_Arr[index] = val;
+        (*this)[index] = val;
         m_Size++;
     }
 
     inline void add(const TVal& val) {
         LUNA_ASSERT(m_Size < capacity(), "Cannot add beyond capacity.");
 
-        m_Arr[m_Size] = val;
+        (*this)[m_Size] = val;
         m_Size++;
+    }
+
+    template <typename TIter>
+    inline void addRange(TIter srcBegin, TIter srcEnd) {
+        int delta = srcEnd - srcBegin;
+        LUNA_ASSERT(delta + m_Size <= capacity(), "Cannot add range beyond capacity.");
+        std::copy(srcBegin, srcEnd, end());
+        m_Size += delta;
     }
 
     inline void removeLast() {
         LUNA_ASSERT(m_Size > 0, "Trying to remove when empty.");
+        if constexpr (!std::is_trivially_destructible_v<TVal>) {
+            std::destroy_at((*this)[m_Size - 1]);
+        }
+
         m_Size--;
     }
 
@@ -46,13 +58,13 @@ public:
         LUNA_ASSERT(m_Size > 0, "Trying to remove when empty.");
         m_Size--;
         for (int i = index; i < m_Size; ++i) {
-            m_Arr[i] = m_Arr[i + 1];
+            (*this)[i] = (*this)[i + 1];
         }
     }
 
     inline int indexOf(const TVal& val) const {
         for (int i = 0; i < m_Size; ++i) {
-            if (m_Arr[i] == val) {
+            if ((*this)[i] == val) {
                 return i;
             }
         }
@@ -76,11 +88,16 @@ public:
     }
 
     inline void clear() {
+        if constexpr (!std::is_trivially_destructible_v<TVal>) {
+            for (auto& el: *this) {
+                std::destroy_at(el);
+            }
+        }
         m_Size = 0;
     }
 
-    inline TVal& operator[](int index) { return m_Arr[index]; }
-    inline const TVal& operator[](int index) const { return m_Arr[index]; }
+    inline TVal& operator[](int index) { return *std::launder(reinterpret_cast<T*>(&m_Arr[index])); }
+    inline const TVal& operator[](int index) const { return *std::launder(reinterpret_cast<const T*>(&m_Arr[index])); }
 
     inline int size() const { return m_Size; }
     inline constexpr int capacity() const { return CAPACITY; }
@@ -89,13 +106,13 @@ public:
     // Iterators
     //
 
-    inline Iterator begin() { return &m_Arr[0]; }
-    inline Iterator end() { return &m_Arr[m_Size]; }
-    inline Iterator cbegin() const { return &m_Arr[0]; }
-    inline Iterator cend() const { return &m_Arr[m_Size]; }
+    inline Iterator begin() { return &((*this)[0]); }
+    inline Iterator end() { return &((*this)[m_Size]); }
+    inline Iterator cbegin() const { return &((*this)[0]); }
+    inline Iterator cend() const { return &((*this)[m_Size]); }
 
 private:
-    TVal m_Arr[CAPACITY];
+    std::aligned_storage_t<sizeof(TVal), alignof(TVal)> m_Arr[CAPACITY];
     int m_Size = 0;
 };
 
