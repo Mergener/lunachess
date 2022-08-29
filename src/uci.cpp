@@ -18,7 +18,7 @@
 #include "clock.h"
 
 #include "ai/search.h"
-#include "ai/neural/nn.h"
+#include "ai/neural/neuraleval.h"
 
 namespace lunachess {
 

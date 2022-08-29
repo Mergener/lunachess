@@ -1,7 +1,5 @@
 #include "hotmap.h"
 
-#include <cstring>
-
 #include "../serial.h"
 
 namespace lunachess::ai {
@@ -12,10 +10,6 @@ Hotmap Hotmap::defaultKingEgHotmap;
 Hotmap Hotmap::defaultKingMgHotmap;
 
 void Hotmap::initializeHotmaps() {
-    // Initialize everything to zero by default
-    std::memset(defaultMiddlegameMaps, 0, sizeof(defaultMiddlegameMaps));
-    std::memset(defaultEndgameMaps, 0, sizeof(defaultEndgameMaps));
-
     //
     // Pawns
     //

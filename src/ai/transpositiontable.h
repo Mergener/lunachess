@@ -77,7 +77,7 @@ public:
     }
 
     inline void clear() {
-        std::memset(m_Buckets, 0, m_Capacity * sizeof(Bucket));
+        std::memset(reinterpret_cast<void*>(m_Buckets), 0, m_Capacity * sizeof(Bucket));
     }
 
     /**
@@ -90,7 +90,7 @@ public:
 
         m_Capacity = hashSizeBytes / sizeof(Bucket);
         m_Buckets = new Bucket[m_Capacity];
-        std::memset(m_Buckets, 0, m_Capacity * sizeof(Bucket));
+        std::memset(reinterpret_cast<void*>(m_Buckets), 0, m_Capacity * sizeof(Bucket));
     }
 
     inline TranspositionTable(size_t hashSizeBytes = DEFAULT_SIZE_MB * 1024 * 1024) {

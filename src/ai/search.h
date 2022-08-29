@@ -10,9 +10,9 @@
 
 #include "transpositiontable.h"
 #include "evaluator.h"
-#include "aimovegen.h"
+#include "aimovefactory.h"
 #include "basicevaluator.h"
-#include "neural/nn.h"
+#include "neural/neuraleval.h"
 #include "timemanager.h"
 
 #include "../clock.h"
@@ -181,8 +181,12 @@ private:
 
     void pushMoveToPv(TPV::iterator& pvStart, Move move);
 
-    int generateAndOrderMoves(MoveList& ml, int ply, Move pvMove);
-    int generateAndOrderMovesQuiesce(MoveList& ml, int ply);
+    /**
+     * Checks whether the current search should stop, either if its time
+     * is over or it was requested to stop.
+     * If it should, stops it by throwing 'TimeUp'.
+     */
+    void checkIfSearchIsOver();
 };
 
 }

@@ -5,7 +5,7 @@
 #include "ai/aibitboards.h"
 #include "ai/hotmap.h"
 #include "ai/basicevaluator.h"
-#include "ai/aimovegen.h"
+#include "ai/aimovefactory.h"
 
 namespace lunachess {
 

@@ -3,25 +3,10 @@
 #include <stdexcept>
 #include <algorithm>
 #include <thread>
+
 #include "../movegen.h"
 
 namespace lunachess::ai {
-
-int AlphaBetaSearcher::generateAndOrderMovesQuiesce(MoveList& ml, int ply) {
-    int initialCount = ml.size();
-
-    m_MvFactory.generateNoisyMoves(ml, m_Pos, ply);
-
-    return ml.size() - initialCount;
-}
-
-int AlphaBetaSearcher::generateAndOrderMoves(MoveList& ml, int ply, Move pvMove) {
-    int initialCount = ml.size();
-
-    m_MvFactory.generateMoves(ml, m_Pos, ply, pvMove);
-
-    return ml.size() - initialCount;
-}
 
 /**
  * Pseudo-exception to be thrown when the search time is up.
@@ -31,27 +16,34 @@ class TimeUp {
 
 constexpr int CHECK_TIME_NODE_INTERVAL = 4096;
 
-int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
-    m_LastResults.visitedNodes++;
-
+void AlphaBetaSearcher::checkIfSearchIsOver() {
     if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
         (m_TimeManager.timeIsUp()
          || m_ShouldStop)) {
         throw TimeUp();
     }
+}
+
+int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
+    m_LastResults.visitedNodes++;
+
+    checkIfSearchIsOver();
 
     int standPat = m_Eval->evaluate(m_Pos);
 
     if (standPat >= beta) {
+        // Fail high
         return beta;
     }
 
     if (standPat > alpha) {
+        // Before we search, if the standPat is higher than alpha then it means
+        // that not performing a noisy move is best (so far).
         alpha = standPat;
     }
 
     MoveList moves;
-    int moveCount = generateAndOrderMovesQuiesce(moves, ply);
+    int moveCount = m_MvFactory.generateNoisyMoves(moves, m_Pos, ply);
 
     // #----------------------------------------
     // # DELTA PRUNING
@@ -68,6 +60,8 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     }
 
     if (standPat < alpha - bigDelta) {
+        // No material delta could improve our position enough, we can
+        // perform some pruning.
         return alpha;
     }
     // #----------------------------------------
@@ -76,6 +70,8 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         Move move = moves[i];
         if (move.getType() == MT_SIMPLE_CAPTURE &&
             !posutils::hasGoodSEE(m_Pos, move)) {
+            // The result of the exchange series will always result in
+            // material loss after this capture, prune it.
             continue;
         }
 
@@ -84,6 +80,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         m_Pos.undoMove();
 
         if (score >= beta) {
+            // Fail high
             return beta;
         }
 
@@ -109,29 +106,34 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     bool isRoot = ply == 0;
     if (m_Pos.isDraw(1) && !isRoot) {
+        // Position is a draw (or has repeated already), return draw score.
         return m_Eval->getDrawScore();
     }
 
-    if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
-            (m_TimeManager.timeIsUp()
-            || m_ShouldStop)) {
-        throw TimeUp();
-    }
+    checkIfSearchIsOver();
 
+    // Setup some important variables
+    int staticEval; // Used for some pruning/reduction techniques
     const int originalDepth = depth;
     const int originalAlpha = alpha;
-    int staticEval;
-    Move hashMove = MOVE_INVALID;
 
     // Setup principal variation
     auto pvStart = m_PvIt;
     *m_PvIt++ = MOVE_INVALID;
 
-    // #----------------------------------------
-    // # TRANSPOSITION TABLE PROBING
-    // #----------------------------------------
-    // We might have already found the best move for this position in
-    // a search with equal or higher depth. Look for it in the TT.
+    // Before we start the search, probe the transposition table.
+    // If we had already searched this same position before but with
+    // equal or higher depth, we remove ourselves the burden of researching it
+    // and reuse previous results.
+    // 
+    // If we find data in the TT searched at lowe depth, however, searching 
+    // will still be necessary. Although we can still use the found data
+    // as a heuristic to accelerate the proccess of searching. For instance,
+    // there is a great chance that the best move at this position on a depth d
+    // is also the best move at d - 1 depth. Thus, we can search the best move
+    // at depth d - 1 first.
+    
+    Move hashMove = MOVE_INVALID; // Move extracted from TT
     ui64 posKey = m_Pos.getZobrist();
     TranspositionTable::Entry ttEntry = {};
     ttEntry.zobristKey = posKey;
@@ -139,31 +141,36 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     bool foundInTT = m_TT.probe(posKey, ttEntry);
     if (foundInTT) {
-        hashMove = ttEntry.move;
+        staticEval = ttEntry.staticEval;
 
-        if (ttEntry.depth >= depth) {
-            if (ttEntry.type == TranspositionTable::EXACT) {
-                if (searchMoves == nullptr || searchMoves->contains(ttEntry.move)) {
-                    // Only use transposition table exact moves if we're either not using
-                    // an external provided search moves list or the one we're using
-                    // includes the move found in the TT
-                    pushMoveToPv(pvStart, ttEntry.move);
-                    m_PvIt = pvStart;
+        // We don't care about the TT entry if its hash move is not within
+        // the scope of our searchMoves list.
+        if (searchMoves == nullptr || searchMoves->contains(ttEntry.move)) {
+            hashMove = ttEntry.move;
+            if (ttEntry.depth >= depth) {
+                if (ttEntry.type == TranspositionTable::EXACT) {
+                    if (searchMoves == nullptr || searchMoves->contains(ttEntry.move)) {
+                        // Only use transposition table exact moves if we're either not using
+                        // an external provided search moves list or the one we're using
+                        // includes the move found in the TT.
+                        pushMoveToPv(pvStart, ttEntry.move);
+                        m_PvIt = pvStart;
+                        return ttEntry.score;
+                    }
+                } else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
+                    alpha = std::max(alpha, ttEntry.score);
+                } else if (ttEntry.type == TranspositionTable::UPPERBOUND) {
+                    beta = std::min(beta, ttEntry.score);
+                }
+
+                if (alpha >= beta) {
                     return ttEntry.score;
                 }
-            } else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
-                alpha = std::max(alpha, ttEntry.score);
-            } else if (ttEntry.type == TranspositionTable::UPPERBOUND) {
-                beta = std::min(beta, ttEntry.score);
-            }
-
-            if (alpha >= beta) {
-                return ttEntry.score;
             }
         }
-        staticEval = ttEntry.staticEval;
     }
     else {
+        // No TT entry found, we need to compute the static eval here.
         staticEval = m_Eval->evaluate(m_Pos);
     }
     // #----------------------------------------
@@ -172,13 +179,9 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         return quiesce(ply, alpha, beta);
     }
 
-    // #----------------------------------------
-    // # CHECK EXTENSION
-    // #----------------------------------------
-    // Check extension -- do not decrease depth when searching for moves
-    // in positions in check.
     bool isCheck = m_Pos.isCheck();
     if (!isCheck) {
+        // Only decrease depth if we're not currently in check
         depth--;
     }
     // #----------------------------------------
@@ -229,7 +232,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     // Generate moves
     MoveList moves;
     if (searchMoves == nullptr) {
-        generateAndOrderMoves(moves, ply, hashMove);
+        m_MvFactory.generateMoves(moves, m_Pos, ply, hashMove);
         searchMoves = &moves;
     }
     if (searchMoves->size() == 0) {
@@ -314,8 +317,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     ttEntry.staticEval = staticEval;
     m_TT.maybeAdd(ttEntry);
 
-    return alpha;
-    
+    return alpha;    
 }
 
 static void filterMoves(MoveList& ml, std::function<bool(Move)> filter) {
@@ -347,7 +349,7 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
 
         // Generate and order all moves
         MoveList moves;
-        generateAndOrderMoves(moves, 0, MOVE_INVALID);
+        m_MvFactory.generateMoves(moves, m_Pos, 0, MOVE_INVALID);
 
         // If no moves were generated, position is a stalemate or checkmate.
         if (moves.size() == 0) {
@@ -465,7 +467,7 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
             // Re-generate moves list with new ordering
             moves.clear();
 
-            generateAndOrderMoves(moves, 0, m_LastResults.bestMove);
+            m_MvFactory.generateMoves(moves, m_Pos, 0, m_LastResults.bestMove);
             filterMoves(moves, settings.moveFilter);
 
             m_TimeManager.onNewDepth(m_LastResults);

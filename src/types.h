@@ -329,6 +329,15 @@ struct TimeControl {
     int time = 0;
     int increment = 0;
     TimeControlMode mode = TC_INFINITE;
+
+	inline TimeControl() = default;
+	inline TimeControl(const TimeControl& other) = default;
+	inline TimeControl(TimeControl&& other) = default;
+	inline TimeControl& operator=(const TimeControl& other) = default;
+	inline ~TimeControl() = default;	
+
+	inline TimeControl(int time, int increment, TimeControlMode mode)
+		: time(time), increment(increment), mode(mode) {}
 };
 
 } // lunachess

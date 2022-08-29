@@ -42,7 +42,7 @@ struct ScoreTable {
     int outsidePasserPercentBonus = 0;
 
     inline ScoreTable() {
-        std::memset(this, 0, sizeof(*this));
+        std::memset(reinterpret_cast<void*>(this), 0, sizeof(*this));
     }
 
     inline void foreachHotmapGroup(std::function<void(KingSquareHotmapGroup&, PieceType)> fn) {
