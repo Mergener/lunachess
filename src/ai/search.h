@@ -76,7 +76,7 @@ struct SearchResults {
     inline const SearchedVariation& getPrincipalVariation() const { return searchedVariations[0]; }
 
     /**
-     * How much time we've been searching.
+     * How much time we've been searching in milliseconds.
      */
     inline ui64 getSearchTime() const {
         return deltaMs(Clock::now(), searchStart);
@@ -154,7 +154,7 @@ public:
     /**
      * Constructs a move searcher with an externally created evaluator.
      */
-    inline AlphaBetaSearcher(std::shared_ptr<Evaluator> eval)
+    inline explicit AlphaBetaSearcher(std::shared_ptr<const Evaluator> eval)
         : m_Eval(eval) {
     }
 
@@ -166,7 +166,7 @@ private:
     TranspositionTable m_TT;
     SearchResults m_LastResults;
     AIMoveFactory m_MvFactory;
-    std::shared_ptr<Evaluator> m_Eval;
+    std::shared_ptr<const Evaluator> m_Eval;
     TimeManager m_TimeManager;
     bool m_ShouldStop = false;
     bool m_Searching = false;

@@ -3,6 +3,8 @@
 
 #include <string>
 #include <sstream>
+#include <functional>
+#include <vector>
 
 #include "types.h"
 
@@ -35,6 +37,18 @@ inline bool randomChance(int chancePct) {
 
 inline bool randomChance(float chancePct) {
     return random(1.0f, 100.0f) <= chancePct;
+}
+
+template <typename T, typename TNew>
+std::vector<TNew> mapTo(const std::vector<T>& src, std::function<TNew(const T&)> fn) {
+    std::vector<TNew> ret;
+    ret.reserve(src.capacity());
+
+    for (const auto& val: src) {
+        ret.push_back(fn(val));
+    }
+
+    return ret;
 }
 
 

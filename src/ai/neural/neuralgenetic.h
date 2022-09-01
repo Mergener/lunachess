@@ -2,51 +2,93 @@
 #define LUNA_AI_NEURAL_NEURALGENETIC_H
 
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <nlohmann/json.hpp>
+#include <optional>
 
 #include "neuraleval.h"
+#include "../../position.h"
 
 namespace lunachess::ai::neural {
 
-class Agent {
-public:
-    void mutate(int mutationRatePct);
+struct Agent {
+    std::string id;
+    int generationNumber = 0;
+    std::shared_ptr<NeuralEvaluator::NN> network = nullptr;
+};
 
-    inline void randomize() {
-        m_Eval.getNetwork().randomize(-1, 1);
+struct TrainingGame {
+    std::string id;
+    Agent* agents[2]; // First plays black, second plays white
+    std::vector<Move> moves;
+    ChessResult resultForWhite = RES_UNFINISHED;
+};
+
+struct Generation {
+    int number;
+    Agent* targetAgent;
+    std::vector<Agent*> otherAgents;
+    std::vector<TrainingGame*> games;
+    std::unordered_map<std::string, int> agentFitness;
+};
+
+struct GeneticTrainingSettings {
+    std::filesystem::path baseSavePath;
+
+    int agentsPerGeneration = 16;
+    int cullingRate = 14;
+    int baseMutationRate = 10;
+    int mutationRatePerGen = -1;
+    int minMutationRate = 1;
+    int matchesPerPairing = 2;
+    Position startPosition = Position::getInitialPosition();
+    TimeControl timeControl = TimeControl(50, 0, TC_MOVETIME);
+
+    std::function<void()> onIterationFinish = nullptr;
+};
+
+class GeneticTraining {
+public:
+    inline const Generation& getCurrentGeneration() const {
+        return m_CurrGeneration;
     }
 
-    nlohmann::json toJson() const;
-    void fromJson(const nlohmann::json& json);
+    inline const GeneticTrainingSettings& getSettings() const { return m_Settings; }
+    inline const Agent& getAgent(const std::string& id) const { return *m_Agents.at(id); }
 
-    Agent();
-    Agent(const Agent& a, const Agent& b);
-    ~Agent() = default;
+    inline bool isRunning() const { return m_ItLeft != 0; }
 
-private:
-    NeuralEvaluator m_Eval;
-    std::string m_Name;
-    int m_Score;
-    int m_Gen;
-};
+    inline void updateSettings(const GeneticTrainingSettings& settings) {
+        m_Settings = settings;
+    }
 
-class Generation {
-public:
-
+    void run(int iterations = -1);
+    void stop();
 
 private:
+    std::unordered_map<std::string, std::unique_ptr<Agent>> m_Agents;
+    std::unordered_map<std::string, std::unique_ptr<TrainingGame>> m_Games;
+    Generation m_CurrGeneration;
+    GeneticTrainingSettings m_Settings;
+    int m_ItLeft = 0;
+    int m_CurrMutRate = 0;
 
+    using GamePairings = std::vector<std::pair<Agent*, Agent*>>;
+    GamePairings generatePairings();
+
+    Agent* createRandomAgent();
+    void playGames(const GamePairings& pairings);
+    void cull();
+    void reproduceAgents();
+    void save() const;
 };
 
-class NeuralGeneticTraining {
-public:
-    void save(std::string_view path);
-
-private:
-
-};
+void to_json(nlohmann::json&, const Agent&);
+void to_json(nlohmann::json&, const Generation&);
+void from_json(const nlohmann::json&, Agent&);
+void from_json(const nlohmann::json&, Generation&);
 
 } // lunachess::ai::neural
 

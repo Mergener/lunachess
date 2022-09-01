@@ -1,13 +1,9 @@
 #include <iostream>
-#include <ctime>
-#include <iomanip>
 #include <thread>
 
 #include "lunachess.h"
-#include "strutils.h"
 
 using namespace lunachess;
-
 
 int main(int argc, char* argv[]) {
     try {

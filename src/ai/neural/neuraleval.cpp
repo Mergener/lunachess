@@ -12,7 +12,7 @@ namespace lunachess::ai::neural {
 static std::mt19937_64 s_Random (std::random_device{}());
 
 int NeuralEvaluator::evaluate(const NeuralInputs& inputs) const {
-    return m_Network.evaluate(inputs);
+    return static_cast<int>(m_Network->evaluate(inputs) * 100.0f);
 }
 
 int NeuralEvaluator::evaluate(const Position& pos) const {
@@ -61,23 +61,14 @@ public:
 
     inline const NeuralEvaluator& getEvaluator() const { return m_Eval; }
 
-
     Agent();
+    ~Agent() = default;
 
 private:
     NeuralEvaluator m_Eval;
     int m_Score = 0;
 };
 
-struct Generation {
-    int generationNumber;
-    std::vector<std::shared_ptr<Agent>> agents;
-
-    explicit Generation(int genNumber)
-        : generationNumber(genNumber) {
-
-    }
-};
 
 };
 

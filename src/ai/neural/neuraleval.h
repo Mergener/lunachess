@@ -40,27 +40,29 @@ class NeuralEvaluator : public Evaluator {
 public:
     using NN = NeuralNetwork<N_INPUTS, 2, 64>;
 
-    inline NN& getNetwork() { return m_Network; }
-    inline const NN& getNetwork() const { return m_Network; }
+    inline NN& getNetwork() { return *m_Network; }
+    inline const NN& getNetwork() const { return *m_Network; }
 
     inline int getDrawScore() const override { return 0; }
     int evaluate(const Position& pos) const override;
     int evaluate(const NeuralInputs& inputs) const;
 
-    NeuralEvaluator() = default;
+    /**
+     * Creates a neural evaluator and uses a specified neural network.
+     */
+    inline NeuralEvaluator(std::shared_ptr<NN> nn)
+        : m_Network(nn) {}
+
+    /**
+     * Creates a neural evaluator and an underlying neural network.
+     */
+    inline NeuralEvaluator()
+            : NeuralEvaluator(std::make_shared<NN>()) {}
+
     ~NeuralEvaluator() = default;
 
 private:
-    NN m_Network;
-};
-
-struct GeneticTrainingSettings {
-    int agentsPerGeneration = 16;
-    int baseMutationRate = 10;
-    int mutationRatePerGen = -1;
-    int minMutationRate = 1;
-    int matchesPerPairing = 2;
-    TimeControl timeControl = TimeControl(50, 0, TC_MOVETIME);
+    std::shared_ptr<NN> m_Network;
 };
 
 }
