@@ -38,6 +38,18 @@ static std::string randomId() {
 // GeneticTraining
 //
 
+static void saveGameToStream(std::ostream& stream, const TrainingGame& game) {
+    stream << "[White \"" << game.agents[0]->id << "\"]" << std::endl;
+    stream << "[Black \"" << game.agents[1]->id << "\"]" << std::endl;
+
+    static constexpr int PLIES_PER_LINE = 2;
+    for (int i = 0; i < game.moves.size(); ++i) {
+        stream << game.moves[i] << " ";
+        if (i >= PLIES_PER_LINE && (i % PLIES_PER_LINE == 0)) {
+            stream << std::endl;
+        }
+    }
+}
 
 void GeneticTraining::save() const {
     auto basePath = m_Settings.baseSavePath;
@@ -55,6 +67,21 @@ void GeneticTraining::save() const {
     genStream.close();
 
     // Save all agents
+    for (const auto& agent: m_CurrGeneration.otherAgents) {
+        std::fstream agentStream(basePath / "agents" / agent->id);
+        agentStream << nlohmann::json(*agent) << std::endl;
+        agentStream.close();
+    }
+    std::fstream agentStream(basePath / "agents" / m_CurrGeneration.targetAgent->id);
+    agentStream << nlohmann::json(*m_CurrGeneration.targetAgent) << std::endl;
+    agentStream.close();
+
+    // Save all games
+    for (const auto& game: m_CurrGeneration.games) {
+        std::fstream gameStream(basePath / "games" / game->id);
+        saveGameToStream(gameStream, *game);
+        gameStream.close();
+    }
 }
 
 void GeneticTraining::stop() {
@@ -251,10 +278,8 @@ void GeneticTraining::cull() {
         m_CurrGeneration.otherAgents.erase(std::next(it).base());
     }
 
-    // Erase stored games and agent fitnesses
+    // Erase stored games and zero out agent fitness
     m_CurrGeneration.games.clear();
-
-    // Zero out agent fitnesses
     for (auto& fitness: m_CurrGeneration.agentFitness) {
         fitness.second = 0;
     }

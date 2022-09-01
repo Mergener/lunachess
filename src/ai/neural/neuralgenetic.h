@@ -21,7 +21,7 @@ struct Agent {
 
 struct TrainingGame {
     std::string id;
-    Agent* agents[2]; // First plays black, second plays white
+    std::array<Agent*, 2> agents; // First plays black, second plays white
     std::vector<Move> moves;
     ChessResult resultForWhite = RES_UNFINISHED;
 };
