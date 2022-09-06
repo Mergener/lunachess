@@ -13,16 +13,18 @@
 #ifdef LUNA_ASSERTS_ON
 
 #define LUNA_ASSERT(cond, msg) \
-		if (!(cond)) {               \
-			std::stringstream ASSERTSSTREAM_; \
-			ASSERTSSTREAM_ << msg; \
-			std::string ASSERTSTR_ = ASSERTSSTREAM_.str(); \
-			::lunachess::debug::assertionFailure(__FILE__, __func__, __LINE__, ASSERTSTR_); \
-		}
+		do {\
+			if (!(cond)) {               \
+				std::stringstream ASSERTSSTREAM_; \
+				ASSERTSSTREAM_ << msg; \
+				std::string ASSERTSTR_ = ASSERTSSTREAM_.str(); \
+				::lunachess::debug::assertionFailure(__FILE__, __func__, __LINE__, ASSERTSTR_); \
+			}\
+		} while (false)
 
 #else
 
-#define LUNA_ASSERT(cond, msg)
+#define LUNA_ASSERT(cond, msg) do {} while (false)
 
 #endif
 

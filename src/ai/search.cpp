@@ -396,12 +396,14 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                         m_LastResults.bestMove = ttEntry.move;
                         m_LastResults.searchedDepth = depth;
                     }
+                    moves.remove(ttEntry.move);
+
 
                     // We finished the search on this variation at this depth.
                     // Now, properly fill the searched variation object for this pv
                     // in the results object.
                     auto& pv = m_LastResults.searchedVariations[multipv];
-                    pv.score = m_LastResults.bestScore;
+                    pv.score = ttEntry.score;
                     pv.type = TranspositionTable::EXACT;
 
                     // Check for moves on the PV in transposition table
@@ -415,16 +417,15 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                         }
                     }
 
+                    // Undo all moves
+                    for (int i = 0; i < pv.moves.size(); ++i) {
+                        m_Pos.undoMove();
+                    }
+
                     // When using multipvs, we need to clear the entry of the initial
                     // search position.
                     if (settings.multiPvCount > 1) {
                         m_TT.remove(m_Pos);
-                        moves.remove(ttEntry.move);
-                    }
-
-                    // Undo all moves
-                    for (int i = 0; i < pv.moves.size(); ++i) {
-                        m_Pos.undoMove();
                     }
 
                     // Notify handler

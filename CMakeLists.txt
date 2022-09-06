@@ -29,15 +29,18 @@ add_executable(luna
         src/ai/transpositiontable.cpp
         src/ai/aimovefactory.cpp
         src/ai/aibitboards.cpp
-        src/uci.cpp src/ai/neural/nn.cpp src/ai/neural/nn.h src/utils.cpp src/ai/neural/neuralgenetic.cpp src/ai/neural/neuralgenetic.h src/ai/quiescevaluator.cpp src/ai/quiescevaluator.h)
+        src/ai/quiescevaluator.cpp
+        src/uci.cpp src/ai/neural/nn.cpp src/ai/neural/nn.h src/utils.cpp src/ai/neural/neuralgenetic.cpp src/ai/neural/neuralgenetic.h)
 
 # GCC requires flags in order for threads and <filesystem> to work.
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "-pthread")
-endif()
 
 add_subdirectory("ext")
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "-pthread")
+    target_link_libraries(luna PRIVATE stdc++fs
+                               PRIVATE nlohmann_json)
+else()
+    target_link_libraries(luna PRIVATE nlohmann_json)
+endif()
 
-target_link_libraries(luna PRIVATE stdc++fs
-                           PRIVATE nlohmann_json)

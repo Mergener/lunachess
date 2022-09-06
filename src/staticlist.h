@@ -23,6 +23,7 @@ public:
     using ConstIterator = const TVal*;
 
     inline void insert(const TVal& val, int index) {
+        LUNA_ASSERT(index < m_Size && index >= 0, "Index out of bounds.");
         for (int i = m_Size; i > index; --i) {
             (*this)[i] = (*this)[i - 1];
         }
@@ -47,6 +48,7 @@ public:
 
     inline void removeLast() {
         LUNA_ASSERT(m_Size > 0, "Trying to remove when empty.");
+
         if constexpr (!std::is_trivially_destructible_v<TVal>) {
             std::destroy_at((*this)[m_Size - 1]);
         }
@@ -56,6 +58,11 @@ public:
 
     inline void removeAt(int index) {
         LUNA_ASSERT(m_Size > 0, "Trying to remove when empty.");
+        LUNA_ASSERT(index < m_Size && index >= 0, "Index out of bounds.");
+
+        if constexpr (!std::is_trivially_destructible_v<TVal>) {
+            std::destroy_at((*this)[index]);
+        }
         m_Size--;
         for (int i = index; i < m_Size; ++i) {
             (*this)[i] = (*this)[i + 1];
