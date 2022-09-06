@@ -91,13 +91,6 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
-void AlphaBetaSearcher::pushMoveToPv(TPV::iterator& pvStart, Move move) {
-    auto p = m_PvIt;
-    m_PvIt = pvStart;
-    *m_PvIt++ = move;
-    while ((*m_PvIt++ = *p++) != MOVE_INVALID);
-}
-
 int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                                  int alpha, int beta,
                                  bool nullMoveAllowed,
@@ -116,10 +109,6 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     int staticEval; // Used for some pruning/reduction techniques
     const int originalDepth = depth;
     const int originalAlpha = alpha;
-
-    // Setup principal variation
-    auto pvStart = m_PvIt;
-    *m_PvIt++ = MOVE_INVALID;
 
     // Before we start the search, probe the transposition table.
     // If we had already searched this same position before but with
@@ -153,8 +142,6 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                         // Only use transposition table exact moves if we're either not using
                         // an external provided search moves list or the one we're using
                         // includes the move found in the TT.
-                        pushMoveToPv(pvStart, ttEntry.move);
-                        m_PvIt = pvStart;
                         return ttEntry.score;
                     }
                 } else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
@@ -206,7 +193,6 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
             m_Pos.undoNullMove();
-            m_PvIt = pvStart;
             return beta; // Prune
         }
 
@@ -286,11 +272,8 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         if (score > alpha) {
             alpha = score;
             bestMoveIdx = i;
-
-            pushMoveToPv(pvStart, move);
         }
     }
-    m_PvIt = pvStart;
 
     // Store search data in transposition table
     Move bestMove = (*searchMoves)[bestMoveIdx];
@@ -393,10 +376,6 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                     break;
                 }
 
-                // For each new pv to be searched, clear the previous pv array
-                std::fill(m_Pv.begin(), m_Pv.end(), MOVE_INVALID);
-                m_PvIt = m_Pv.begin();
-
                 // Prepare results object for this search
                 m_LastResults.visitedNodes = 0;
                 m_LastResults.currDepthStart = Clock::now();
@@ -407,18 +386,16 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
 
                     int score = alphaBeta(depth, 0, -HIGH_BETA, HIGH_BETA, false, &moves);
 
+                    m_TT.probe(m_Pos, ttEntry);
+
                     if (multipv == 0) {
                         // multipv == 0 means that this is the true principal variation.
                         // The score and move found in this pv search are the best for the
                         // position being searched.
                         m_LastResults.bestScore = score;
-                        m_LastResults.bestMove = m_Pv[0];
-
+                        m_LastResults.bestMove = ttEntry.move;
                         m_LastResults.searchedDepth = depth;
                     }
-
-                    // Don't check best move in next PV
-                    moves.remove(m_Pv[0]);
 
                     // We finished the search on this variation at this depth.
                     // Now, properly fill the searched variation object for this pv
@@ -427,25 +404,22 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                     pv.score = m_LastResults.bestScore;
                     pv.type = TranspositionTable::EXACT;
 
-                    // Add the moves searched now, deleting previous moves stored
-                    // in the variation.
+                    // Check for moves on the PV in transposition table
                     pv.moves.clear();
-                    for (auto move: m_Pv) {
-                        if (move == MOVE_INVALID) {
-                            // PV array is MOVE_INVALID terminated.
-                            break;
-                        }
-                        pv.moves.push_back(move);
-                        m_Pos.makeMove(move);
-                    }
-
-                    // Check for more on the PV in transposition table
                     while (m_TT.probe(m_Pos, ttEntry)) {
+                        pv.moves.push_back(ttEntry.move);
+                        m_Pos.makeMove(ttEntry.move);
+
                         if (m_Pos.isRepetitionDraw()) {
                             break;
                         }
-                        pv.moves.push_back(ttEntry.move);
-                        m_Pos.makeMove(ttEntry.move);
+                    }
+
+                    // When using multipvs, we need to clear the entry of the initial
+                    // search position.
+                    if (settings.multiPvCount > 1) {
+                        m_TT.remove(m_Pos);
+                        moves.remove(ttEntry.move);
                     }
 
                     // Undo all moves
@@ -480,8 +454,9 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
 
         return m_LastResults;
     }
-    catch (const std::exception&) {
+    catch (const std::exception& e) {
         m_Searching = false;
+        std::cerr << e.what() << std::endl;
         throw;
     }
 }

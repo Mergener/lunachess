@@ -16,7 +16,7 @@ bool TranspositionTable::maybeAdd(const Entry& entry) {
         b.valid = true;
         return true;
     }
-    if (b.entry.depth < entry.depth) {
+    if (b.entry.depth <= entry.depth) {
         // New one has a higher depth, replace
         b.entry = entry;
         b.valid = true;

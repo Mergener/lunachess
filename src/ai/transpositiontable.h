@@ -97,6 +97,12 @@ public:
         resize(hashSizeBytes);
     }
 
+    inline ~TranspositionTable() {
+        if (m_Buckets != nullptr) {
+            delete[] m_Buckets;
+        }
+    }
+
 private:
     Bucket* m_Buckets = nullptr;
     size_t m_Capacity = 0;

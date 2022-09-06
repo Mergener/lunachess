@@ -559,6 +559,7 @@ int BasicEvaluator::evaluate(const Position& pos) const {
             + tropism + pawnShield + kingExposure +
             + material;
 
+
     return total;
 }
 

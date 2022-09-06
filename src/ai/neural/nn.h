@@ -11,7 +11,14 @@
 
 namespace lunachess::ai::neural {
 
-template <int N, int INPUT_SIZE>
+extern int n;
+
+enum class ActivationFunctionType {
+    None,
+    ReLu
+};
+
+template <int N, int INPUT_SIZE, ActivationFunctionType ACT_FN_TYPE = ActivationFunctionType::ReLu>
 struct NetworkLayer {
     std::array<std::array<float, INPUT_SIZE>, N> weights;
     std::array<float, N> biases;
@@ -25,15 +32,22 @@ struct NetworkLayer {
         }
     }
 
-    void mutate(int mutationRatePct) {
+    void mutate(float mutationRatePct) {
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < INPUT_SIZE; ++j) {
-                if (utils::randomChance(mutationRatePct)) {
+                if (utils::randomChance(mutationRatePct / 2)) {
                     weights[i][j] += utils::random(-0.1f, 0.1f);
                 }
+
+                if (utils::randomChance(mutationRatePct / 2)) {
+                    weights[i][j] *= utils::random(0.95f, 1.05f);
+                }
             }
-            if (utils::randomChance(mutationRatePct)) {
+            if (utils::randomChance(mutationRatePct / 2)) {
                 biases[i] += utils::random(-0.1f, 0.1f);
+            }
+            if (utils::randomChance(mutationRatePct / 2)) {
+                biases[i] *= utils::random(0.95f, 1.05f);
             }
         }
     }
@@ -49,7 +63,8 @@ struct NetworkLayer {
     }
 
     NetworkLayer() = default;
-    NetworkLayer(const NetworkLayer<N, INPUT_SIZE>& a, const NetworkLayer<N, INPUT_SIZE>& b) {
+    NetworkLayer(const NetworkLayer<N, INPUT_SIZE, ACT_FN_TYPE>& a,
+                 const NetworkLayer<N, INPUT_SIZE, ACT_FN_TYPE>& b) {
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < INPUT_SIZE; ++j) {
                 weights[i][j] = (utils::randomBool()) ? a.weights[i][j] : b.weights[i][j];
@@ -59,7 +74,10 @@ struct NetworkLayer {
     }
 
     static float activationFunction(float x) {
-        return std::max(0.0f, x);
+        if constexpr (ACT_FN_TYPE == ActivationFunctionType::ReLu) {
+            return std::max(0.0f, x);
+        }
+        return x;
     }
 };
 
@@ -71,7 +89,7 @@ struct NeuralNetwork {
 
     using TFirstHidden = NetworkLayer<N_HIDDEN_NEURONS, N_INPUTS>;
     using THidden      = NetworkLayer<N_HIDDEN_NEURONS, N_HIDDEN_NEURONS>;
-    using TOut         = NetworkLayer<1, N_HIDDEN_NEURONS>;
+    using TOut         = NetworkLayer<1, N_HIDDEN_NEURONS, ActivationFunctionType::None>;
 
     TFirstHidden firstHidden;
     TOut         outputLayer;
@@ -105,7 +123,7 @@ struct NeuralNetwork {
         outputLayer.randomize(minValue, maxValue);
     }
 
-    void mutate(int mutationRatePct) {
+    void mutate(float mutationRatePct) {
         firstHidden.mutate(mutationRatePct);
         for (int i = 0; i < N_IN_BETWEEN_LAYERS; ++i) {
             inBetweenLayers[i].mutate(mutationRatePct);
@@ -114,14 +132,20 @@ struct NeuralNetwork {
     }
 
     NeuralNetwork() = default;
-    inline NeuralNetwork(const NeuralNetwork& a,
-                         const NeuralNetwork& b) {
+    NeuralNetwork(const NeuralNetwork&) = default;
+    NeuralNetwork(NeuralNetwork&&) noexcept = default;
+    NeuralNetwork& operator=(const NeuralNetwork&) = default;
+
+    inline NeuralNetwork(const NeuralNetwork<N_INPUTS, N_HIDDEN_NEURONS, N_HIDDEN_LAYERS>& a,
+                         const NeuralNetwork<N_INPUTS, N_HIDDEN_NEURONS, N_HIDDEN_LAYERS>& b) {
         new (&firstHidden) TFirstHidden (a.firstHidden, b.firstHidden);
         for (int i = 0; i < N_IN_BETWEEN_LAYERS; ++i) {
             new (&inBetweenLayers[i]) THidden (a.inBetweenLayers[i], b.inBetweenLayers[i]);
         }
         new (&outputLayer) TOut (a.outputLayer, b.outputLayer);
     }
+
+    ~NeuralNetwork() = default;
 };
 
 } // lunachess::ai::neural

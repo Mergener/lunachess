@@ -99,7 +99,7 @@ static bool compareMvvLva(const MoveOrderingScores& s, Move a, Move b) {
            s.mvvLva[b.getSourcePiece().getType()][b.getDestPiece().getType()];
 }
 
-int AIMoveFactory::generateNoisyMoves(MoveList &ml, const Position &pos, int currPly, Move pvMove) {
+int AIMoveFactory::generateNoisyMoves(MoveList &ml, const Position &pos, int currPly, Move pvMove) const {
     int count = ml.size();
 
     movegen::generate<MTM_NOISY>(pos, ml);

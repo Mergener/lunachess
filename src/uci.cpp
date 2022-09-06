@@ -17,6 +17,7 @@
 #include "position.h"
 #include "clock.h"
 
+#include "ai/neural/neuralgenetic.h"
 #include "ai/search.h"
 #include "ai/neural/neuraleval.h"
 
@@ -442,7 +443,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
             // Forced checkmate found
             int mateScore = var.score > 0 ? ai::MATE_SCORE : -ai::MATE_SCORE;
             int pliesToMate = mateScore - var.score + 1;
-            std::cout << " score mate " << pliesToMate / 2;
+            std::cout << " score mate " << (pliesToMate + 1) / 2;
         }
 
         // Is it lowerbound, upperbound, or exact (do nothing)?
@@ -466,7 +467,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
-    //ctx.searcher.getTT().clear();
+    ctx.searcher.getTT().clear();
 
     schedule(ctx, [=, &ctx] {
         ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
@@ -664,6 +665,20 @@ static void cmdMovehist(UCIContext& ctx, const CommandArgs& args) {
     std::cout << std::endl;
 }
 
+static void cmdGentrain(UCIContext& ctx, const CommandArgs& args) {
+    namespace neural = ai::neural;
+    neural::GeneticTrainingSettings settings;
+    neural::GeneticTraining training;
+
+    std::cout << "Select training name: ";
+    std::string name;
+    std::cin >> name;
+    settings.baseSavePath = std::filesystem::path("trainings") / name;
+
+    training.updateSettings(settings);
+    training.run();
+}
+
 #ifndef NDEBUG
 static void cmdAttacks(UCIContext& ctx, const CommandArgs& args) {
     Color c = ctx.pos.getColorToMove();
@@ -760,6 +775,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getfen"] = Command(cmdGetfen, 0);
     cmds["movehist"] = Command(cmdMovehist, 0);
     cmds["neural"] = Command(cmdNeural, 0);
+    cmds["gentrain"] = Command(cmdGentrain, 0);
 
 #ifndef NDEBUG
     // Debug commands

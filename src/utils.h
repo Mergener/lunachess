@@ -36,7 +36,9 @@ inline bool randomChance(int chancePct) {
 }
 
 inline bool randomChance(float chancePct) {
-    return random(1.0f, 100.0f) <= chancePct;
+    float rnd = random(1.0f, 100.0f);
+
+    return rnd <= chancePct;
 }
 
 template <typename T, typename TNew>

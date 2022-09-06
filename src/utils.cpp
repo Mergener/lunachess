@@ -16,26 +16,19 @@ template <typename TInt>
 TInt randomInteger(TInt minInclusive, TInt maxExclusive) {
     static_assert(std::is_integral_v<TInt>);
 
-    std::unique_lock lock(s_RandomMutex);
-    i64 rnd = static_cast<i64>(s_Random());
+    std::uniform_int_distribution<TInt> gen(minInclusive, std::max(maxExclusive - 1, minInclusive));
 
-    i64 delta = maxExclusive - minInclusive;
-    return rnd % delta + minInclusive;
+    return gen(s_Random);
 }
 
 template <typename TFloat>
 TFloat randomFloatingPoint(TFloat min, TFloat max) {
+    constexpr ui64 MAX = 1000000000;
     static_assert(std::is_floating_point_v<TFloat>);
 
-    std::unique_lock lock(s_RandomMutex);
-    i64 rnd = static_cast<i64>(s_Random());
+    std::uniform_real_distribution<TFloat> gen(min, max);
 
-    // The following line gives us a random float between 0 and 1
-    TFloat f01 = static_cast<TFloat>(rnd) / static_cast<TFloat>(RandomEngine::max());
-
-    // Now, adjust it to the provided range and return
-    TFloat delta = max - min;
-    return f01 * delta + min;
+    return gen(s_Random);
 }
 
 float random(float min, float max) {

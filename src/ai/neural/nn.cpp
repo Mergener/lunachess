@@ -4,5 +4,4 @@
 
 namespace lunachess::ai::neural {
 
-
 }

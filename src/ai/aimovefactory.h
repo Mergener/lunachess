@@ -38,7 +38,7 @@ struct MoveOrderingScores {
 class AIMoveFactory {
 public:
     int generateMoves(MoveList& ml, const Position& pos, int currPly, Move pvMove = MOVE_INVALID);
-    int generateNoisyMoves(MoveList& ml, const Position& pos, int currPly, Move pvMove = MOVE_INVALID);
+    int generateNoisyMoves(MoveList& ml, const Position& pos, int currPly, Move pvMove = MOVE_INVALID) const;
 
     inline void storeKillerMove(Move move, int ply) {
         m_Killers[ply][1] = m_Killers[ply][0];

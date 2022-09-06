@@ -23,7 +23,7 @@ namespace lunachess::ai {
 constexpr int MAX_SEARCH_DEPTH = 128;
 constexpr int FORCED_MATE_THRESHOLD = 25000000;
 constexpr int MATE_SCORE = 30000000;
-constexpr int HIGH_BETA = 50000000;
+constexpr int HIGH_BETA = 1000000000;
 
 struct SearchedVariation {
     /**
@@ -148,14 +148,14 @@ public:
     }
 
     inline AlphaBetaSearcher()
-        : m_Eval(new neural::NeuralEvaluator()) {
+        : m_Eval(new BasicEvaluator()) {
     }
 
     /**
      * Constructs a move searcher with an externally created evaluator.
      */
     inline explicit AlphaBetaSearcher(std::shared_ptr<const Evaluator> eval)
-        : m_Eval(eval) {
+        : m_Eval(std::move(eval)) {
     }
 
     inline const TranspositionTable& getTT() const { return m_TT; }
@@ -171,15 +171,9 @@ private:
     bool m_ShouldStop = false;
     bool m_Searching = false;
 
-    using TPV = std::array<Move, MAX_SEARCH_DEPTH>;
-    TPV m_Pv;
-    TPV::iterator m_PvIt;
-
     int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
 
     int quiesce(int ply, int alpha, int beta);
-
-    void pushMoveToPv(TPV::iterator& pvStart, Move move);
 
     /**
      * Checks whether the current search should stop, either if its time

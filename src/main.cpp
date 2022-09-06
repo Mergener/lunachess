@@ -19,12 +19,12 @@ void doGeneticTraining() {
                <<  now->tm_mday << '_'
                << now->tm_hour << '-'
                << now->tm_min << '-'
-               << now->tm_sec << '-';
+               << now->tm_sec;
 
     lunachess::ai::neural::GeneticTraining training;
     lunachess::ai::neural::GeneticTrainingSettings settings;
     settings.baseSavePath = std::filesystem::path("trainings") / nameStream.str();
-
+    training.updateSettings(settings);
     training.run();
 }
 
@@ -36,8 +36,8 @@ int main(int argc, char* argv[]) {
         std::cin.tie();
         std::cout << std::boolalpha;
 
-        doGeneticTraining();
-        return 0;
+        //doGeneticTraining();
+        //return 0;
 
         return uciMain();
     }

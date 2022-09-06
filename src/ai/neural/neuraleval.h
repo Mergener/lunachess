@@ -38,7 +38,7 @@ class NeuralEvaluator : public Evaluator {
     static inline constexpr int N_INPUTS = sizeof(NeuralInputs) / sizeof(float);
 
 public:
-    using NN = NeuralNetwork<N_INPUTS, 2, 64>;
+    using NN = NeuralNetwork<N_INPUTS, 128, 2>;
 
     inline NN& getNetwork() { return *m_Network; }
     inline const NN& getNetwork() const { return *m_Network; }
@@ -51,13 +51,20 @@ public:
      * Creates a neural evaluator and uses a specified neural network.
      */
     inline NeuralEvaluator(std::shared_ptr<NN> nn)
-        : m_Network(nn) {}
+        : m_Network(nn) {
+    }
 
     /**
      * Creates a neural evaluator and an underlying neural network.
      */
     inline NeuralEvaluator()
-            : NeuralEvaluator(std::make_shared<NN>()) {}
+            : NeuralEvaluator(std::make_shared<NN>()) {
+    }
+
+    NeuralEvaluator(const NeuralEvaluator&) = default;
+    inline NeuralEvaluator(NeuralEvaluator&& other)
+        : m_Network(std::move(other.m_Network)) {}
+    NeuralEvaluator& operator=(const NeuralEvaluator&) = default;
 
     ~NeuralEvaluator() = default;
 
