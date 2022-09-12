@@ -21,49 +21,36 @@ int NeuralEvaluator::evaluate(const Position& pos) const {
 }
 
 NeuralInputs::NeuralInputs(const Position& pos, Color us) {
-    std::memset(pieces, 0, sizeof(pieces));
+    zeroAll();
 
     // Pieces
-
-    for (Square s = 0; s < 64; ++s) {
-        Piece p = pos.getPieceAt(s);
-
-        int idx;
-        if (us == CL_WHITE) {
-            idx = s;
-        }
-        else {
-            // Mirror squares when placing on black's perspective
-            auto rank = getRank(s);
-            auto file = getFile(s);
-            idx = getSquare(file, RANK_8 - rank);
-        }
-
-        pieces[idx] = p.getType();
-        if (p.getColor() != us) {
-            pieces[idx] *= -1;
+    for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
+        for (PieceType pt = PT_PAWN; pt < PT_COUNT; ++pt) {
+            Piece p = Piece(c, pt);
+            Bitboard bb = pos.getBitboard(p);
+            
+            for (Square s: bb) {
+                int arrIdx = c == us ? 0 : 1;
+                Square sqIdx = us == CL_WHITE ? s : getSquare(FL_COUNT - getFile(s) - 1, getRank(s));
+                pieceMaps[arrIdx][pt - 1][sqIdx] = 1.0f;
+            }
         }
     }
 
     // Castling rights
-    castleRightsUs = 0;
     if (pos.getCastleRights(us, SIDE_KING)) {
-        castleRightsUs += 1;
+        weCanCastleShort = 1.0f;
     }
     if (pos.getCastleRights(us, SIDE_QUEEN)) {
-        castleRightsUs += 2;
+        weCanCastleLong = 1.0f;
     }
 
-    castleRightsThem = 0;
     if (pos.getCastleRights(getOppositeColor(us), SIDE_KING)) {
-        castleRightsThem += 1;
+        theyCanCastleShort = 1.0f;
     }
     if (pos.getCastleRights(getOppositeColor(us), SIDE_QUEEN)) {
-        castleRightsThem += 2;
+        theyCanCastleLong = 1.0f;
     }
-
-    // En passant square
-    epSquare = pos.getEnPassantSquare();
 }
 
 };

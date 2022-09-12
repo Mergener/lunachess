@@ -254,8 +254,31 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         }
         // #----------------------------------------
 
+        // #----------------------------------------
+        // # LATE MOVE REDUCTIONS
+        // #----------------------------------------
+        bool reduced = false;
+        constexpr int LMR_START_IDX = 4;
+        if (d >= 4 &&
+            !isCheck &&
+            move.is<MTM_QUIET>() &&
+            !m_MvFactory.isKillerMove(move, ply) &&
+            i >= LMR_START_IDX &&
+            (foundInTT && ttEntry.type == TranspositionTable::UPPERBOUND)) {
+            d--;
+            reduced = true;
+        }
+
+        // #----------------------------------------
+
         m_Pos.makeMove(move);
+
         int score = -alphaBeta(d, ply + 1, -beta, -alpha);
+        if (score > alpha && reduced) {
+            // Research
+            score = alphaBeta(depth, ply + 1, -beta, -alpha);
+        }
+
         m_Pos.undoMove();
 
         if (score >= beta) {

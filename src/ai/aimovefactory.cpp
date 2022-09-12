@@ -180,7 +180,6 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     std::sort(simpleCaptures.begin(), simpleCaptures.end(), [this, &seeTable](Move a, Move b) {
         bool aHasGoodSEE = seeTable[a.getSource()][a.getDest()];
         bool bHasGoodSEE = seeTable[b.getSource()][b.getDest()];
-
         if (aHasGoodSEE && !bHasGoodSEE) {
             return true;
         }
@@ -221,7 +220,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
         if (!aIsKiller && bIsKiller) {
             return false;
         }
-
+//
         // History heuristic
         int aHist = getMoveHistory(a);
         int bHist = getMoveHistory(b);

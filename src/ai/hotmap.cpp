@@ -1,7 +1,5 @@
 #include "hotmap.h"
 
-#include "../serial.h"
-
 namespace lunachess::ai {
 
 KingSquareHotmapGroup Hotmap::defaultMiddlegameMaps[PT_COUNT - 1];
@@ -18,9 +16,9 @@ void Hotmap::initializeHotmaps() {
         300, 300, 300, 300, 300, 300, 300, 300,
         142, 142, 163, 205, 205, 172, 160, 142,
         76, 80, 102, 191, 191, 72, 68, 90,
-        32, 42, 98, 162, 162, 43, 24, 32,
+        32, 42, 98, 172, 162, 43, 24, 32,
         32, 19, 58, 70, 70, -36, 0, 24,
-        0, 0, -42, -60, -50, 0, 0, 0,
+        0, 0, -42, -50, -50, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
 
     };
@@ -65,14 +63,14 @@ void Hotmap::initializeHotmaps() {
     // Bishops
     //
     defaultMiddlegameMaps[PT_BISHOP] = {
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        -33,  -3, -14, -21, -13, -12, -39, -21,
     };
 
     defaultEndgameMaps[PT_BISHOP] = {
@@ -119,10 +117,10 @@ void Hotmap::initializeHotmaps() {
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
         -50, -50, -50, -70, -70, -50, -50, -50,
-        -50, -50, -50, -70, -70, -50, -50, -50,
+        -50, -50, -50, -80, -80, -50, -50, -50,
+        0, -10, -10, -26, -26, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        10, 10, 10, 10, 10, 10, 10, 10
+        10, 10, 10, 15, 15, 10, 10, 10
     };
 
     defaultEndgameMaps[PT_QUEEN] = {
@@ -160,25 +158,6 @@ void Hotmap::initializeHotmaps() {
         -200, -100, -100, -100, -100, -100, -100, -200,
         -200, -200, -200, -200, -200, -200, -200, -200,
     };
-}
-std::istream& operator>>(std::istream& stream, Hotmap& hotmap) {
-    SerialValue val;
-    stream >> val;
-
-    auto list = val.get<SerialList>();
-    for (int i = 0; i < 64; ++i) {
-        if (list.size() >= i) {
-            break;
-        }
-        hotmap.m_Values[i] = list[i].get<i32>();
-    }
-    return stream;
-}
-
-std::ostream& operator<<(std::ostream& stream, const Hotmap& hotmap) {
-    SerialValue val(hotmap.m_Values.begin(), hotmap.m_Values.end());
-    stream << val;
-    return stream;
 }
 
 }

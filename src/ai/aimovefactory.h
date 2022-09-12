@@ -45,6 +45,11 @@ public:
         m_Killers[ply][0] = move;
     }
 
+    inline bool isKillerMove(Move move, int ply) const {
+        return move == m_Killers[ply][0]
+               || move == m_Killers[ply][1];
+    }
+
     inline void storeHistory(Move move, int depth) {
         m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] += depth*depth;
     }
@@ -71,11 +76,6 @@ private:
 
     inline int getMoveHistory(Move move) {
         return m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()];
-    }
-
-    inline bool isKillerMove(Move move, int ply) const {
-        return move == m_Killers[ply][0]
-            || move == m_Killers[ply][1];
     }
 
     int scoreQuietMove(const Position& pos, Move move) const;

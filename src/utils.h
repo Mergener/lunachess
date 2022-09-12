@@ -41,19 +41,6 @@ inline bool randomChance(float chancePct) {
     return rnd <= chancePct;
 }
 
-template <typename T, typename TNew>
-std::vector<TNew> mapTo(const std::vector<T>& src, std::function<TNew(const T&)> fn) {
-    std::vector<TNew> ret;
-    ret.reserve(src.capacity());
-
-    for (const auto& val: src) {
-        ret.push_back(fn(val));
-    }
-
-    return ret;
-}
-
-
 } // lunachess::utils
 
 #endif // LUNA_UTILS_H

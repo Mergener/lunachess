@@ -4,7 +4,7 @@
 
 #include "ai/aibitboards.h"
 #include "ai/hotmap.h"
-#include "ai/basicevaluator.h"
+#include "ai/classicevaluator.h"
 #include "ai/aimovefactory.h"
 
 namespace lunachess {
@@ -35,7 +35,7 @@ void initializeEverything() {
     // Initialize AI functionalities
     ai::initializeAIBitboards();
     ai::Hotmap::initializeHotmaps();
-    ai::BasicEvaluator::initialize();
+    ai::ClassicEvaluator::initialize();
     ai::AIMoveFactory::initialize();
 }
 

@@ -5,21 +5,17 @@
 #include <future>
 #include <functional>
 #include <iostream>
-#include <memory>
 #include <queue>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "perft.h"
 #include "strutils.h"
 #include "lock.h"
-#include "position.h"
 #include "clock.h"
 
 #include "ai/neural/neuralgenetic.h"
 #include "ai/search.h"
-#include "ai/neural/neuraleval.h"
 
 namespace lunachess {
 
@@ -187,10 +183,8 @@ static void cmdSetoption(UCIContext& ctx, const CommandArgs& args) {
 
 }
 
-static void cmdRegister(UCIContext& ctx, const CommandArgs& args) {
-}
-
 static void cmdUcinewgame(UCIContext& ctx, const CommandArgs& args) {
+    // Command exists in UCI
 }
 
 static void playMovesAfterPos(UCIContext& ctx,
@@ -467,7 +461,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
-    ctx.searcher.getTT().clear();
+    //ctx.searcher.getTT().clear();
 
     schedule(ctx, [=, &ctx] {
         ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
@@ -587,12 +581,11 @@ static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
         }
     }
 
-    Clock clock;
-    auto before = clock.now();
+    auto before = Clock::now();
 
     ui64 res = perft(ctx.pos, depth, pseudoLegal);
 
-    i64 elapsed = deltaMs(clock.now(), before);
+    i64 elapsed = deltaMs(Clock::now(), before);
 
     std::cout << "Nodes: " << res << std::endl;
     std::cout << "Time: " << elapsed << "ms" << std::endl;
@@ -766,6 +759,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["position"] = Command(cmdPosition, 1, false);
     cmds["go"] = Command(cmdGo, 0, false);
     cmds["stop"] = Command(cmdStop, 0);
+    cmds["gentrain"] = Command(cmdGentrain, 0);
 
     // Luna commands:
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
@@ -775,7 +769,6 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getfen"] = Command(cmdGetfen, 0);
     cmds["movehist"] = Command(cmdMovehist, 0);
     cmds["neural"] = Command(cmdNeural, 0);
-    cmds["gentrain"] = Command(cmdGentrain, 0);
 
 #ifndef NDEBUG
     // Debug commands

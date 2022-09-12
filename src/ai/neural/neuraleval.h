@@ -1,6 +1,9 @@
 #ifndef NEURALEVAL_H
 #define NEURALEVAL_H
 
+#include <cstring>
+#include <array>
+
 #include "../evaluator.h"
 #include "../../position.h"
 
@@ -9,12 +12,13 @@
 namespace lunachess::ai::neural {
 
 struct NeuralInputs {
-    float pieces[64]; // 0 for no pieces at square, >0 for our pieces, <0 for opponent pieces
+    // Index 0 is us, index 2 is them
+    std::array<std::array<std::array<float, 64>, PT_COUNT - 1>, CL_COUNT> pieceMaps;
 
-    float castleRightsUs; // 0 for no castling rights, 1 for O-O, 2 for O-O-O, 3 for O-O and O-O-O
-    float castleRightsThem; // same as above
-
-    float epSquare;
+    float weCanCastleShort;
+    float theyCanCastleShort;
+    float weCanCastleLong;
+    float theyCanCastleLong;
 
     inline operator float*() {
         return std::launder(reinterpret_cast<float*>(this));
@@ -22,6 +26,10 @@ struct NeuralInputs {
 
     inline operator const float*() const {
         return std::launder(reinterpret_cast<const float*>(this));
+    }
+
+    inline void zeroAll() {
+        std::memset(reinterpret_cast<void*>(this), 0, sizeof(*this));
     }
 
     NeuralInputs() = default;
@@ -38,7 +46,7 @@ class NeuralEvaluator : public Evaluator {
     static inline constexpr int N_INPUTS = sizeof(NeuralInputs) / sizeof(float);
 
 public:
-    using NN = NeuralNetwork<N_INPUTS, 128, 2>;
+    using NN = NeuralNetwork<N_INPUTS, 64, 2>;
 
     inline NN& getNetwork() { return *m_Network; }
     inline const NN& getNetwork() const { return *m_Network; }
@@ -58,10 +66,12 @@ public:
      * Creates a neural evaluator and an underlying neural network.
      */
     inline NeuralEvaluator()
-            : NeuralEvaluator(std::make_shared<NN>()) {
+            : m_Network(std::make_shared<NN>()) {
     }
 
-    NeuralEvaluator(const NeuralEvaluator&) = default;
+    inline NeuralEvaluator(const NeuralEvaluator& other)
+        : m_Network(std::make_shared<NN>(*other.m_Network)) {}
+
     inline NeuralEvaluator(NeuralEvaluator&& other)
         : m_Network(std::move(other.m_Network)) {}
     NeuralEvaluator& operator=(const NeuralEvaluator&) = default;

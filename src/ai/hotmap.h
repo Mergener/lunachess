@@ -13,9 +13,6 @@ namespace lunachess::ai {
 class KingSquareHotmapGroup;
 
 class Hotmap {
-    friend std::istream& operator>>(std::istream& stream, Hotmap& hotmap);
-    friend std::ostream& operator<<(std::ostream& stream, const Hotmap& hotmap);
-
 public:
     static KingSquareHotmapGroup defaultMiddlegameMaps[PT_COUNT - 1];
     static KingSquareHotmapGroup defaultEndgameMaps[PT_COUNT - 1];
@@ -77,9 +74,6 @@ private:
         return ret;
     }
 };
-
-std::istream& operator>>(std::istream& stream, Hotmap& hotmap);
-std::ostream& operator<<(std::ostream& stream, const Hotmap& hotmap);
 
 class KingSquareHotmapGroup {
 public:

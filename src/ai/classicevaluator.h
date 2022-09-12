@@ -1,5 +1,5 @@
-#ifndef LUNA_AI_BASIC_EVALUATOR_H
-#define LUNA_AI_BASIC_EVALUATOR_H
+#ifndef LUNA_AI_CLASSIC_EVALUATOR_H
+#define LUNA_AI_CLASSIC_EVALUATOR_H
 
 #include <iostream>
 #include <array>
@@ -58,7 +58,7 @@ struct ScoreTable {
     }
 };
 
-class BasicEvaluator : public Evaluator {
+class ClassicEvaluator : public Evaluator {
     static ScoreTable defaultMgTable;
     static ScoreTable defaultEgTable;
 
@@ -113,7 +113,7 @@ public:
         m_EgScores = scores;
     }
 
-    BasicEvaluator();
+    ClassicEvaluator();
 
     static void initialize();
 
@@ -153,4 +153,4 @@ std::ostream& operator<<(std::ostream& stream, const ScoreTable& scores);
 
 }
 
-#endif // LUNA_AI_BASIC_EVALUATOR_H
+#endif // LUNA_AI_CLASSIC_EVALUATOR_H

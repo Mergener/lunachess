@@ -1,7 +1,7 @@
 #ifndef LUNACHESS_AI_QUIESCEVALUATOR_H
 #define LUNACHESS_AI_QUIESCEVALUATOR_H
 
-#include "basicevaluator.h"
+#include "classicevaluator.h"
 #include "aimovefactory.h"
 
 namespace lunachess::ai {
@@ -12,7 +12,7 @@ public:
     inline int getDrawScore() const override { return 0; }
 
 private:
-    BasicEvaluator m_Eval;
+    ClassicEvaluator m_Eval;
     AIMoveFactory m_MvFactory;
 
     int quiesce(Position& pos, int depth, int alpha, int beta) const;

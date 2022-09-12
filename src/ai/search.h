@@ -11,7 +11,7 @@
 #include "transpositiontable.h"
 #include "evaluator.h"
 #include "aimovefactory.h"
-#include "basicevaluator.h"
+#include "classicevaluator.h"
 #include "neural/neuraleval.h"
 #include "timemanager.h"
 
@@ -148,7 +148,7 @@ public:
     }
 
     inline AlphaBetaSearcher()
-        : m_Eval(new BasicEvaluator()) {
+        : m_Eval(new ClassicEvaluator()) {
     }
 
     /**

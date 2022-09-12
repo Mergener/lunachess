@@ -15,7 +15,7 @@ void TimeManager::start(const TimeControl& tc) {
             break;
 
         case TC_FISCHER:
-            m_TargetTime = std::min(tc.time - 50, tc.time / 20 + tc.increment * 3 / 2);
+            m_TargetTime = std::min(tc.time - 50, tc.time / 20 + tc.increment * 2);
             break;
 
         default:

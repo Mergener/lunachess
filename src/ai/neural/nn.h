@@ -23,6 +23,20 @@ struct NetworkLayer {
     std::array<std::array<float, INPUT_SIZE>, N> weights;
     std::array<float, N> biases;
 
+    void setWeights(float value) {
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < INPUT_SIZE; ++j) {
+                weights[i][j] = value;
+            }
+        }
+    }
+
+    void setBiases(float value) {
+        for (int i = 0; i < N; ++i) {
+            biases[i] = value;
+        }
+    }
+
     void randomize(float minValue = -1.0f, float maxValue = 1.0f) {
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < INPUT_SIZE; ++j) {
@@ -40,14 +54,16 @@ struct NetworkLayer {
                 }
 
                 if (utils::randomChance(mutationRatePct / 2)) {
-                    weights[i][j] *= utils::random(0.95f, 1.05f);
+                    float sign = utils::randomBool() ? 1 : -1;
+                    weights[i][j] *= 1.05 * sign;
                 }
             }
             if (utils::randomChance(mutationRatePct / 2)) {
                 biases[i] += utils::random(-0.1f, 0.1f);
             }
             if (utils::randomChance(mutationRatePct / 2)) {
-                biases[i] *= utils::random(0.95f, 1.05f);
+                float sign = utils::randomBool() ? 1 : -1;
+                biases[i] *= 1.05 * sign;
             }
         }
     }
@@ -81,10 +97,13 @@ struct NetworkLayer {
     }
 };
 
-template <int N_INPUTS,
-        int N_HIDDEN_NEURONS,
-        int N_HIDDEN_LAYERS>
+template <int NI,
+        int NHN,
+        int NHL>
 struct NeuralNetwork {
+    static constexpr int N_INPUTS = NI;
+    static constexpr int N_HIDDEN_NEURONS = NHN;
+    static constexpr int N_HIDDEN_LAYERS = NHL;
     static constexpr int N_IN_BETWEEN_LAYERS = N_HIDDEN_LAYERS - 1;
 
     using TFirstHidden = NetworkLayer<N_HIDDEN_NEURONS, N_INPUTS>;

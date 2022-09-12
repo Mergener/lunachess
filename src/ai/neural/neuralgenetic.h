@@ -13,15 +13,11 @@
 
 namespace lunachess::ai::neural {
 
-
 struct Agent {
     std::string id;
     int generationNumber = 0;
     std::shared_ptr<NeuralEvaluator::NN> network = nullptr;
-
 };
-
-constexpr int x = sizeof(NeuralEvaluator::NN);
 
 struct TrainingGameMoveData {
     Move move;
@@ -47,11 +43,10 @@ struct GeneticTrainingSettings {
 
     int agentsPerGeneration = 12;
     int cullingRate = 8;
-    float baseMutationRate = 16;
-    float mutationRatePerGen = -0.16;
-    float minMutationRate = 6;
+    float baseMutationRate = 25;
+    float mutationRatePerGen = -0.21;
+    float minMutationRate = 5;
     int matchesPerPairing = 1;
-    Position startPosition = Position::getInitialPosition();
     TimeControl timeControl = TimeControl(0, 0, TC_INFINITE);
     int maxDepth = 1;
 

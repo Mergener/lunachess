@@ -200,7 +200,22 @@ Agent* GeneticTraining::createRandomAgent() {
     auto agent = std::make_unique<Agent>();
     agent->id = randomId();
     agent->network = std::make_shared<NN>();
-    agent->network->randomize();
+    agent->network->randomize(-2, 2);
+
+    // Set input weights according to piece values
+    //for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
+    //    float sign = c == CL_WHITE ? 1 : -1;
+    //
+    //    for (PieceType pt = PT_PAWN; pt < PT_COUNT; ++pt) {
+    //        for (Square s = 0; s < SQ_COUNT; ++s) {
+    //            for (int i = 0; i < NN::N_HIDDEN_NEURONS; ++i) {
+    //                int index = c * SQ_COUNT * PT_COUNT + pt * SQ_COUNT + s;
+    //                agent->network->firstHidden.weights[i][index] = getPiecePointValue(pt) * sign;
+    //            }
+    //        }
+    //    }
+    //}
+
     agent->generationNumber = m_CurrGeneration.number;
 
     Agent* ret = agent.get();
@@ -347,7 +362,7 @@ GeneticTraining::GamePairings GeneticTraining::generatePairings() {
     auto& agentsToPlay = gen.agents;
 
     for (int i = 0; i < agentsToPlay.size() - 1; ++i) {
-        for (int j = i; j < agentsToPlay.size(); ++j) {
+        for (int j = i + 1; j < agentsToPlay.size(); ++j) {
             Agent* a = agentsToPlay[i];
             Agent* b = agentsToPlay[j];
 
