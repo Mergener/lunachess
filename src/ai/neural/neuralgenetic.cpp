@@ -1,12 +1,11 @@
 #include "neuralgenetic.h"
 
 #include <algorithm>
-#include <nlohmann/json.hpp>
 #include <cstdint>
 #include <cstdio>
-#include <memory>
 #include <iostream>
 #include <fstream>
+#include <future>
 
 #include "../search.h"
 #include "../quiescevaluator.h"
@@ -38,11 +37,6 @@ static std::string randomId() {
 //
 // GeneticTraining
 //
-
-static void breakpoint(std::string msg) {
-    std::cout << msg << std::endl;
-    std::cin.get();
-}
 
 static void saveGameToStream(std::ostream& stream, const TrainingGame& game) {
     stream << "[White \"Agent " << game.agents[0]->id << "\"]" << std::endl;
@@ -166,14 +160,9 @@ void GeneticTraining::run(int iterations) {
             m_ItLeft--;
         }
 
-        auto pairings = generatePairings();
-
-        playGames(pairings);
-
+        playGames();
         save();
-
         cull();
-
         reproduceAgents();
 
         std::cout << "Genetic training iteration finished.";
@@ -184,37 +173,11 @@ void GeneticTraining::run(int iterations) {
     }
 }
 
-Agent* GeneticTraining::createEmptyAgent(std::string_view id) {
-    auto agent = std::make_unique<Agent>();
-    agent->id = std::string(id);
-
-    Agent* ret = agent.get();
-
-    m_CurrGeneration.agentFitness[agent->id] = 0;
-    m_Agents[agent->id] = std::move(agent);
-
-    return ret;
-}
-
 Agent* GeneticTraining::createRandomAgent() {
     auto agent = std::make_unique<Agent>();
     agent->id = randomId();
     agent->network = std::make_shared<NN>();
     agent->network->randomize(-2, 2);
-
-    // Set input weights according to piece values
-    //for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
-    //    float sign = c == CL_WHITE ? 1 : -1;
-    //
-    //    for (PieceType pt = PT_PAWN; pt < PT_COUNT; ++pt) {
-    //        for (Square s = 0; s < SQ_COUNT; ++s) {
-    //            for (int i = 0; i < NN::N_HIDDEN_NEURONS; ++i) {
-    //                int index = c * SQ_COUNT * PT_COUNT + pt * SQ_COUNT + s;
-    //                agent->network->firstHidden.weights[i][index] = getPiecePointValue(pt) * sign;
-    //            }
-    //        }
-    //    }
-    //}
 
     agent->generationNumber = m_CurrGeneration.number;
 
@@ -300,25 +263,19 @@ static std::unique_ptr<TrainingGame> playAgentGame(Agent* white, Agent* black, c
 
     std::unique_ptr<Evaluator> evaluators[2];
     if (white->network != nullptr) {
-        evaluators[CL_WHITE] = std::make_unique<NeuralEvaluator>(white->network);
+        evaluators[CL_WHITE] = std::make_unique<QuiesceEvaluator>(std::make_shared<NeuralEvaluator>(white->network));
     }
     else {
         evaluators[CL_WHITE] = std::make_unique<QuiesceEvaluator>();
     }
     if (black->network != nullptr) {
-        evaluators[CL_BLACK] = std::make_unique<NeuralEvaluator>(black->network);
+        evaluators[CL_BLACK] = std::make_unique<QuiesceEvaluator>(std::make_shared<NeuralEvaluator>(black->network));
     }
     else {
         evaluators[CL_BLACK] = std::make_unique<QuiesceEvaluator>();
     }
 
     std::cout << "Game between " << white->id << " and " << black->id << " is STARTING." << std::endl;
-
-    //// Create searchers
-    //AlphaBetaSearcher searchers[] = {
-    //    AlphaBetaSearcher(std::make_shared<NeuralEvaluator>(white->network)),
-    //    AlphaBetaSearcher(std::make_shared<NeuralEvaluator>(black->network)),
-    //};
 
     // Configure time controls
     SearchSettings settings;
@@ -332,12 +289,6 @@ static std::unique_ptr<TrainingGame> playAgentGame(Agent* white, Agent* black, c
 
     // Play the game until it ends, either by clock or board
     while ((gameRes = pos.getResult(CL_WHITE, !flagged)) == RES_UNFINISHED) {
-        //auto results = searchers[curr].search(pos, settings);
-
-        //TrainingGameMoveData moveData;
-        //moveData.move = results.bestMove;
-        //moveData.score = results.bestScore;
-
         auto moveData = agentPickMove(*evaluators[curr], pos);
         pos.makeMove(moveData.move);
         ret->moves.push_back(moveData);
@@ -355,61 +306,98 @@ static std::unique_ptr<TrainingGame> playAgentGame(Agent* white, Agent* black, c
     return ret;
 }
 
-GeneticTraining::GamePairings GeneticTraining::generatePairings() {
-    GamePairings pairings;
+void GeneticTraining::playGames() {
+    // Zero out all fitness values
+    for (auto& pair: m_CurrGeneration.agentFitness) {
+        pair.second = 0;
+    }
 
-    const Generation& gen = getCurrentGeneration();
-    auto& agentsToPlay = gen.agents;
+    std::vector<Agent*> players(m_CurrGeneration.agents.begin(), m_CurrGeneration.agents.end());
 
-    for (int i = 0; i < agentsToPlay.size() - 1; ++i) {
-        for (int j = i + 1; j < agentsToPlay.size(); ++j) {
-            Agent* a = agentsToPlay[i];
-            Agent* b = agentsToPlay[j];
+    int round = 1;
+    while (players.size() > 1) {
+        std::cout << "Starting round " << round << " of tournament..." << std::endl;
+        std::vector<int> losersIndexes;
+        std::vector<std::future<std::unique_ptr<TrainingGame>>> gameTasks;
 
-            for (int k = 0; k < m_Settings.matchesPerPairing; ++k) {
-                pairings.emplace_back(a, b);
-                pairings.emplace_back(b, a);
+        for (int i = 0; i < players.size(); i += 2) {
+            Agent* agents[] = { players[i], players[i + 1] };
+            for (int match = 0; match < m_Settings.maxMatchesPerPairing; ++match) {
+                for (int j = 0; j < 2; ++j) {
+                    int whiteIdx = j % 2;
+                    int blackIdx = (j + 1) % 2;
+                    Agent* white = agents[whiteIdx];
+                    Agent* black = agents[blackIdx];
+                    gameTasks.emplace_back(std::async(std::launch::async, [this, white, black](){
+                        return playAgentGame(white, black, m_Settings.timeControl, m_Settings.maxDepth);
+                    }));
+                }
             }
         }
+
+        int futureIdx = 0;
+        for (int i = 0; i < players.size(); i += 2) {
+            // For each agent
+            Agent* agents[] = { players[i], players[i + 1] };
+            int wins[] = { 0, 0 };
+            for (int match = 0; match < m_Settings.maxMatchesPerPairing; ++match) {
+                // Play the number of matches specified in the settings
+                for (int j = 0; j < 2; ++j) {
+                    // Each match consists of two games, in which
+                    // the agents' colors are swapped between games.
+                    int whiteIdx = j % 2;
+                    int blackIdx = (j + 1) % 2;
+
+                    gameTasks[futureIdx].wait();
+                    auto game = gameTasks[futureIdx++].get();
+
+                    auto result = game->resultForWhite;
+                    if (isWin(result)) {
+                        wins[whiteIdx]++;
+                        m_CurrGeneration.agentFitness[agents[whiteIdx]->id]++;
+                    }
+                    else if (isLoss(result)) {
+                        wins[blackIdx]++;
+                        m_CurrGeneration.agentFitness[agents[blackIdx]->id]++;
+                    }
+
+                    m_Games[game->id] = std::move(game);
+                }
+            }
+
+            if (wins[0] > wins[1]) {
+                losersIndexes.push_back(i + 1);
+            }
+            else if (wins[1] > wins[0]) {
+                losersIndexes.push_back(i);
+            }
+            else if (utils::randomBool()) {
+                // Tiebreaks are decided with luck.
+                losersIndexes.push_back(i + 1);
+            }
+            else {
+                losersIndexes.push_back(i);
+            }
+        }
+
+        // Remove all losers
+        std::sort(losersIndexes.begin(), losersIndexes.end(), [](int a, int b) {
+            return a > b;
+        });
+
+        for (int idx: losersIndexes) {
+            auto it = players.begin() + idx;
+            // Add some fitness based on how far it went on rounds
+            m_CurrGeneration.agentFitness[(*it)->id] += (round - 1) * m_Settings.maxMatchesPerPairing;
+
+            players.erase(it);
+        }
+        round++;
     }
 
-    return pairings;
-}
-
-constexpr int WIN_FITNESS = 10000;
-
-void GeneticTraining::playGames(const GamePairings& pairings) {
-
-    for (const auto& pair: pairings) {
-        Agent* white = pair.first;
-        Agent* black = pair.second;
-        auto game = playAgentGame(white, black, m_Settings.timeControl, m_Settings.maxDepth);
-
-        // Update fitness scores
-        if (isDraw(game->resultForWhite)) {
-            // Draws don't affect fitness
-            m_Games[game->id] = std::move(game);
-            continue;
-        }
-
-        // Game ended with decisive result
-        Agent* winner; Agent* loser;
-        if (isWin(game->resultForWhite)) {
-            winner = white;
-            loser = black;
-        }
-        else {
-            winner = black;
-            loser = white;
-        }
-        // Do not mistake moves for plies!
-        int moveCount = game->moves.size() / 2;
-
-        m_CurrGeneration.agentFitness[loser->id] += moveCount - WIN_FITNESS;
-        m_CurrGeneration.agentFitness[winner->id] += WIN_FITNESS - moveCount;
-
-        m_Games[game->id] = std::move(game);
-    }
+    Agent* winner = players[0];
+    m_CurrGeneration.agentFitness[winner->id] += (round - 1) * m_Settings.maxMatchesPerPairing;
+    std::cout << "Finished all current tournament rounds. Tournament winner: " << winner->id << std::endl;
 }
 
 void GeneticTraining::cull() {

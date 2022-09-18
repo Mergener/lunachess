@@ -1,8 +1,6 @@
 #include <iostream>
 #include <thread>
 
-#include <ctime>
-
 #include "lunachess.h"
 
 int main() {

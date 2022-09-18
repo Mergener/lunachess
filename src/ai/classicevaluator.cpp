@@ -450,17 +450,6 @@ int ClassicEvaluator::evaluatePlacement(const Position& pos, Color c, int gpf, c
     return total;
 }
 
-int ClassicEvaluator::evaluateNearKingAttacks(const Position& pos, Color c, int gpf) const {
-    int score = -adjustScores(m_MgScores.nearKingSquareAttacksScore, m_EgScores.nearKingSquareAttacksScore, gpf);
-
-    Color them = getOppositeColor(c);
-
-    Bitboard nearKingSquares = bbs::getKingAttacks(pos.getKingSquare(c));
-    Bitboard theirAttacks = pos.getAttacks(them, PT_NONE);
-
-    return Bitboard(nearKingSquares & theirAttacks).count() * score;
-}
-
 int ClassicEvaluator::getDrawScore() const {
     return 0;
 }
@@ -472,6 +461,19 @@ int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
     int ret = (totalMaterial * 100) / STARTING_MATERIAL_COUNT;
 
     return ret;
+}
+
+int ClassicEvaluator::evaluateShallow(const Position &pos) const {
+    int gpf = getGamePhaseFactor(pos);
+
+    Color us = pos.getColorToMove();
+    Color them = getOppositeColor(us);
+
+    PasserData ourPasserData = getPasserData(pos, us, gpf);
+    PasserData theirPasserData = getPasserData(pos, them, gpf);
+
+    return evaluateMaterial(pos, us, gpf) - evaluateMaterial(pos, them, gpf)
+        + evaluatePlacement(pos, us, gpf, ourPasserData) - evaluatePlacement(pos, them, gpf, theirPasserData);
 }
 
 int ClassicEvaluator::evaluate(const Position& pos) const {
@@ -503,9 +505,8 @@ int ClassicEvaluator::evaluate(const Position& pos) const {
     int total = placement + bishopPair + mobility
             + outposts + xrays
             + doublePawns + pawnChains +
-            + tropism + pawnShield + kingExposure +
+            + tropism + pawnShield + kingExposure
             + material;
-
 
     return total;
 }

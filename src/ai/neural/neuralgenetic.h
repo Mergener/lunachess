@@ -41,12 +41,12 @@ struct Generation {
 struct GeneticTrainingSettings {
     std::filesystem::path baseSavePath;
 
-    int agentsPerGeneration = 12;
-    int cullingRate = 8;
+    int agentsPerGeneration = 32;
+    int maxMatchesPerPairing = 2;
+    int cullingRate = 24;
     float baseMutationRate = 25;
     float mutationRatePerGen = -0.21;
     float minMutationRate = 5;
-    int matchesPerPairing = 1;
     TimeControl timeControl = TimeControl(0, 0, TC_INFINITE);
     int maxDepth = 1;
 
@@ -80,9 +80,7 @@ private:
     float m_CurrMutRate = 0;
 
     using GamePairings = std::vector<std::pair<Agent*, Agent*>>;
-    GamePairings generatePairings();
 
-    Agent* createEmptyAgent(std::string_view id);
     Agent* createRandomAgent();
 
     void removeAgent(const std::string& agentId);
@@ -90,7 +88,7 @@ private:
         removeAgent(a.id);
     }
 
-    void playGames(const GamePairings& pairings);
+    void playGames();
     void cull();
     void reproduceAgents();
     void save() const;

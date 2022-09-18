@@ -9,6 +9,9 @@ class Evaluator {
 public:
     virtual int getDrawScore() const = 0;
     virtual int evaluate(const Position& pos) const = 0;
+    inline virtual int evaluateShallow(const Position& pos) const {
+        return evaluate(pos);
+    }
 
     virtual ~Evaluator() = default;
 };

@@ -13,6 +13,7 @@ namespace lunachess::ai::neural {
 
 struct NeuralInputs {
     // Index 0 is us, index 2 is them
+    // We subtract PT_COUNT by 1 to discard PT_NONE
     std::array<std::array<std::array<float, 64>, PT_COUNT - 1>, CL_COUNT> pieceMaps;
 
     float weCanCastleShort;

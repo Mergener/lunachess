@@ -10,7 +10,7 @@ int QuiesceEvaluator::evaluate(const Position &pos) const {
 }
 
 int QuiesceEvaluator::quiesce(Position &pos, int depth, int alpha, int beta) const {
-    int standPat = m_Eval.evaluate(pos);
+    int standPat = m_Eval->evaluate(pos);
 
     if (depth <= 0) {
         return standPat;

@@ -231,8 +231,8 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     // Finally, do the search
     int bestMoveIdx = 0;
-
     for (int i = 0; i < searchMoves->size(); ++i) {
+        bool thisMoveEvaluatedInDepth = false;
         Move move = (*searchMoves)[i];
 
         int d = depth;
@@ -257,29 +257,30 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         // #----------------------------------------
         // # LATE MOVE REDUCTIONS
         // #----------------------------------------
-        bool reduced = false;
-        constexpr int LMR_START_IDX = 4;
-        if (d >= 4 &&
-            !isCheck &&
-            move.is<MTM_QUIET>() &&
-            !m_MvFactory.isKillerMove(move, ply) &&
-            i >= LMR_START_IDX &&
-            (foundInTT && ttEntry.type == TranspositionTable::UPPERBOUND)) {
-            d--;
-            reduced = true;
-        }
+        //bool reduced = false;
+        //constexpr int LMR_START_IDX = 4;
+        //if (d >= 4 &&
+        //    !isCheck &&
+        //    move.is<MTM_QUIET>() &&
+        //    !m_MvFactory.isKillerMove(move, ply) &&
+        //    i >= LMR_START_IDX &&
+        //    (foundInTT && ttEntry.type == TranspositionTable::UPPERBOUND)) {
+        //    d--;
+        //    reduced = true;
+        //}
 
         // #----------------------------------------
 
         m_Pos.makeMove(move);
 
         int score = -alphaBeta(d, ply + 1, -beta, -alpha);
-        if (score > alpha && reduced) {
-            // Research
-            score = alphaBeta(depth, ply + 1, -beta, -alpha);
-        }
+        //if (score > alpha && reduced) {
+        //    // Research
+        //    score = alphaBeta(depth, ply + 1, -beta, -alpha);
+        //}
 
         m_Pos.undoMove();
+
 
         if (score >= beta) {
             // Beta cutoff
@@ -445,7 +446,7 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                         m_Pos.undoMove();
                     }
 
-                    // When using multipvs, we need to clear the entry of the initial
+                    // When using multi PVs, we need to clear the entry of the initial
                     // search position.
                     if (settings.multiPvCount > 1) {
                         m_TT.remove(m_Pos);

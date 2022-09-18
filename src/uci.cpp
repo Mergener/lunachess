@@ -28,7 +28,6 @@ enum UCIState {
 };
 
 struct UCIContext {
-
     // Chess state
     Position pos = Position::getInitialPosition();
     std::vector<Move> moveHistory;
@@ -45,13 +44,11 @@ struct UCIContext {
 
     // Search settings
     ai::AlphaBetaSearcher searcher;
-
-    ai::neural::NeuralEvaluator neural;
 };
 
-static void schedule(UCIContext& ctx, std::function<void()> work) {
+static void schedule(UCIContext& ctx, std::function<void()> job) {
     ctx.workQueueLock.lock();
-    ctx.workQueue.push(work);
+    ctx.workQueue.push(std::move(job));
     ctx.workQueueLock.unlock();
 }
 
@@ -85,13 +82,13 @@ static void displayOption(UCIContext& ctx, std::string_view optName,
                           std::string_view minVal = "", std::string_view maxVal = "") {
     std::cout << "option name " << optName << " type " << optType;
 
-    if (defaultVal != "") {
+    if (!defaultVal.empty()) {
         std::cout << " default " << defaultVal;
     }
-    if (minVal != "") {
+    if (!minVal.empty()) {
         std::cout << " min " << minVal;
     }
-    if (maxVal != "") {
+    if (!maxVal.empty()) {
         std::cout << " max " << maxVal;
     }
 
@@ -168,7 +165,7 @@ static void cmdSetoption(UCIContext& ctx, const CommandArgs& args) {
             // Option ended
             i--;
             // Parameterless option
-            processOption(ctx, optName, nullptr);
+            processOption(ctx, optName, "");
             continue;
         }
 
@@ -184,7 +181,6 @@ static void cmdSetoption(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static void cmdUcinewgame(UCIContext& ctx, const CommandArgs& args) {
-    // Command exists in UCI
 }
 
 static void playMovesAfterPos(UCIContext& ctx,
@@ -259,8 +255,8 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
         return;
     }
 
-    // FEN string succesfully interpreted, set the position accordingly
-    ctx.pos = std::move(*posOpt);
+    // FEN string successfully interpreted, set the position accordingly
+    ctx.pos = *posOpt;
 
     if (movesArgsIdx == -1) {
         return;
@@ -271,8 +267,8 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static bool readTime(std::string_view sv, int& dest) {
-    bool succ = strutils::tryParseInteger(sv, dest);
-    if (!succ) {
+    bool success = strutils::tryParseInteger(sv, dest);
+    if (!success) {
         // Invalid depth value
         std::cerr << "Unexpected time value '" << sv << "'." << std::endl;
         return false;
@@ -280,148 +276,7 @@ static bool readTime(std::string_view sv, int& dest) {
     return true;
 }
 
-static void goSimulate(UCIContext& ctx, ai::SearchSettings& searchSettings) {
-    constexpr TimeControlMode FALLBACK_TC_MODE = TC_FISCHER;
-    constexpr ui64 FALLBACK_TC_TIME = 180000;
-    constexpr ui64 FALLBACK_TC_INC = 2000;
-
-    TimeControl wtc;
-    TimeControl btc;
-
-    if (ctx.pos.getColorToMove() == CL_WHITE) {
-        wtc = searchSettings.ourTimeControl;
-        btc = searchSettings.theirTimeControl;
-    }
-    else {
-        wtc = searchSettings.theirTimeControl;
-        btc = searchSettings.ourTimeControl;
-    }
-
-    if (wtc.mode == TC_INFINITE &&
-        searchSettings.maxDepth >= ai::MAX_SEARCH_DEPTH) {
-        std::cout << "White time control is set to 'infinite' mode without depth limit.";
-        std::cout << " Their time control is being altered to 3+2 blitz.";
-        std::cout << std::endl;
-        wtc.mode = FALLBACK_TC_MODE;
-        wtc.time = FALLBACK_TC_TIME;
-        wtc.increment = FALLBACK_TC_INC;
-    }
-    if (btc.mode == TC_INFINITE &&
-        searchSettings.maxDepth >= ai::MAX_SEARCH_DEPTH) {
-        std::cout << "Black time control is set to 'infinite' mode without depth limit.";
-        std::cout << " Their time control is being altered to 3+2 blitz.";
-        std::cout << std::endl;
-        btc.mode = FALLBACK_TC_MODE;
-        btc.time = FALLBACK_TC_TIME;
-        btc.increment = FALLBACK_TC_INC;
-    }
-
-    if (ctx.pos.getColorToMove() == CL_WHITE) {
-        searchSettings.ourTimeControl = wtc;
-        searchSettings.theirTimeControl = btc;
-    }
-    else {
-        searchSettings.ourTimeControl = btc;
-        searchSettings.theirTimeControl = wtc;
-    }
-
-    schedule(ctx, [=, &ctx] {
-        std::vector<Move> gameHistory;
-        ai::SearchSettings settings = searchSettings;
-        ChessResult res = RES_UNFINISHED;
-
-        Position pos = ctx.pos;
-
-        try {
-            while (res == RES_UNFINISHED) {
-                ai::SearchResults sres = ctx.searcher.search(pos, settings);
-                if (ctx.state == STOPPING) {
-                    break;
-                }
-
-                pos.makeMove(sres.bestMove);
-                gameHistory.push_back(sres.bestMove);
-                if (settings.ourTimeControl.mode == TC_FISCHER) {
-                    settings.ourTimeControl.time -= sres.getSearchTime();
-                    settings.ourTimeControl.time += settings.ourTimeControl.increment;
-                }
-
-                std::cout << "move " << sres.bestMove
-                          << " score cp " << sres.bestScore / 10
-                          << " depth " << sres.searchedDepth
-                          << " time " << sres.getSearchTime()
-                          << std::endl;
-
-                bool hasTime = settings.ourTimeControl.mode == TC_INFINITE
-                        || settings.ourTimeControl.time > 0;
-
-                res = pos.getResult(CL_WHITE, hasTime);
-
-                std::swap(settings.ourTimeControl, settings.theirTimeControl);
-            }
-        }
-        catch (const std::exception& ex) {
-            ctx.state = WAITING;
-            std::cerr << "Game aborted, error";
-            throw ex;
-        }
-
-        switch (res) {
-            case RES_UNFINISHED:
-                std::cout << "Game aborted." << std::endl;
-                break;
-
-            case RES_DRAW_STALEMATE:
-                std::cout << "Draw by stalemate." << std::endl;
-                break;
-
-            case RES_DRAW_REPETITION:
-                std::cout << "Draw by repetition." << std::endl;
-                break;
-
-            case RES_DRAW_TIME_NOMAT:
-                std::cout << "Draw by insufficient material and timeout." << std::endl;
-                break;
-
-            case RES_DRAW_NOMAT:
-                std::cout << "Draw by insufficient material." << std::endl;
-                break;
-
-            case RES_DRAW_RULE50:
-                std::cout << "Draw by 50 move rule." << std::endl;
-                break;
-
-            case RES_WIN_CHECKMATE:
-                std::cout << "White wins by checkmate." << std::endl;
-                break;
-
-            case RES_WIN_TIME:
-                std::cout << "White wins on time." << std::endl;
-                break;
-
-            case RES_WIN_RESIGN:
-                std::cout << "White wins by resignation." << std::endl;
-                break;
-
-            case RES_LOSS_CHECKMATE:
-                std::cout << "Black wins by checkmate." << std::endl;
-                break;
-
-            case RES_LOSS_TIME:
-                std::cout << "Black wins on time." << std::endl;
-                break;
-
-            case RES_LOSS_RESIGN:
-                std::cout << "Black wins by resignation." << std::endl;
-                break;
-        }
-
-        ctx.state = WAITING;
-    });
-}
-
 static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& searchSettings) {
-
     TimePoint startTime = Clock::now();
     searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
         ai::SearchedVariation& var = res.searchedVariations[pv];
@@ -461,8 +316,6 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
-    //ctx.searcher.getTT().clear();
-
     schedule(ctx, [=, &ctx] {
         ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
         std::cout << "bestmove " << res.bestMove << std::endl;
@@ -478,11 +331,6 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
     }
     // Create position clone
     Position pos = ctx.pos;
-
-    enum {
-        SEARCH,
-        SIMULATE
-    } goMode = SEARCH;
 
     ctx.state = WORKING;
 
@@ -535,9 +383,6 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
         } else if (arg == "infinite") {
             timeControl[pos.getColorToMove()].mode = TC_INFINITE;
         }
-        else if (arg == "simulate") {
-            goMode = SIMULATE;
-        }
     }
 
     // Check if searchmoves option was used
@@ -554,15 +399,7 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
     searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
     searchSettings.multiPvCount = ctx.multiPvCount;
 
-    switch (goMode) {
-        case SEARCH:
-            goSearch(ctx, pos, searchSettings);
-            break;
-
-        case SIMULATE:
-            goSimulate(ctx, searchSettings);
-            break;
-    }
+    goSearch(ctx, pos, searchSettings);
 }
 
 static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
@@ -614,7 +451,7 @@ static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
 static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
     int n;
 
-    if (args.size() >= 1) {
+    if (!args.empty()) {
         n = strutils::tryParseInteger(args[0], n) ? n : 1;
     }
     else {
@@ -741,9 +578,6 @@ static void cmdBetween(UCIContext& ctx, const CommandArgs& args) {
 }
 #endif
 
-static void cmdNeural(UCIContext& ctx, const CommandArgs& args) {
-    std::cout << ctx.neural.evaluate(ctx.pos) << std::endl;
-}
 
 static std::unordered_map<std::string, Command> generateCommands() {
     std::unordered_map<std::string, Command> cmds;
@@ -754,7 +588,6 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["debug"] = Command(cmdDebug, 1);
     cmds["isready"] = Command(cmdIsready, 0);
     cmds["setoption"] = Command(cmdSetoption, 1, false);
-    cmds["register"] = Command(cmdRegister, 1, false);
     cmds["ucinewgame"] = Command(cmdUcinewgame, 0);
     cmds["position"] = Command(cmdPosition, 1, false);
     cmds["go"] = Command(cmdGo, 0, false);
@@ -768,7 +601,6 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["getfen"] = Command(cmdGetfen, 0);
     cmds["movehist"] = Command(cmdMovehist, 0);
-    cmds["neural"] = Command(cmdNeural, 0);
 
 #ifndef NDEBUG
     // Debug commands
@@ -795,7 +627,7 @@ static void handleInput(UCIContext& ctx, std::unordered_map<std::string, Command
     strutils::reduceWhitespace(in);
     strutils::split(in, args, " ");
 
-    if (args.size() > 0) {
+    if (!args.empty()) {
         std::string cmd = std::string(*args.begin());
         // First member of the list is the command itself, remove it.
         args.erase(args.begin());

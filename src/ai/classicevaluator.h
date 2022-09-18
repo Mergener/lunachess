@@ -41,7 +41,7 @@ struct ScoreTable {
     int passerPercentBonus = 0;
     int outsidePasserPercentBonus = 0;
 
-    inline ScoreTable() {
+    inline ScoreTable() noexcept {
         std::memset(reinterpret_cast<void*>(this), 0, sizeof(*this));
     }
 
@@ -65,6 +65,7 @@ class ClassicEvaluator : public Evaluator {
 public:
     virtual int getDrawScore() const override;
     virtual int evaluate(const Position& pos) const override;
+    virtual int evaluateShallow(const Position& pos) const override;
 
     int getGamePhaseFactor(const Position& pos) const;
 
