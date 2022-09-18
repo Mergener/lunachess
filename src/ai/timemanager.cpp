@@ -29,6 +29,11 @@ void TimeManager::onNewDepth(const SearchResults& res) {
         return;
     }
 
+    if (res.searchedDepth < 2) {
+        // Always search to depth 2, at least.
+        return;
+    }
+
     // We have a target time that we want to reach.
     // In 'movetime' modes, we want to use it as much as possible,
     // since for every move we will have the same time to
