@@ -6,6 +6,8 @@
 #include <array>
 #include <initializer_list>
 
+#include <nlohmann/json.hpp>
+
 #include "../types.h"
 
 namespace lunachess::ai {
@@ -14,6 +16,8 @@ class KingSquareHotmapGroup;
 
 class Hotmap {
 public:
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Hotmap, m_Values);
+
     static KingSquareHotmapGroup defaultMiddlegameMaps[PT_COUNT - 1];
     static KingSquareHotmapGroup defaultEndgameMaps[PT_COUNT - 1];
     static Hotmap defaultKingMgHotmap;
@@ -77,6 +81,8 @@ private:
 
 class KingSquareHotmapGroup {
 public:
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(KingSquareHotmapGroup, m_Hotmaps);
+
     inline Hotmap& getHotmap(Square kingSquare) {
         BoardFile file = static_cast<int>(getFile(kingSquare));
         if (file >= FL_E) {
