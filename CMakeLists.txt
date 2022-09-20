@@ -40,7 +40,7 @@ add_executable(luna
         src/ai/aimovefactory.cpp
         src/ai/aibitboards.cpp
         src/ai/quiescevaluator.cpp
-        src/uci.cpp src/ai/neural/nn.cpp src/ai/neural/nn.h src/utils.cpp src/ai/neural/neuralgenetic.cpp src/ai/neural/neuralgenetic.h)
+        src/uci.cpp src/ai/neural/nn.cpp src/ai/neural/nn.h src/utils.cpp src/ai/neural/neuralgenetic.cpp src/ai/neural/neuralgenetic.h src/ai/texel.cpp src/ai/texel.h)
 
 set_target_properties(luna PROPERTIES OUTPUT_NAME ${LUNA_EXEC_NAME})
 target_compile_definitions(luna PUBLIC LUNA_VERSION_MAJOR=${LUNA_VERSION_MAJOR})
