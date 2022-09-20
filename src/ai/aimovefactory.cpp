@@ -220,7 +220,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
         if (!aIsKiller && bIsKiller) {
             return false;
         }
-//
+
         // History heuristic
         int aHist = getMoveHistory(a);
         int bHist = getMoveHistory(b);

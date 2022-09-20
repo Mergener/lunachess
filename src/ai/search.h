@@ -138,8 +138,8 @@ public:
      *
      * @param pos The position to search.
      * @param ply The current search ply.
-     * @param alpha The alpha (lowerbound) value. The returned score is always greater than or equal to alpha.
-     * @param beta The beta (upperbound) value. The returned socre is always less than or equal to beta.
+     * @param alpha The alpha (lower bound) value. The returned score is always greater than or equal to alpha.
+     * @param beta The beta (upperbound) value. The returned score is always less than or equal to beta.
      * @return The score of the position after the quiescence search.
      */
     inline int quiesce(const Position& pos, int ply = 0, int alpha = -HIGH_BETA, int beta = HIGH_BETA) {

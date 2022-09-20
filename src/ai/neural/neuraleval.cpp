@@ -12,7 +12,7 @@ namespace lunachess::ai::neural {
 static std::mt19937_64 s_Random (std::random_device{}());
 
 int NeuralEvaluator::evaluate(const NeuralInputs& inputs) const {
-    int neuralOut = static_cast<int>(m_Network->evaluate(inputs) / 10.0f);
+    int neuralOut = static_cast<int>(m_Network->evaluate(inputs));
     return neuralOut;
 }
 

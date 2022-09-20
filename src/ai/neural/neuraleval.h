@@ -47,7 +47,7 @@ class NeuralEvaluator : public Evaluator {
     static inline constexpr int N_INPUTS = sizeof(NeuralInputs) / sizeof(float);
 
 public:
-    using NN = NeuralNetwork<N_INPUTS, 64, 2>;
+    using NN = NeuralNetwork<N_INPUTS, 32, 1>;
 
     inline NN& getNetwork() { return *m_Network; }
     inline const NN& getNetwork() const { return *m_Network; }

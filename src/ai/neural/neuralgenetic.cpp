@@ -177,7 +177,7 @@ Agent* GeneticTraining::createRandomAgent() {
     auto agent = std::make_unique<Agent>();
     agent->id = randomId();
     agent->network = std::make_shared<NN>();
-    agent->network->randomize(-2, 2);
+    agent->network->randomize(-1, 1);
 
     agent->generationNumber = m_CurrGeneration.number;
 

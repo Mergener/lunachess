@@ -50,16 +50,16 @@ struct NetworkLayer {
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < INPUT_SIZE; ++j) {
                 if (utils::randomChance(mutationRatePct / 2)) {
-                    weights[i][j] += utils::random(-0.1f, 0.1f);
+                    weights[i][j] += utils::random(-0.2f, 0.2f);
                 }
 
                 if (utils::randomChance(mutationRatePct / 2)) {
                     float sign = utils::randomBool() ? 1 : -1;
-                    weights[i][j] *= 1.05 * sign;
+                    weights[i][j] *= utils::random(1.05f, 1.2f) * sign;
                 }
             }
             if (utils::randomChance(mutationRatePct / 2)) {
-                biases[i] += utils::random(-0.1f, 0.1f);
+                biases[i] += utils::random(-1.0f, 1.0f);
             }
             if (utils::randomChance(mutationRatePct / 2)) {
                 float sign = utils::randomBool() ? 1 : -1;

@@ -31,7 +31,7 @@ void ClassicEvaluator::generateNewMgTable() {
     defaultMgTable.kingNearSemiOpenFileScore = -60;
     defaultMgTable.nearKingSquareAttacksScore = -25;
 
-    defaultMgTable.pawnShieldScore = 120;
+    defaultMgTable.pawnShieldScore = 50;
 
     defaultMgTable.tropismScore[PT_PAWN] = 300;
     defaultMgTable.tropismScore[PT_KNIGHT] = 360;
@@ -51,13 +51,13 @@ void ClassicEvaluator::generateNewMgTable() {
 
     defaultMgTable.goodComplexScore = 50;
 
-    defaultMgTable.doublePawnScore = -100;
+    defaultMgTable.doublePawnScore = -50;
 
-    defaultMgTable.outpostScore = 160;
+    defaultMgTable.outpostScore = 188;
 
-    defaultMgTable.bishopPairScore = 120;
+    defaultMgTable.bishopPairScore = 90;
 
-    defaultMgTable.pawnChainScore = 60;
+    defaultMgTable.pawnChainScore = 40;
 
     defaultMgTable.passerPercentBonus = 40;
     defaultMgTable.outsidePasserPercentBonus = 60;
@@ -87,7 +87,7 @@ void ClassicEvaluator::generateNewEgTable() {
 
     defaultEgTable.mobilityScore = 4;
 
-    defaultEgTable.doublePawnScore = -250;
+    defaultEgTable.doublePawnScore = -120;
 
     defaultEgTable.outpostScore = 300;
 
@@ -106,7 +106,7 @@ void ClassicEvaluator::generateNewEgTable() {
     defaultEgTable.kingNearSemiOpenFileScore = 0;
     defaultEgTable.nearKingSquareAttacksScore = -30;
 
-    defaultEgTable.pawnChainScore = 180;
+    defaultEgTable.pawnChainScore = 120;
 
     defaultEgTable.passerPercentBonus = 50;
     defaultEgTable.outsidePasserPercentBonus = 80;
@@ -495,17 +495,17 @@ int ClassicEvaluator::evaluate(const Position& pos) const {
     int bishopPair = evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
     int mobility = evaluateMobility(pos, us, gpf) - evaluateMobility(pos, them, gpf);
     int outposts = evaluateOutposts(pos, us, gpf) - evaluateOutposts(pos, them, gpf);
-    int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
+    //int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
     
     // King safety
     int tropism = evaluateTropism(pos, us, gpf) - evaluateTropism(pos, them, gpf);
     int pawnShield = evaluatePawnShield(pos, us, gpf) - evaluatePawnShield(pos, them, gpf);
-    int kingExposure = evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
+    //int kingExposure = evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
 
-    int total = placement + bishopPair + mobility
-            + outposts + xrays
+    int total = placement * 2 + bishopPair + mobility
+            + outposts
             + doublePawns + pawnChains +
-            + tropism + pawnShield + kingExposure
+            + tropism  + pawnShield
             + material;
 
     return total;

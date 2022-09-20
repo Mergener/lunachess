@@ -290,6 +290,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
             if (move.is<MTM_QUIET>()) {
                 m_MvFactory.storeHistory(move, d);
+                m_MvFactory.storeKillerMove(move, ply);
             }
             break;
         }
@@ -308,9 +309,6 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     }
     else if (alpha >= beta) {
         // Fail high
-        if (bestMove.is<MTM_QUIET>()) {
-            m_MvFactory.storeKillerMove(bestMove, ply);
-        }
         ttEntry.type = TranspositionTable::LOWERBOUND;
     }
     else {

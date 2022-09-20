@@ -592,7 +592,6 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["position"] = Command(cmdPosition, 1, false);
     cmds["go"] = Command(cmdGo, 0, false);
     cmds["stop"] = Command(cmdStop, 0);
-    cmds["gentrain"] = Command(cmdGentrain, 0);
 
     // Luna commands:
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
@@ -601,6 +600,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["getfen"] = Command(cmdGetfen, 0);
     cmds["movehist"] = Command(cmdMovehist, 0);
+    cmds["gentrain"] = Command(cmdGentrain, 0);
 
 #ifndef NDEBUG
     // Debug commands
