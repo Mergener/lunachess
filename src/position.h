@@ -259,37 +259,27 @@ public:
 private:
     struct Status {
         Move lastMove = MOVE_INVALID;
-        ui64 zobrist = 5454; // Any number
+        ui64 zobrist = 5454;
         int fiftyMoveCounter = 0;
-
-        /** En-passant capture square */
-        Square epSquare = SQ_INVALID;
-
         CastlingRightsMask castleRights = CR_NONE;
-
         Bitboard attacks[PT_COUNT][CL_COUNT];
         int nCheckers = 0;
+        Square epSquare = SQ_INVALID;
     };
     Status m_Status;
 
-    /** Previous statuses stack. */
     std::vector<Status> m_PrevStatuses;
-
-    /** Mailbox representation of the board. */
     std::array<Piece, 64> m_Pieces;
-
-    Color m_ColorToMove = CL_WHITE;
-
+    int m_PlyCount = 0;
     Bitboard m_BBs[PT_COUNT][CL_COUNT];
     Bitboard m_Composite = 0;
+
+    Color m_ColorToMove = CL_WHITE;
 
     /** Bitboard of all pinned pieces */
     Bitboard m_Pinned;
     std::array<Square, 64> m_Pinner;
 
-    //
-    // Private methods
-    //
 
     void updateAttacks();
     void updatePins();
@@ -297,8 +287,6 @@ private:
 
     template <bool DO_ZOBRIST, bool DO_PINS_ATKS>
     void setPieceAt(Square s, Piece p);
-
-    int m_PlyCount = 0;
 
     void handleSpecialMove(Move move);
     void handleSpecialMoveUndo();

@@ -70,6 +70,9 @@ public:
         return BIT(getType()) & flags;
     }
 
+    std::string toAlgebraic(const Position& pos);
+    static Move fromAlgebraic(const Position& pos, std::string_view m);
+
     inline Move(ui32 raw = 0)
         : m_Data(raw) {}
 

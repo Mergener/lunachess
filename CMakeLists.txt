@@ -19,6 +19,7 @@ add_executable(luna
         src/main.cpp
         src/types.cpp
         src/bitboard.cpp
+        src/chessgame.cpp
         src/piece.cpp
         src/position.cpp
         src/zobrist.cpp

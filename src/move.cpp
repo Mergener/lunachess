@@ -2,6 +2,7 @@
 
 #include <new>
 
+#include "bitboard.h"
 #include "position.h"
 
 namespace lunachess {
@@ -91,6 +92,77 @@ std::ostream& operator<<(std::ostream& stream, Move m) {
     }
 
     return stream;
+}
+
+std::string Move::toAlgebraic(const Position& pos) {
+    if (getType() == MT_CASTLES_LONG) {
+        return "O-O-O";
+    }
+    if (getType() == MT_CASTLES_SHORT) {
+        return "O-O";
+    }
+
+    char ret[32];
+    int idx = 0;
+
+    Piece srcPiece = getSourcePiece();
+    Square src = getSource();
+    Square dest = getDest();
+
+    // If moving piece is not a pawn, add its identifier letter
+    // Also handle captures here, since pawns and pieces behave
+    // differently.
+    if (srcPiece.getType() != PT_PAWN) {
+        // Not a pawn
+        ret[idx++] = std::toupper(srcPiece.getIdentifier());
+
+        // Check if another piece of the same type can move to the
+        // specified square
+        Bitboard atks = bbs::getPieceAttacks(dest, pos.getBitboard(srcPiece), srcPiece);
+        if (atks.count() > 1) {
+            // We have another piece that could've done the same move as our.
+            // Try to differentiate it with file name.
+            BoardFile srcFile = getFile(src);
+            Bitboard fileBB = bbs::getFileBitboard(srcFile) & atks;
+
+            if (fileBB.count() == 1) {
+                // Other piece is on another file, use the file to differentiate.
+                ret[idx++] = std::tolower(getFileIdentifier(srcFile));
+            }
+            else {
+                // There is another piece on the same file as the sourcePiece.
+                // Use the rank to differentiate.
+                ret[idx++] = std::tolower(getRankIdentifier(getRank(src)));
+            }
+        }
+
+        if (is<MTM_CAPTURE>()) {
+            ret[idx++] = 'x';
+        }
+    }
+    else {
+        // srcPiece is a pawn
+        if (is<MTM_CAPTURE>()) {
+            ret[idx++] = std::tolower(getFileIdentifier(getFile(src)));
+            ret[idx++] = 'x';
+        }
+    }
+
+    // Add destination square
+    ret[idx++] = std::tolower(getFileIdentifier(getFile(dest)));
+    ret[idx++] = std::tolower(getRankIdentifier(getRank(dest)));
+
+    if (is<MTM_PROMOTION>()) {
+        ret[idx++] = '=';
+        ret[idx++] = Piece(CL_WHITE, getPromotionPiece()).getIdentifier();
+    }
+
+    ret[idx] = '\0';
+    return std::string(ret);
+}
+
+Move Move::fromAlgebraic(const Position& pos, std::string_view m) {
+
 }
 
 }

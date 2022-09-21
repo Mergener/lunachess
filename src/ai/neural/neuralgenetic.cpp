@@ -83,7 +83,7 @@ void GeneticTraining::save() const {
 
     // Save current generation
     std::string thisGenName = utils::toString(m_CurrGeneration.number);
-    fs::path thisGenDir =  basePath / "generations" / thisGenName;
+    fs::path thisGenDir = basePath / "generations" / thisGenName;
     fs::create_directory(thisGenDir);
 
     std::ofstream genStream(thisGenDir / "data.json");

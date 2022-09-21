@@ -152,7 +152,13 @@ enum BoardFiles {
 
 };
 
-const char* getFileName(BoardFile f);
+inline char getFileIdentifier(BoardFile f) {
+	if (f >= FL_COUNT || f < FL_A) {
+		return '?';
+	}
+	constexpr char IDS[] { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
+	return IDS[f];
+}
 
 enum BoardRanks {
 
@@ -175,7 +181,13 @@ constexpr BoardRank PAWN_PROMOTION_RANK = C == CL_WHITE ? RANK_8 : RANK_1;
 template <Color C>
 constexpr BoardRank PAWN_INITIAL_RANK = C == CL_WHITE ? RANK_2 : RANK_7;
 
-const char* getRankName(BoardRank r);
+inline char getRankIdentifier(BoardRank r) {
+	if (r >= RANK_COUNT || r < RANK_1) {
+		return '?';
+	}
+	constexpr char IDS[] { '1', '2', '3', '4', '5', '6', '7', '8' };
+	return IDS[r];
+}
 
 enum CastlingRightsMask {
 
