@@ -36,7 +36,7 @@ For debug builds: ```cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug```
 
 For release builds: ```cmake -S . -B build -DCMAKE_BUILD_TYPE=Release```
 
-After that, ```cd``` onto ```builds``` and call ```make```. This will generate binaries for
+After that, ```cd``` onto ```build``` and call ```make```. This will generate binaries for
 Luna.
 
 - Visual Studio 2019/2022 
