@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.12)
 ##
 set(LUNA_VERSION_MAJOR "0")
 set(LUNA_VERSION_MINOR "1")
-set(LUNA_VERSION_PATCH "0")
+set(LUNA_VERSION_PATCH "1")
 
 message("Luna version is set to ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH}")
 
@@ -67,7 +67,7 @@ add_subdirectory("ext")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC requires some flags in order for threads and <filesystem> to work.
-    set(CMAKE_CXX_FLAGS "-pthread")
+    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc")
     target_link_libraries(luna PRIVATE stdc++fs
                                PRIVATE nlohmann_json)
 else()
