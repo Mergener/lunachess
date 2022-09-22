@@ -30,10 +30,11 @@ Once you are done cloning this repository **and** all submodules located on the 
 
 - Unix based terminal + Makefile
 
-Use the following command while in the root of the repository to setup the build system:
-```
-cmake -S . -B builds
-```
+Use one of the following command while in the root of the repository to setup the build system:
+
+For debug builds: ```cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug```
+
+For release builds: ```cmake -S . -B build -DCMAKE_BUILD_TYPE=Release```
 
 After that, ```cd``` onto ```builds``` and call ```make```. This will generate binaries for
 Luna.
