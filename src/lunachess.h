@@ -3,6 +3,7 @@
 
 #include "bitboard.h"
 #include "bits.h"
+#include "chessgame.h"
 #include "clock.h"
 #include "move.h"
 #include "movegen.h"

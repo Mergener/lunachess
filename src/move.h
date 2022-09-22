@@ -62,15 +62,15 @@ public:
     inline ui32 getRaw() const { return m_Data; }
 
     template <MoveTypeMask FLAGS>
-    inline bool is() {
+    inline bool is() const {
         return BIT(getType()) & FLAGS;
     }
 
-    inline bool is(MoveTypeMask flags) {
+    inline bool is(MoveTypeMask flags) const {
         return BIT(getType()) & flags;
     }
 
-    std::string toAlgebraic(const Position& pos);
+    std::string toAlgebraic(const Position& pos) const;
     static Move fromAlgebraic(const Position& pos, std::string_view m);
 
     inline Move(ui32 raw = 0)

@@ -94,7 +94,7 @@ std::ostream& operator<<(std::ostream& stream, Move m) {
     return stream;
 }
 
-std::string Move::toAlgebraic(const Position& pos) {
+std::string Move::toAlgebraic(const Position& pos) const {
     if (getType() == MT_CASTLES_LONG) {
         return "O-O-O";
     }
@@ -118,7 +118,7 @@ std::string Move::toAlgebraic(const Position& pos) {
 
         // Check if another piece of the same type can move to the
         // specified square
-        Bitboard atks = bbs::getPieceAttacks(dest, pos.getBitboard(srcPiece), srcPiece);
+        Bitboard atks = bbs::getPieceAttacks(dest, 0, srcPiece) & pos.getBitboard(srcPiece);
         if (atks.count() > 1) {
             // We have another piece that could've done the same move as our.
             // Try to differentiate it with file name.

@@ -26,32 +26,57 @@ static void addPgnTag(std::ostream& stream,
 std::string ChessGame::toPgn(ToPgnArgs args) const {
     std::stringstream ss;
 
+    // Write all PGN tags
     for (const auto& pair: m_Tags) {
         addPgnTag(ss, pair.first, pair.second);
     }
 
-    Position pos = getStartingPosition();
-    int plyCount = pos.getPlyCount();
-    int moveNumber = plyCount / 2 + 1;
-    if (plyCount % 2 == 0) {
-        ss << moveNumber << ". ";
+    // Now write moves
+    // Moves are preceded with their respective move number.
+    // Games that start from a position might start with the color
+    // to move being black, and in that case, we start with 'MOVNUM ...',
+    // instead of 'MOVNUM .'
+    if (!m_Moves.empty()) {
+        Position pos = getStartingPosition();
+        int plyCount = pos.getPlyCount();
+        int moveNumber = plyCount / 2 + 1;
+        if (plyCount % 2 == 0) {
+            ss << moveNumber << ". ";
+        } else {
+            ss << moveNumber << "... ";
+        }
+        ss << m_Moves[0].toAlgebraic(pos) << ' ';
+        pos.makeMove(m_Moves[0]);
+
+        // Finally, write the moves
+        for (int i = 1; i < m_Moves.size(); ++i) {
+            if (i % args.pliesPerLine == 0) {
+                ss << std::endl;
+            }
+
+            if (pos.getPlyCount() % 2 == 0) {
+                moveNumber++;
+                ss << moveNumber << ". ";
+            }
+            Move m = m_Moves[i];
+            ss << m.toAlgebraic(pos) << ' ';
+            pos.makeMove(m);
+        }
+    }
+
+    // By the end, write the result
+    auto result = getResultForWhite();
+    if (result == RES_UNFINISHED) {
+        ss << '*';
+    }
+    else if (isWin(result)) {
+        ss << "1-0";
+    }
+    else if (isLoss(result)) {
+        ss << "0-1";
     }
     else {
-        ss << moveNumber << "... ";
-    }
-
-    for (int i = 1; i < m_Moves.size(); ++i) {
-        if (pos.getPlyCount() % 2 == 0) {
-            moveNumber++;
-            ss << moveNumber << ". ";
-        }
-        Move m = m_Moves[i];
-        pos.makeMove(m);
-        ss << m << ' ';
-
-        if (i % args.pliesPerLine == 0) {
-            ss << std::endl;
-        }
+        ss << "1/2-1/2";
     }
 
     return ss.str();
@@ -60,8 +85,10 @@ std::string ChessGame::toPgn(ToPgnArgs args) const {
 void playGame(ChessGame& game,
               PlayerFunc playerWhite,
               PlayerFunc playerBlack,
-              PlayGameArgs args = PlayGameArgs()) {
-    Position pos = game.getStartingPosition();
+              PlayGameArgs args,
+              std::function<bool(const Position&)> stopCondition) {
+    Position pos = args.startingPosition;
+    game.setStartingPosition(pos);
 
     TimeControl tcs[] = {
         args.timeControl[CL_WHITE],
@@ -69,6 +96,7 @@ void playGame(ChessGame& game,
     };
 
     ChessResult result = pos.getResult(CL_WHITE, true);
+    std::cout << result << std::endl;
 
     bool flagged = false;
     while (result == RES_UNFINISHED) {
@@ -76,7 +104,12 @@ void playGame(ChessGame& game,
         auto& player = color == CL_WHITE ? playerWhite : playerBlack;
 
         auto timeBeforeMove = Clock::now();
-        Move m = player(tcs[color], tcs[getOppositeColor(color)]);
+        Move m = player(pos, tcs[color], tcs[getOppositeColor(color)]);
+        if (m == MOVE_INVALID) {
+            result = color == CL_WHITE ? RES_LOSS_RESIGN : RES_WIN_RESIGN;
+            break;
+        }
+
         auto elapsed = deltaMs(Clock::now(), timeBeforeMove);
         if (tcs[color].mode != TC_INFINITE && elapsed > tcs[color].time) {
             flagged = true;
@@ -87,7 +120,10 @@ void playGame(ChessGame& game,
 
         result = pos.getResult(CL_WHITE, !flagged);
         pos.makeMove(m);
+        game.pushMove(m);
     }
+
+    game.setResultForWhite(result);
 }
 
 

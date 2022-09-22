@@ -16,7 +16,6 @@ struct ToPgnArgs {
 
 class ChessGame {
 public:
-
     inline void clearTags() {
         m_Tags.clear();
     }
@@ -37,17 +36,20 @@ public:
         m_StartPos = pos;
     }
 
-    inline ChessResult getResult() const {
+    inline ChessResult getResultForWhite() const {
         return m_Res;
     }
 
-    inline void setResult(ChessResult res) {
+    inline void setResultForWhite(ChessResult res) {
         m_Res = res;
     }
 
     Position getFinalPosition();
 
     inline void pushMove(Move m) {
+        if (m == MOVE_INVALID) {
+            return;
+        }
         m_Moves.push_back(m);
     }
 
@@ -59,12 +61,17 @@ public:
         m_Moves.clear();
     }
 
-    std::string toPgn(ToPgnArgs args) const;
+    std::string toPgn(ToPgnArgs args = ToPgnArgs()) const;
     void fromPgn(std::string_view pgn);
 
     ChessGame() = default;
     inline ChessGame(std::string_view pgn) {
         fromPgn(pgn);
+    }
+
+    template <typename TIter>
+    inline ChessGame(TIter movesBegin, TIter movesEnd, Position startPos = Position::getInitialPosition())
+        : m_StartPos(std::move(startPos)), m_Moves(movesBegin, movesEnd) {
     }
 
 private:
@@ -74,10 +81,10 @@ private:
     std::unordered_map<std::string, std::string> m_Tags;
 };
 
-using PlayerFunc = std::function<Move(TimeControl ourTC, TimeControl theirTC)>;
+using PlayerFunc = std::function<Move(const Position& pos, TimeControl ourTC, TimeControl theirTC)>;
 struct PlayGameArgs {
     Position startingPosition = Position::getInitialPosition();
-    TimeControl timeControl[CL_COUNT];
+    TimeControl timeControl[CL_COUNT] = { TimeControl(180000, 2000, TC_FISCHER), TimeControl(180000, 2000, TC_FISCHER) };
 };
 
 void playGame(ChessGame& game,

@@ -17,50 +17,6 @@
 
 namespace lunachess {
 
-enum ChessResult {
-    RES_UNFINISHED,
-    RES_DRAW_STALEMATE,
-    RES_DRAW_REPETITION,
-    RES_DRAW_TIME_NOMAT,
-    RES_DRAW_NOMAT,
-    RES_DRAW_RULE50,
-    RES_WIN_CHECKMATE,
-    RES_WIN_TIME,
-    RES_WIN_RESIGN,
-    RES_LOSS_CHECKMATE,
-    RES_LOSS_TIME,
-    RES_LOSS_RESIGN,
-
-    //
-    // Constants below create closed intervals for wins/draws/loss.
-    // Use them to check for simple results.
-    // Ex.:
-    // bool isWin(const Position& pos, Color c, i64 remainingTime) {
-    //     ChessResult res = pos.getResult(c, remainingTime > 0);
-    //     return res >= RES_WIN_BEGIN && res <= RES_WIN_END;
-    // }
-    //
-
-    RES_DRAW_BEGIN = RES_DRAW_STALEMATE,
-    RES_DRAW_END = RES_DRAW_RULE50,
-    RES_WIN_BEGIN = RES_WIN_CHECKMATE,
-    RES_WIN_END = RES_WIN_RESIGN,
-    RES_LOSS_BEGIN = RES_LOSS_CHECKMATE,
-    RES_LOSS_END = RES_LOSS_RESIGN
-};
-
-inline constexpr bool isWin(ChessResult r) {
-    return r >= RES_WIN_BEGIN && r <= RES_WIN_END;
-}
-
-inline constexpr bool isLoss(ChessResult r) {
-    return r >= RES_LOSS_BEGIN && r <= RES_LOSS_END;
-}
-
-inline constexpr bool isDraw(ChessResult r) {
-    return r >= RES_DRAW_BEGIN && r <= RES_DRAW_END;
-}
-
 class Position {
 public:
     //
