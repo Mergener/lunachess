@@ -62,12 +62,8 @@ public:
     }
 
     std::string toPgn(ToPgnArgs args = ToPgnArgs()) const;
-    void fromPgn(std::string_view pgn);
 
     ChessGame() = default;
-    inline ChessGame(std::string_view pgn) {
-        fromPgn(pgn);
-    }
 
     template <typename TIter>
     inline ChessGame(TIter movesBegin, TIter movesEnd, Position startPos = Position::getInitialPosition())

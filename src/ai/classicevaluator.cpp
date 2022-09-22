@@ -495,17 +495,17 @@ int ClassicEvaluator::evaluate(const Position& pos) const {
     int bishopPair = evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
     int mobility = evaluateMobility(pos, us, gpf) - evaluateMobility(pos, them, gpf);
     int outposts = evaluateOutposts(pos, us, gpf) - evaluateOutposts(pos, them, gpf);
-    //int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
+    int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
     
     // King safety
     int tropism = evaluateTropism(pos, us, gpf) - evaluateTropism(pos, them, gpf);
     int pawnShield = evaluatePawnShield(pos, us, gpf) - evaluatePawnShield(pos, them, gpf);
-    //int kingExposure = evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
+    int kingExposure = evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
 
-    int total = placement * 2 + bishopPair + mobility
-            + outposts
+    int total = placement + bishopPair + mobility
+            + outposts + xrays
             + doublePawns + pawnChains +
-            + tropism  + pawnShield
+            + tropism  + pawnShield + kingExposure
             + material;
 
     return total;

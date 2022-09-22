@@ -161,8 +161,4 @@ std::string Move::toAlgebraic(const Position& pos) const {
     return std::string(ret);
 }
 
-Move Move::fromAlgebraic(const Position& pos, std::string_view m) {
-
-}
-
 }
