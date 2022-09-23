@@ -29,6 +29,11 @@ void TimeManager::onNewDepth(const SearchResults& res) {
         return;
     }
 
+    if (res.bestScore >= FORCED_MATE_THRESHOLD) {
+        // We found a mate, stop searching.
+        m_TargetTime = 0;
+    }
+
     if (res.searchedDepth < 2) {
         // Always search to depth 2, at least.
         return;

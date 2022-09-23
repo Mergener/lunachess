@@ -2,6 +2,7 @@
 
 #include "../strutils.h"
 #include "../posutils.h"
+#include "../endgame.h"
 
 #include "aibitboards.h"
 
@@ -477,6 +478,21 @@ int ClassicEvaluator::evaluateShallow(const Position &pos) const {
 }
 
 int ClassicEvaluator::evaluate(const Position& pos) const {
+    // First, check if we are facing a known endgame
+    EndgameData eg = endgame::identify(pos);
+    if (eg.type == EG_UNKNOWN) {
+        // Not a known endgame
+        return evaluateClassic(pos);
+    }
+    if (eg.lhs == pos.getColorToMove()) {
+        // Evaluate the endgame on our perspective
+        return evaluateEndgame(pos, eg);
+    }
+    // Evaluate the endgame on their perspective
+    return -evaluateEndgame(pos, eg);
+}
+
+int ClassicEvaluator::evaluateClassic(const Position& pos) const {
     int gpf = getGamePhaseFactor(pos);
 
     Color us = pos.getColorToMove();
@@ -496,19 +512,54 @@ int ClassicEvaluator::evaluate(const Position& pos) const {
     int mobility = evaluateMobility(pos, us, gpf) - evaluateMobility(pos, them, gpf);
     int outposts = evaluateOutposts(pos, us, gpf) - evaluateOutposts(pos, them, gpf);
     int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
-    
+
     // King safety
     int tropism = evaluateTropism(pos, us, gpf) - evaluateTropism(pos, them, gpf);
     int pawnShield = evaluatePawnShield(pos, us, gpf) - evaluatePawnShield(pos, them, gpf);
     int kingExposure = evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
 
     int total = placement + bishopPair + mobility
-            + outposts + xrays
-            + doublePawns + pawnChains +
-            + tropism  + pawnShield + kingExposure
-            + material;
+                + outposts + xrays
+                + doublePawns + pawnChains +
+                + tropism  + pawnShield + kingExposure
+                + material;
 
     return total;
+}
+
+int ClassicEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) const {
+    switch (egData.type) {
+        // Drawn endgames
+        case EG_KR_KN:
+        case EG_KR_KB:
+            return getDrawScore();
+
+        case EG_KP_K:
+            return evaluateKPK(pos, egData.lhs);
+
+        default:
+            // Not implemented endgames, resort to default evaluation:
+            return evaluateClassic(pos);
+    }
+
+}
+
+int ClassicEvaluator::evaluateKPK(const Position &pos, Color lhs) const {
+    int queenValue = m_EgScores.materialScore[PT_QUEEN];
+
+    Color rhs = getOppositeColor(lhs);
+    Square pawnSquare = *pos.getBitboard(Piece(lhs, PT_PAWN)).begin();
+    Square enemyKingSquare = pos.getKingSquare(rhs);
+
+    if (!endgame::isInsideTheSquare(pawnSquare, enemyKingSquare, lhs, pos.getColorToMove())) {
+        // King outside of square, pawn can promote freely.
+        BoardRank promRank = getPromotionRank(lhs);
+        BoardRank pawnRank = getRank(pawnSquare);
+        int dist = std::abs(promRank - pawnRank);
+        return queenValue - dist * 100;
+    }
+
+    return evaluateClassic(pos);
 }
 
 ClassicEvaluator::ClassicEvaluator() {

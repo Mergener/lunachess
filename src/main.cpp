@@ -3,6 +3,8 @@
 
 #include "lunachess.h"
 
+#include "ai/classicevaluator.h"
+
 int main() {
     try {
         lunachess::initializeEverything();
@@ -15,6 +17,9 @@ int main() {
 
 #ifdef LUNA_ASSERTS_ON
         std::cout << "LUNA_ASSERTS_ON is enabled." << std::endl;
+#endif
+#ifndef NDEBUG
+        std::cout << "This is a Debug build. Search/Perft times may be considerably slower." << std::endl;
 #endif
 
         return lunachess::uciMain();

@@ -18,6 +18,8 @@ void initializeEverything() {
     }
     s_Initialized = true;
 
+    endgame::initialize();
+
     // Initialize core functionalities
     zobrist::initialize();
     bbs::initialize();

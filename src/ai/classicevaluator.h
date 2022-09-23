@@ -8,6 +8,8 @@
 #include "evaluator.h"
 #include "hotmap.h"
 
+#include "../endgame.h"
+
 namespace lunachess::ai {
 
 struct ScoreTable {
@@ -144,6 +146,10 @@ private:
     int evaluateMobility(const Position& pos, Color c, int gpf) const;
     int evaluateBishopPair(const Position& pos, Color c, int gpf) const;
     int evaluateXrays(const Position& pos, Color c, int gpf) const;
+
+    int evaluateClassic(const Position& pos) const;
+    int evaluateEndgame(const Position& pos, EndgameData egData) const;
+    int evaluateKPK(const Position& pos, Color lhs) const;
 
     static void generateNewMgTable();
     static void generateNewEgTable();

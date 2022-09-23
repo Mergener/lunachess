@@ -28,6 +28,7 @@ add_executable(luna
         src/types.cpp
         src/bitboard.cpp
         src/chessgame.cpp
+        src/endgame.cpp
         src/piece.cpp
         src/position.cpp
         src/zobrist.cpp
@@ -50,7 +51,7 @@ add_executable(luna
         src/ai/quiescevaluator.cpp
         src/uci.cpp
         src/ai/neural/nn.cpp
-        src/utils.cpp src/ai/neural/neuralgenetic.cpp)
+        src/utils.cpp src/ai/neural/neuralgenetic.cpp src/endgame.cpp src/endgame.h)
 
 ##
 # Compilation settings
