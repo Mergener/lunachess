@@ -16,9 +16,19 @@ static EndgameType get1ManEndgameType(const Position& pos, Color lhs) {
     return EG_UNKNOWN;
 }
 
+static EndgameType get2ManEndgameType(const Position& pos, Color lhs) {
+    // KBN vs K
+    if (pos.getBitboard(Piece(lhs, PT_BISHOP)) != 0 &&
+        pos.getBitboard(Piece(lhs, PT_KNIGHT)) != 0) {
+        return EG_KBN_K;
+    }
+    return EG_UNKNOWN;
+}
+
 static EndgameType getEndgameType(const Position &pos, int pieceCount, Color lhs) {
     switch (pieceCount) {
         case 1:  return get1ManEndgameType(pos, lhs);
+        case 2:  return get2ManEndgameType(pos, lhs);
         default: return EG_UNKNOWN;
     }
 }

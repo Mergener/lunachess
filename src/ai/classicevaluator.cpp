@@ -537,6 +537,9 @@ int ClassicEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) c
         case EG_KP_K:
             return evaluateKPK(pos, egData.lhs);
 
+        case EG_KBN_K:
+            return evaluateKBNK(pos, egData.lhs);
+
         default:
             // Not implemented endgames, resort to default evaluation:
             return evaluateClassic(pos);
@@ -560,6 +563,46 @@ int ClassicEvaluator::evaluateKPK(const Position &pos, Color lhs) const {
     }
 
     return evaluateClassic(pos);
+}
+
+int ClassicEvaluator::evaluateKBNK(const Position &pos, Color lhs) const {
+    constexpr int LONE_KING_BONUS_DS[] {
+        0, 1, 2, 3, 4, 5, 6, 7,
+        1, 2, 3, 4, 5, 6, 7, 6,
+        2, 3, 4, 5, 6, 7, 6, 5,
+        3, 4, 5, 6, 7, 6, 5, 4,
+        4, 5, 6, 7, 6, 5, 4, 3,
+        5, 6, 7, 6, 5, 4, 3, 2,
+        6, 7, 6, 5, 4, 3, 2, 1,
+        7, 6, 5, 4, 3, 2, 1, 0,
+    };
+    constexpr int LONE_KING_BONUS_LS[] {
+        7, 6, 5, 4, 3, 2, 1, 0,
+        6, 7, 6, 5, 4, 3, 2, 1,
+        5, 6, 7, 6, 5, 4, 3, 2,
+        4, 5, 6, 7, 6, 5, 4, 3,
+        3, 4, 5, 6, 7, 6, 5, 4,
+        2, 3, 4, 5, 6, 7, 6, 5,
+        1, 2, 3, 4, 5, 6, 7, 6,
+        0, 1, 2, 3, 4, 5, 6, 7,
+    };
+
+    int base = m_EgScores.materialScore[PT_BISHOP] +
+               m_EgScores.materialScore[PT_KNIGHT] +
+               m_EgScores.materialScore[PT_PAWN] / 2;
+
+    Square ourBishop = *pos.getBitboard(Piece(lhs, PT_BISHOP)).begin();
+    Square theirKing = pos.getKingSquare(getOppositeColor(lhs));
+
+    int theirKingBonus;
+    if (bbs::LIGHT_SQUARES.contains(ourBishop)) {
+        theirKingBonus = LONE_KING_BONUS_LS[theirKing];
+    }
+    else {
+        theirKingBonus = LONE_KING_BONUS_DS[theirKing];
+    }
+
+    return base - theirKingBonus;
 }
 
 ClassicEvaluator::ClassicEvaluator() {

@@ -150,6 +150,7 @@ private:
     int evaluateClassic(const Position& pos) const;
     int evaluateEndgame(const Position& pos, EndgameData egData) const;
     int evaluateKPK(const Position& pos, Color lhs) const;
+    int evaluateKBNK(const Position& pos, Color lhs) const;
 
     static void generateNewMgTable();
     static void generateNewEgTable();
