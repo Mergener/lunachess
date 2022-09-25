@@ -70,7 +70,7 @@ static void saveGameToStream(std::ostream& stream, const TrainingGame& game) {
 
 void GeneticTraining::save() const {
     auto basePath = m_Settings.baseSavePath;
-    std::cout << "Saving neural genetic training at '" << basePath << "'..." << std::endl;
+    std::cout << "Saving neuraleval genetic training at '" << basePath << "'..." << std::endl;
 
     // Create directories
     std::cout << "Creating directories..." << std::endl;
@@ -480,7 +480,7 @@ void GeneticTraining::reproduceAgents() {
 // JSON Serialization methods
 
 // The following macro calls will create 'toJson' and 'fromJson' methods automatically
-// for the neural networks.
+// for the neuraleval networks.
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(NN::TFirstHidden, weights, biases);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(NN::THidden, weights, biases);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(NN::TOut, weights, biases);
@@ -532,4 +532,4 @@ void from_json(const nlohmann::json&, Generation&) {
 }
 
 
-} // lunachess::ai::neural
+} // lunachess::ai::neuraleval

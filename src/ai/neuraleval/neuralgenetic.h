@@ -101,4 +101,4 @@ void from_json(const nlohmann::json&, Generation&);
 
 } // lunachess::ai::neuraleval
 
-#endif // LUNA_AI_NEURAL_NEURALGENET
+#endif // LUNA_AI_NEURAL_NEURALGENETIC_H

@@ -169,4 +169,4 @@ struct NeuralNetwork {
 
 } // lunachess::ai::neuraleval
 
-#endif // LUNA_NEURAL_NN
+#endif // LUNA_NEURAL_NN_H

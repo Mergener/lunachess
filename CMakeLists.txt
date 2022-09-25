@@ -40,18 +40,19 @@ add_executable(luna
         src/uci.h
         src/posutils.cpp
         src/strutils.cpp
-        src/ai/hotmap.cpp
-        src/ai/neural/neuraleval.cpp
+        src/ai/classiceval/hotmap.cpp
+        src/ai/neuraleval/neuraleval.cpp
+        src/ai/classiceval/texel.cpp
         src/ai/timemanager.cpp
-        src/ai/classicevaluator.cpp
+        src/ai/classiceval/classicevaluator.cpp
         src/ai/search.cpp
         src/ai/transpositiontable.cpp
         src/ai/aimovefactory.cpp
-        src/ai/aibitboards.cpp
+        src/ai/classiceval/aibitboards.cpp
         src/ai/quiescevaluator.cpp
         src/uci.cpp
-        src/ai/neural/nn.cpp
-        src/utils.cpp src/ai/neural/neuralgenetic.cpp src/endgame.cpp src/endgame.h)
+        src/ai/neuraleval/nn.cpp
+        src/utils.cpp src/ai/neuraleval/neuralgenetic.cpp src/endgame.cpp src/endgame.h)
 
 ##
 # Compilation settings

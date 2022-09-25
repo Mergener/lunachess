@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "classicevaluator.h"
+#include "classic/classicevaluator.h"
 #include "aimovefactory.h"
 
 namespace lunachess::ai {

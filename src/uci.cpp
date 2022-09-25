@@ -15,6 +15,7 @@
 #include "clock.h"
 
 #include "ai/search.h"
+#include "ai/classic/texel.h"
 
 namespace lunachess {
 
@@ -484,6 +485,10 @@ static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos.toFen() << std::endl;
 }
 
+static void cmdTexel(UCIContext& ctx, const CommandArgs& args) {
+    ai::runTexelTuning();
+}
+
 #ifndef NDEBUG
 static void cmdAttacks(UCIContext& ctx, const CommandArgs& args) {
     Color c = ctx.pos.getColorToMove();
@@ -574,6 +579,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["takeback"] = Command(cmdTakeback, 0, false);
+    cmds["texel"] = Command(cmdTexel, 0, false);
 
 #ifndef NDEBUG
     // Debug commands

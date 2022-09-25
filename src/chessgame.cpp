@@ -87,19 +87,25 @@ void playGame(ChessGame& game,
               PlayerFunc playerBlack,
               PlayGameArgs args,
               std::function<bool(const Position&)> stopCondition) {
+    // Setup initial position
     Position pos = args.startingPosition;
     game.setStartingPosition(pos);
 
+    // Setup time controls for both players
     TimeControl tcs[] = {
         args.timeControl[CL_WHITE],
         args.timeControl[CL_BLACK]
     };
 
     ChessResult result = pos.getResult(CL_WHITE, true);
-    std::cout << result << std::endl;
 
     bool flagged = false;
     while (result == RES_UNFINISHED) {
+        if (stopCondition(pos)) {
+            // Stop was requested
+            break;
+        }
+
         Color color = pos.getColorToMove();
         auto& player = color == CL_WHITE ? playerWhite : playerBlack;
 

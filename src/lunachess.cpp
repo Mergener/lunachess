@@ -2,9 +2,9 @@
 
 #include <filesystem>
 
-#include "ai/aibitboards.h"
-#include "ai/hotmap.h"
-#include "ai/classicevaluator.h"
+#include "ai/classic/aibitboards.h"
+#include "ai/classic/hotmap.h"
+#include "ai/classic/classicevaluator.h"
 #include "ai/aimovefactory.h"
 
 namespace lunachess {
