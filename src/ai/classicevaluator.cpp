@@ -602,7 +602,7 @@ int ClassicEvaluator::evaluateKBNK(const Position &pos, Color lhs) const {
         theirKingBonus = LONE_KING_BONUS_DS[theirKing];
     }
 
-    return base - theirKingBonus;
+    return base - theirKingBonus * 50;
 }
 
 ClassicEvaluator::ClassicEvaluator() {

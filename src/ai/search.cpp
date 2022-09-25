@@ -98,7 +98,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     m_LastResults.visitedNodes++;
 
     bool isRoot = ply == 0;
-    if (m_Pos.isDraw(2) && !isRoot) {
+    if (m_Pos.isDraw(1) && !isRoot) {
         // Position is a draw (or has repeated already), return draw score.
         return m_Eval->getDrawScore();
     }
