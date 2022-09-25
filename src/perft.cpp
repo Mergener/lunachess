@@ -9,7 +9,7 @@ namespace lunachess {
 int promotions = 0;
 int enPassants = 0;
 
-template <bool PSEUDO_LEGAL, bool LOG>
+template <bool PSEUDO_LEGAL, bool ALG_NOTATION, bool LOG>
 static ui64 perftInternal(Position& pos, int depth) {
     MoveList moves;
 
@@ -19,7 +19,12 @@ static ui64 perftInternal(Position& pos, int depth) {
     if (depth <= 1) {
         if constexpr (LOG) {
             for (auto m: moves) {
-                std::cout << m << ": 1" << std::endl;
+                if constexpr (ALG_NOTATION) {
+                    std::cout << m.toAlgebraic(pos) << ": 1" << std::endl;
+                }
+                else {
+                    std::cout << m << ": 1"  << std::endl;
+                }
             }
             std::cout << (pos.isCheck() ? "check" : "not check") << std::endl;
         }
@@ -31,12 +36,17 @@ static ui64 perftInternal(Position& pos, int depth) {
 
     for (auto m : moves) {
         pos.makeMove(m);
-        ui64 count = perftInternal<PSEUDO_LEGAL, false>(pos, depth);
+        ui64 count = perftInternal<PSEUDO_LEGAL, ALG_NOTATION, false>(pos, depth);
         ret += count;
         pos.undoMove();
 
         if constexpr (LOG) {
-            std::cout << m << ": " << count << std::endl;
+            if constexpr (ALG_NOTATION) {
+                std::cout << m.toAlgebraic(pos) << ": " << count << std::endl;
+            }
+            else {
+                std::cout << m << ": " << count << std::endl;
+            }
         }
     }
 
@@ -47,16 +57,24 @@ static ui64 perftInternal(Position& pos, int depth) {
     return ret;
 }
 
-ui64 perft(const Position& pos, int depth, bool pseudoLegal) {
+ui64 perft(const Position& pos, int depth, bool pseudoLegal, bool algNotation) {
     Position repl = pos;
 
     ui64 ret;
 
-    if (pseudoLegal) {
-        ret = perftInternal<true, true>(repl, depth);
+    if (algNotation) {
+        if (pseudoLegal) {
+            ret = perftInternal<true, true, true>(repl, depth);
+        } else {
+            ret = perftInternal<false, true, true>(repl, depth);
+        }
     }
     else {
-        ret = perftInternal<false, true>(repl, depth);
+        if (pseudoLegal) {
+            ret = perftInternal<true, false, true>(repl, depth);
+        } else {
+            ret = perftInternal<false, false, true>(repl, depth);
+        }
     }
 
     return ret;

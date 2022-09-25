@@ -3,7 +3,7 @@
 
 namespace lunachess::ai {
 
-
+void runTexelTuning();
 
 } // lunachess::ai
 

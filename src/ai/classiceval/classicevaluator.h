@@ -5,12 +5,25 @@
 #include <array>
 #include <functional>
 
-#include "evaluator.h"
+#include <nlohmann/json.hpp>
+
+#include "../evaluator.h"
 #include "hotmap.h"
+
+#include "../../endgame.h"
 
 namespace lunachess::ai {
 
 struct ScoreTable {
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ScoreTable, materialScore, hotmapGroups,
+                                       kingHotmap, xrayScores, mobilityScore,
+                                       bishopPairScore, outpostScore, goodComplexScore,
+                                       tropismScore, nearKingAttacksScore, pawnShieldScore,
+                                       kingOnOpenFileScore, kingNearOpenFileScore,
+                                       kingOnSemiOpenFileScore, kingNearSemiOpenFileScore,
+                                       doublePawnScore, pawnChainScore, passerPercentBonus,
+                                       outsidePasserPercentBonus);
+
     std::array<int, PT_COUNT> materialScore;
 
     // Activity scores:
@@ -28,12 +41,12 @@ struct ScoreTable {
 
     // King safety scores:
     std::array<int, PT_COUNT> tropismScore;
+    std::array<int, PT_COUNT> nearKingAttacksScore;
     int pawnShieldScore = 0;
     int kingOnOpenFileScore = 0;
     int kingNearOpenFileScore = 0;
     int kingOnSemiOpenFileScore = 0;
     int kingNearSemiOpenFileScore = 0;
-    int nearKingSquareAttacksScore = 0;
 
     // Pawn structure scores:
     int doublePawnScore = 0;
@@ -144,6 +157,11 @@ private:
     int evaluateMobility(const Position& pos, Color c, int gpf) const;
     int evaluateBishopPair(const Position& pos, Color c, int gpf) const;
     int evaluateXrays(const Position& pos, Color c, int gpf) const;
+
+    int evaluateClassic(const Position& pos) const;
+    int evaluateEndgame(const Position& pos, EndgameData egData) const;
+    int evaluateKPK(const Position& pos, Color lhs) const;
+    int evaluateKBNK(const Position& pos, Color lhs) const;
 
     static void generateNewMgTable();
     static void generateNewEgTable();

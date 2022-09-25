@@ -14,7 +14,6 @@
 #include "lock.h"
 #include "clock.h"
 
-#include "ai/neural/neuralgenetic.h"
 #include "ai/search.h"
 
 namespace lunachess {
@@ -30,7 +29,6 @@ enum UCIState {
 struct UCIContext {
     // Chess state
     Position pos = Position::getInitialPosition();
-    std::vector<Move> moveHistory;
 
     // UCI settings
     bool debugMode = false;
@@ -202,14 +200,12 @@ static void playMovesAfterPos(UCIContext& ctx,
         }
 
         ctx.pos.makeMove(move);
-        ctx.moveHistory.push_back(move);
         legalMoves.clear();
     }
 }
 
 static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
     if (args[0] == "startpos") {
-        ctx.moveHistory.clear();
         ctx.pos = Position::getInitialPosition();
 
         if (args.size() > 1) {
@@ -222,7 +218,6 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
             // They indeed provided them, play them.
             playMovesAfterPos(ctx, args.begin() + 2, args.end());
         }
-        std::cout << ctx.pos << std::endl;
         return;
     }
 
@@ -231,7 +226,6 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
         return;
     }
 
-    ctx.moveHistory.clear();
     int movesArgsIdx = -1;
 
     // FEN argument given, process it
@@ -410,17 +404,21 @@ static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
     }
 
     bool pseudoLegal = false;
+    bool algNotation = false;
     for (auto it = args.begin() + 1; it != args.end(); ++it) {
         auto arg = *it;
 
-        if (arg == "pseudo") {
+        if (arg == "--pseudo") {
             pseudoLegal = true;
+        }
+        else if (arg == "--alg") {
+            algNotation = true;
         }
     }
 
     auto before = Clock::now();
 
-    ui64 res = perft(ctx.pos, depth, pseudoLegal);
+    ui64 res = perft(ctx.pos, depth, pseudoLegal, algNotation);
 
     i64 elapsed = deltaMs(Clock::now(), before);
 
@@ -443,7 +441,6 @@ static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
         }
 
         ctx.pos.makeMove(move);
-        ctx.moveHistory.push_back(move);
     }
     std::cout << ctx.pos << std::endl;
 }
@@ -460,7 +457,6 @@ static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
 
     for (int i = 0; i < n; ++i) {
         ctx.pos.undoMove();
-        ctx.moveHistory.pop_back();
     }
 
     std::cout << ctx.pos << std::endl;
@@ -486,27 +482,6 @@ static void cmdGetpos(UCIContext& ctx, const CommandArgs& args) {
 
 static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos.toFen() << std::endl;
-}
-
-static void cmdMovehist(UCIContext& ctx, const CommandArgs& args) {
-    for (Move m: ctx.moveHistory) {
-        std::cout << m << " ";
-    }
-    std::cout << std::endl;
-}
-
-static void cmdGentrain(UCIContext& ctx, const CommandArgs& args) {
-    namespace neural = ai::neural;
-    neural::GeneticTrainingSettings settings;
-    neural::GeneticTraining training;
-
-    std::cout << "Select training name: ";
-    std::string name;
-    std::cin >> name;
-    settings.baseSavePath = std::filesystem::path("trainings") / name;
-
-    training.updateSettings(settings);
-    training.run();
 }
 
 #ifndef NDEBUG
@@ -594,13 +569,11 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["stop"] = Command(cmdStop, 0);
 
     // Luna commands:
-    cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["domoves"] = Command(cmdDoMoves, 1, false);
-    cmds["takeback"] = Command(cmdTakeback, 0, false);
-    cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["getfen"] = Command(cmdGetfen, 0);
-    cmds["movehist"] = Command(cmdMovehist, 0);
-    cmds["gentrain"] = Command(cmdGentrain, 0);
+    cmds["getpos"] = Command(cmdGetpos, 0);
+    cmds["perft"] = Command(cmdLunaPerft, 1, false);
+    cmds["takeback"] = Command(cmdTakeback, 0, false);
 
 #ifndef NDEBUG
     // Debug commands

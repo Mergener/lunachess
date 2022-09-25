@@ -57,14 +57,14 @@ public:
     int evaluate(const NeuralInputs& inputs) const;
 
     /**
-     * Creates a neural evaluator and uses a specified neural network.
+     * Creates a neuraleval evaluator and uses a specified neuraleval network.
      */
     inline NeuralEvaluator(std::shared_ptr<NN> nn)
         : m_Network(nn) {
     }
 
     /**
-     * Creates a neural evaluator and an underlying neural network.
+     * Creates a neuraleval evaluator and an underlying neuraleval network.
      */
     inline NeuralEvaluator()
             : m_Network(std::make_shared<NN>()) {

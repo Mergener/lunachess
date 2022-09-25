@@ -178,8 +178,18 @@ enum BoardRanks {
 template <Color C>
 constexpr BoardRank PAWN_PROMOTION_RANK = C == CL_WHITE ? RANK_8 : RANK_1;
 
+inline constexpr BoardRank getPromotionRank(Color c) {
+    constexpr BoardRank PROM_RANKS[] = { PAWN_PROMOTION_RANK<CL_WHITE>, PAWN_PROMOTION_RANK<CL_BLACK> };
+    return PROM_RANKS[c];
+}
+
 template <Color C>
 constexpr BoardRank PAWN_INITIAL_RANK = C == CL_WHITE ? RANK_2 : RANK_7;
+
+inline constexpr BoardRank getPawnInitialRanks(Color c) {
+    constexpr BoardRank INIT_RANKS[] = { PAWN_INITIAL_RANK<CL_WHITE>, PAWN_INITIAL_RANK<CL_BLACK> };
+    return INIT_RANKS[c];
+}
 
 inline char getRankIdentifier(BoardRank r) {
 	if (r >= RANK_COUNT || r < RANK_1) {
@@ -281,6 +291,8 @@ enum Squares {
 
 #define ASSERT_VALID_SQUARE(s) LUNA_ASSERT(static_cast<ui8>(s) >= 0, "Invalid square. (got " << int(s) << ")")
 
+void initializeDistances();
+
 inline constexpr BoardFile getFile(Square s) {
 	return static_cast<BoardFile>(s % 8);
 }
@@ -291,6 +303,10 @@ inline constexpr BoardRank getRank(Square s) {
 
 inline constexpr Square getSquare(BoardFile file, BoardRank rank) {
 	return static_cast<Square>(static_cast<int>(rank * 8) + static_cast<int>(file));
+}
+
+inline constexpr Square getPromotionSquare(Color c, BoardFile f) {
+    return getSquare(f, getPromotionRank(c));
 }
 
 Square getSquare(std::string_view str);
@@ -313,16 +329,15 @@ inline constexpr Square getCastleRookDestSquare(Color color, Side side) {
     return CASTLE_ROOK_SQ[color][side];
 }
 
+extern int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
+extern int g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
+
 inline int getChebyshevDistance(Square a, Square b) {
-    int fileDist = std::abs(getFile(a) - getFile(b));
-    int rankDist = std::abs(getRank(a) - getRank(b));
-    return std::max(fileDist, rankDist);
+    return g_ChebyshevDistances[a][b];
 }
 
 inline int getManhattanDistance(Square a, Square b) {
-    int fileDist = std::abs(getFile(a) - getFile(b));
-    int rankDist = std::abs(getRank(a) - getRank(b));
-    return fileDist + rankDist;
+    return g_ManhattanDistances[a][b];
 }
 
 const char* getSquareName(Square s);

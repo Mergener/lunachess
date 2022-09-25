@@ -8,7 +8,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../types.h"
+#include "../../types.h"
 
 namespace lunachess::ai {
 

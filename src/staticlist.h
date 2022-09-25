@@ -23,7 +23,7 @@ public:
     using ConstIterator = const TVal*;
 
     inline void insert(const TVal& val, int index) {
-        LUNA_ASSERT(index < m_Size && index >= 0, "Index out of bounds.");
+        LUNA_ASSERT(index <= m_Size && index >= 0, "Index out of bounds.");
         for (int i = m_Size; i > index; --i) {
             (*this)[i] = (*this)[i - 1];
         }

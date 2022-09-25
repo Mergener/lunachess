@@ -130,10 +130,10 @@ public:
                 + bitboardsBitCount[(m_BB >> 56) & 0xff]);*/
     }
 
-    inline constexpr Bitboard()
+    inline constexpr Bitboard() noexcept
             : m_BB(0) { }
 
-    inline constexpr Bitboard(ui64 i)
+    inline constexpr Bitboard(ui64 i) noexcept
             : m_BB(i) { }
 
     inline Bitboard& operator=(ui64 i) {

@@ -5,6 +5,7 @@
 #include "bits.h"
 #include "chessgame.h"
 #include "clock.h"
+#include "endgame.h"
 #include "move.h"
 #include "movegen.h"
 #include "perft.h"

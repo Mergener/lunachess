@@ -327,7 +327,7 @@ void generateQueenMoves(const Position &pos, MoveList &ml) {
     }
 }
 
-template<Color C, Side S>
+template<Color C, Side S, bool PSEUDO_LEGAL = false>
 void generateCastles(const Position &pos, MoveList &ml) {
     constexpr Color THEM = getOppositeColor(C);
 
@@ -358,11 +358,13 @@ void generateCastles(const Position &pos, MoveList &ml) {
         return;
     }
 
-    if (pos.getAttacks(THEM, PT_NONE) & KING_PATH) {
-        // There are opposing pieces attacking the king path
-        // Note that this already covers cases in which the king is in check,
-        // since KING_PATH includes the king's square.
-        return;
+    if constexpr (!PSEUDO_LEGAL) {
+        if (pos.getAttacks(THEM, PT_NONE) & KING_PATH) {
+            // There are opposing pieces attacking the king path
+            // Note that this already covers cases in which the king is in check,
+            // since KING_PATH includes the king's square.
+            return;
+        }
     }
 
     // Castles move can be generated, generate it.
@@ -370,7 +372,7 @@ void generateCastles(const Position &pos, MoveList &ml) {
     ml.add(move);
 }
 
-template<Color C, MoveTypeMask ALLOWED_FLAGS>
+template<Color C, MoveTypeMask ALLOWED_FLAGS, bool PSEUDO_LEGAL = false>
 void generateKingMoves(const Position &pos, MoveList &ml) {
     constexpr Piece SRC_PIECE = Piece(C, PT_KING);
 
@@ -406,14 +408,14 @@ void generateKingMoves(const Position &pos, MoveList &ml) {
 
     // Generate castling moves
     if constexpr (ALLOWED_FLAGS & BIT(MT_CASTLES_SHORT)) {
-        generateCastles<C, SIDE_KING>(pos, ml);
+        generateCastles<C, SIDE_KING, PSEUDO_LEGAL>(pos, ml);
     }
     if constexpr (ALLOWED_FLAGS & BIT(MT_CASTLES_LONG)) {
-        generateCastles<C, SIDE_QUEEN>(pos, ml);
+        generateCastles<C, SIDE_QUEEN, PSEUDO_LEGAL>(pos, ml);
     }
 }
 
-template <Color C, MoveTypeMask ALLOWED_MOVE_TYPES, PieceTypeMask ALLOWED_PIECE_TYPES>
+template <Color C, MoveTypeMask ALLOWED_MOVE_TYPES, PieceTypeMask ALLOWED_PIECE_TYPES, bool PSEUDO_LEGAL = false>
 void generateAll(const Position& pos, MoveList& ml) {
     constexpr bool GEN_PAWN   = (ALLOWED_PIECE_TYPES & BIT(PT_PAWN)) != 0;
     constexpr bool GEN_KNIGHT = (ALLOWED_PIECE_TYPES & BIT(PT_KNIGHT)) != 0;
@@ -438,7 +440,7 @@ void generateAll(const Position& pos, MoveList& ml) {
         utils::generateQueenMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
 
     if constexpr (GEN_KING)
-        utils::generateKingMoves<C, ALLOWED_MOVE_TYPES>(pos, ml);
+        utils::generateKingMoves<C, ALLOWED_MOVE_TYPES, PSEUDO_LEGAL>(pos, ml);
 }
 
 } // utils
@@ -461,11 +463,17 @@ int generate(const Position &pos, MoveList &ml) {
     int initialCount = ml.size();
     if (pos.getColorToMove() == CL_WHITE) {
         // Generate moves with white pieces
-        utils::generateAll<CL_WHITE, ALLOWED_MOVE_TYPES, ALLOWED_PIECE_TYPES>(pos, ml);
+        utils::generateAll<CL_WHITE,
+                           ALLOWED_MOVE_TYPES,
+                           ALLOWED_PIECE_TYPES,
+                           PSEUDO_LEGAL>(pos, ml);
 
     } else {
         // Generate moves with black pieces
-        utils::generateAll<CL_BLACK, ALLOWED_MOVE_TYPES, ALLOWED_PIECE_TYPES>(pos, ml);
+        utils::generateAll<CL_BLACK,
+                ALLOWED_MOVE_TYPES,
+                ALLOWED_PIECE_TYPES,
+                PSEUDO_LEGAL>(pos, ml);
     }
 
     if constexpr (!PSEUDO_LEGAL) {

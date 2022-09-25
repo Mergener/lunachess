@@ -167,6 +167,6 @@ struct NeuralNetwork {
     ~NeuralNetwork() = default;
 };
 
-} // lunachess::ai::neural
+} // lunachess::ai::neuraleval
 
-#endif // LUNA_NEURAL_NN_H
+#endif // LUNA_NEURAL_NN

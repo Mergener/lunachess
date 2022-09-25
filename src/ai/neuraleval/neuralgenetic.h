@@ -99,6 +99,6 @@ void to_json(nlohmann::json&, const Generation&);
 void from_json(const nlohmann::json&, Agent&);
 void from_json(const nlohmann::json&, Generation&);
 
-} // lunachess::ai::neural
+} // lunachess::ai::neuraleval
 
-#endif // LUNA_AI_NEURAL_NEURALGENETIC_H
+#endif // LUNA_AI_NEURAL_NEURALGENET

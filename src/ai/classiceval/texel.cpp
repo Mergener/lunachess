@@ -9,7 +9,8 @@
 #include <nlohmann/json.hpp>
 
 #include "classicevaluator.h"
-#include "search.h"
+#include "../../chessgame.h"
+#include "../search.h"
 
 namespace lunachess::ai {
 
@@ -22,43 +23,42 @@ struct TuningContext {
 
 using GamePositions = std::vector<std::pair<std::string, int>>;
 
-static GamePositions playGame(TuningContext& ctx,
+static GamePositions simulate(TuningContext& ctx,
                               std::shared_ptr<ClassicEvaluator> a,
                               std::shared_ptr<ClassicEvaluator> b) {
     GamePositions ret;
-    Position pos = Position::getInitialPosition();
 
-    AlphaBetaSearcher searchers[] = { AlphaBetaSearcher(a), AlphaBetaSearcher(b) };
+    AlphaBetaSearcher searchers[] = {AlphaBetaSearcher(a), AlphaBetaSearcher(b)};
 
-    // Configure time controls
-    SearchSettings settings;
-    settings.ourTimeControl = ctx.timeControl;
-    settings.theirTimeControl = ctx.timeControl;
+    PlayerFunc playerFunc[2];
+    for (int i = 0; i < 2; ++i) {
+        playerFunc[i] = [&searchers, &ret, i](const Position &pos, TimeControl ours, TimeControl theirs) {
+            SearchSettings settings;
+            settings.ourTimeControl = ours;
+            settings.theirTimeControl = theirs;
+            SearchResults res = searchers[i].search(pos, settings);
 
-    Color curr = pos.getColorToMove();
-    bool flagged = false;
-    ChessResult gameRes;
+            if (pos.getColorToMove() == CL_WHITE) {
+                std::cout << "White: " << res.bestMove.toAlgebraic(pos) << " (" << res.bestScore / 10 << " cp)" << std::endl;
+            }
+            else {
+                std::cout << "Black: " << res.bestMove.toAlgebraic(pos) << " (" << -res.bestScore / 10 << " cp)" << std::endl;
+            }
 
-    // Play the game until it ends, either by clock or board
-    while ((gameRes = pos.getResult(CL_WHITE, !flagged)) == RES_UNFINISHED) {
-        SearchResults results = searchers[curr].search(pos, settings);
 
-        settings.ourTimeControl.time -= results.getSearchTime();
-        if (settings.ourTimeControl.time <= 0) {
-            flagged = true;
-            continue;
-        }
-        settings.ourTimeControl.time += settings.ourTimeControl.increment;
-        std::swap(settings.ourTimeControl, settings.theirTimeControl);
+            if (res.bestScore < FORCED_MATE_THRESHOLD) {
+                ret.emplace_back(pos.toFen(), res.bestScore);
+            }
 
-        pos.makeMove(results.bestMove);
-
-        if (results.bestScore >= FORCED_MATE_THRESHOLD) {
-            continue;
-        }
-
-        ret.emplace_back(pos.toFen(), results.bestScore);
+            return res.bestMove;
+        };
     }
+
+    ChessGame game;
+
+    playGame(game, playerFunc[0], playerFunc[1]);
+
+    std::cout << "Finished game:\n" << game.toPgn() << std::endl;
 
     return ret;
 }
@@ -69,7 +69,7 @@ static void playGames(TuningContext& ctx,
     for (int i = 0; i < nGames; ++i) {
         bool random = utils::randomBool();
         gameFutures.emplace_back(std::async(std::launch::async, [&ctx, random]() {
-            return playGame(ctx,
+            return simulate(ctx,
                             random ? ctx.versionA : ctx.versionB,
                             random ? ctx.versionB : ctx.versionA);
         }));
@@ -84,6 +84,13 @@ static void playGames(TuningContext& ctx,
         nFinished++;
         std::cout << nFinished << " games finished." << std::endl;
     }
+}
+
+void runTexelTuning() {
+    TuningContext ctx;
+
+    playGames(ctx, 4);
+
 }
 
 }
