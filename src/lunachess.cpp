@@ -23,6 +23,7 @@ void initializeEverything() {
     // Initialize core functionalities
     zobrist::initialize();
     bbs::initialize();
+    initializeDistances();
 
     // Initialize AI functionalities
     ai::initializeAIBitboards();

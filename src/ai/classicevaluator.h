@@ -30,12 +30,12 @@ struct ScoreTable {
 
     // King safety scores:
     std::array<int, PT_COUNT> tropismScore;
+    std::array<int, PT_COUNT> nearKingAttacksScore;
     int pawnShieldScore = 0;
     int kingOnOpenFileScore = 0;
     int kingNearOpenFileScore = 0;
     int kingOnSemiOpenFileScore = 0;
     int kingNearSemiOpenFileScore = 0;
-    int nearKingSquareAttacksScore = 0;
 
     // Pawn structure scores:
     int doublePawnScore = 0;
