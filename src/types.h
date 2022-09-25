@@ -291,6 +291,8 @@ enum Squares {
 
 #define ASSERT_VALID_SQUARE(s) LUNA_ASSERT(static_cast<ui8>(s) >= 0, "Invalid square. (got " << int(s) << ")")
 
+void initializeDistances();
+
 inline constexpr BoardFile getFile(Square s) {
 	return static_cast<BoardFile>(s % 8);
 }
@@ -327,16 +329,15 @@ inline constexpr Square getCastleRookDestSquare(Color color, Side side) {
     return CASTLE_ROOK_SQ[color][side];
 }
 
+extern int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
+extern int g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
+
 inline int getChebyshevDistance(Square a, Square b) {
-    int fileDist = std::abs(getFile(a) - getFile(b));
-    int rankDist = std::abs(getRank(a) - getRank(b));
-    return std::max(fileDist, rankDist);
+    return g_ChebyshevDistances[a][b];
 }
 
 inline int getManhattanDistance(Square a, Square b) {
-    int fileDist = std::abs(getFile(a) - getFile(b));
-    int rankDist = std::abs(getRank(a) - getRank(b));
-    return fileDist + rankDist;
+    return g_ManhattanDistances[a][b];
 }
 
 const char* getSquareName(Square s);

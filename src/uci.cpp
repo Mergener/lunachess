@@ -218,7 +218,6 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
             // They indeed provided them, play them.
             playMovesAfterPos(ctx, args.begin() + 2, args.end());
         }
-        std::cout << ctx.pos << std::endl;
         return;
     }
 

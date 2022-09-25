@@ -4,7 +4,11 @@
 
 namespace lunachess::ai {
 
-static Bitboard s_FileContestantsBBs[64][CL_COUNT];
+Bitboard g_FileContestantsBBs[64][CL_COUNT];
+Bitboard g_PawnShields[64][CL_COUNT];
+Bitboard g_PasserBlockers[64][2];
+Bitboard g_NearKingSquares[64];
+
 static void generateFileContestantsBitboard() {
     // The bitboards generated here are the squares that an opponent must have pawns in
     // order to contest a piece in a given square 'sq'. Those squares are always squares
@@ -27,16 +31,10 @@ static void generateFileContestantsBitboard() {
                     bb.add(rank * 8 + f);
                 }
             }
-            s_FileContestantsBBs[sq][(int)c - 1] = bb;
+            g_FileContestantsBBs[sq][(int)c - 1] = bb;
         }
     }
 }
-
-Bitboard getFileContestantsBitboard(Square s, Side side) {
-    return s_FileContestantsBBs[s][(int)side - 1];
-}
-
-static Bitboard s_PawnShields[64][CL_COUNT];
 
 static void initializePawnShields() {
     for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
@@ -50,19 +48,13 @@ static void initializePawnShields() {
 
             bb |= bb.shifted(getPawnStepDir(c));
 
-            s_PawnShields[s][c] = bb;
+            g_PawnShields[s][c] = bb;
         }
     }
 }
 
-Bitboard getPawnShieldBitboard(Square s, Color c) {
-    return s_PawnShields[s][c];
-}
-
-static Bitboard s_PasserBlockers[64][2];
-
 static void generatePasserBlockerBitboards() {
-    std::memset(s_PasserBlockers, 0, sizeof(s_PasserBlockers));
+    std::memset(g_PasserBlockers, 0, sizeof(g_PasserBlockers));
 
     for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
         int rankStep = c == CL_WHITE ? 1 : -1;
@@ -82,7 +74,7 @@ static void generatePasserBlockerBitboards() {
 
             Square s = getSquare(f, promRank);
             for (BoardRank r = promRank - rankStep; r != (initialRank - rankStep * 2); r -= rankStep) {
-                s_PasserBlockers[s][c] = bb;
+                g_PasserBlockers[s][c] = bb;
                 bb.add(s);
                 s = getSquare(f, r);
             }
@@ -90,14 +82,25 @@ static void generatePasserBlockerBitboards() {
     }
 }
 
-Bitboard getPasserBlockerBitboard(Square s, Color c) {
-    return s_PasserBlockers[s][c];
+static void generateNearKingSquares() {
+    std::memset(g_NearKingSquares, 0, sizeof(g_NearKingSquares));
+
+    for (Square s = 0; s < SQ_COUNT; ++s) {
+        Bitboard innerRing = bbs::getKingAttacks(s);
+        Bitboard fullRing = 0;
+        for (auto is: innerRing) {
+            fullRing |= bbs::getKingAttacks(is);
+        }
+
+        g_NearKingSquares[s] = fullRing;
+    }
 }
 
 void initializeAIBitboards() {
     initializePawnShields();
     generateFileContestantsBitboard();
     generatePasserBlockerBitboards();
+    generateNearKingSquares();
 }
 
 }

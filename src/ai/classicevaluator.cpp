@@ -2,11 +2,9 @@
 
 #include "../strutils.h"
 #include "../posutils.h"
-#include "../endgame.h"
 
 #include "aibitboards.h"
 
-#include <optional>
 #include <fstream>
 
 namespace lunachess::ai {
@@ -30,7 +28,6 @@ void ClassicEvaluator::generateNewMgTable() {
     defaultMgTable.kingOnSemiOpenFileScore = -80;
     defaultMgTable.kingNearOpenFileScore = -100;
     defaultMgTable.kingNearSemiOpenFileScore = -60;
-    defaultMgTable.nearKingSquareAttacksScore = -25;
 
     defaultMgTable.pawnShieldScore = 50;
 
@@ -42,15 +39,21 @@ void ClassicEvaluator::generateNewMgTable() {
     defaultMgTable.tropismScore[PT_KING] = 0;
 
     defaultMgTable.xrayScores[PT_PAWN] = -12;
-    defaultMgTable.xrayScores[PT_KNIGHT] = 10;
-    defaultMgTable.xrayScores[PT_BISHOP] = 10;
-    defaultMgTable.xrayScores[PT_ROOK] = 30;
-    defaultMgTable.xrayScores[PT_QUEEN] = 50;
-    defaultMgTable.xrayScores[PT_KING] = 60;
+    defaultMgTable.xrayScores[PT_KNIGHT] = 2;
+    defaultMgTable.xrayScores[PT_BISHOP] = 3;
+    defaultMgTable.xrayScores[PT_ROOK] = 16;
+    defaultMgTable.xrayScores[PT_QUEEN] = 60;
+    defaultMgTable.xrayScores[PT_KING] = 70;
 
-    defaultMgTable.mobilityScore = 30;
+    defaultMgTable.nearKingAttacksScore[PT_PAWN] = -22;
+    defaultMgTable.nearKingAttacksScore[PT_KNIGHT] = -27;
+    defaultMgTable.nearKingAttacksScore[PT_BISHOP] = -25;
+    defaultMgTable.nearKingAttacksScore[PT_ROOK] = -32;
+    defaultMgTable.nearKingAttacksScore[PT_QUEEN] = -38;
 
-    defaultMgTable.goodComplexScore = 50;
+    defaultMgTable.mobilityScore = 46;
+
+    defaultMgTable.goodComplexScore = 25;
 
     defaultMgTable.doublePawnScore = -50;
 
@@ -58,10 +61,10 @@ void ClassicEvaluator::generateNewMgTable() {
 
     defaultMgTable.bishopPairScore = 90;
 
-    defaultMgTable.pawnChainScore = 40;
+    defaultMgTable.pawnChainScore = 45;
 
-    defaultMgTable.passerPercentBonus = 40;
-    defaultMgTable.outsidePasserPercentBonus = 60;
+    defaultMgTable.passerPercentBonus = 5;
+    defaultMgTable.outsidePasserPercentBonus = 70;
 
     for (PieceType pt = PT_PAWN; pt < PT_KING; ++pt) {
         defaultMgTable.getHotmap(pt) = Hotmap::defaultMiddlegameMaps[pt];
@@ -105,12 +108,11 @@ void ClassicEvaluator::generateNewEgTable() {
     defaultEgTable.kingOnSemiOpenFileScore = 0;
     defaultEgTable.kingNearOpenFileScore = 0;
     defaultEgTable.kingNearSemiOpenFileScore = 0;
-    defaultEgTable.nearKingSquareAttacksScore = -30;
 
     defaultEgTable.pawnChainScore = 120;
 
-    defaultEgTable.passerPercentBonus = 50;
-    defaultEgTable.outsidePasserPercentBonus = 80;
+    defaultEgTable.passerPercentBonus = 10;
+    defaultEgTable.outsidePasserPercentBonus = 85;
 
     for (PieceType pt = PT_PAWN; pt < PT_KING; ++pt) {
         defaultEgTable.getHotmap(pt) = Hotmap::defaultEndgameMaps[pt];
@@ -451,6 +453,41 @@ int ClassicEvaluator::evaluatePlacement(const Position& pos, Color c, int gpf, c
     return total;
 }
 
+int ClassicEvaluator::evaluateNearKingAttacks(const Position& pos, Color c, int gpf) const {
+    Color them = getOppositeColor(c);
+    Bitboard nearKingBB = getNearKingSquares(pos.getKingSquare(c));
+
+    Bitboard pawnHits = nearKingBB & pos.getAttacks(them, PT_PAWN);
+    Bitboard knightHits = nearKingBB & pos.getAttacks(them, PT_KNIGHT);
+    Bitboard bishopHits = nearKingBB & pos.getAttacks(them, PT_BISHOP);
+    Bitboard rookHits = nearKingBB & pos.getAttacks(them, PT_ROOK);
+    Bitboard queenHits = nearKingBB & pos.getAttacks(them, PT_QUEEN);
+
+    int total = 0;
+
+    total += pawnHits.count() * adjustScores(m_MgScores.nearKingAttacksScore[PT_PAWN],
+                                             m_EgScores.nearKingAttacksScore[PT_PAWN],
+                                             gpf);
+
+    total += knightHits.count() * adjustScores(m_MgScores.nearKingAttacksScore[PT_KNIGHT],
+                                             m_EgScores.nearKingAttacksScore[PT_KNIGHT],
+                                             gpf);
+
+    total += bishopHits.count() * adjustScores(m_MgScores.nearKingAttacksScore[PT_BISHOP],
+                                             m_EgScores.nearKingAttacksScore[PT_BISHOP],
+                                             gpf);
+
+    total += rookHits.count() * adjustScores(m_MgScores.nearKingAttacksScore[PT_ROOK],
+                                             m_EgScores.nearKingAttacksScore[PT_ROOK],
+                                             gpf);
+
+    total += queenHits.count() * adjustScores(m_MgScores.nearKingAttacksScore[PT_QUEEN],
+                                             m_EgScores.nearKingAttacksScore[PT_QUEEN],
+                                             gpf);
+
+    return total;
+}
+
 int ClassicEvaluator::getDrawScore() const {
     return 0;
 }
@@ -505,6 +542,7 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
     PasserData theirPasserData = getPasserData(pos, them, gpf);
     int doublePawns = evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
     int pawnChains = evaluatePawnChains(pos, us, gpf, ourPasserData) - evaluatePawnChains(pos, them, gpf, theirPasserData);
+    int pawnComplex = evaluatePawnComplex(pos, us, gpf) - evaluatePawnComplex(pos, them, gpf);
 
     // Activity
     int placement = evaluatePlacement(pos, us, gpf, ourPasserData) - evaluatePlacement(pos, them, gpf, theirPasserData);
@@ -514,14 +552,14 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
     int xrays = evaluateXrays(pos, us, gpf) - evaluateXrays(pos, them, gpf);
 
     // King safety
-    int tropism = evaluateTropism(pos, us, gpf) - evaluateTropism(pos, them, gpf);
     int pawnShield = evaluatePawnShield(pos, us, gpf) - evaluatePawnShield(pos, them, gpf);
-    int kingExposure = evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
+    //int kingExposure = evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
+    int nearKingAttacks = evaluateNearKingAttacks(pos, us, gpf) - evaluateNearKingAttacks(pos, them, gpf);
 
     int total = placement + bishopPair + mobility
                 + outposts + xrays
-                + doublePawns + pawnChains +
-                + tropism  + pawnShield + kingExposure
+                + doublePawns + pawnChains + pawnComplex
+                + pawnShield + nearKingAttacks
                 + material;
 
     return total;
@@ -541,7 +579,7 @@ int ClassicEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) c
             return evaluateKBNK(pos, egData.lhs);
 
         default:
-            // Not implemented endgames, resort to default evaluation:
+            // Not implemented endgame, resort to default evaluation:
             return evaluateClassic(pos);
     }
 
