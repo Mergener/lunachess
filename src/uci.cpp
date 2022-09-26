@@ -13,9 +13,10 @@
 #include "strutils.h"
 #include "lock.h"
 #include "clock.h"
+#include "openingbook.h"
 
 #include "ai/search.h"
-#include "ai/classic/texel.h"
+#include "ai/classiceval/texel.h"
 
 namespace lunachess {
 
@@ -43,6 +44,7 @@ struct UCIContext {
 
     // Search settings
     ai::AlphaBetaSearcher searcher;
+    bool useOpBook = false;
 };
 
 static void schedule(UCIContext& ctx, std::function<void()> job) {
@@ -99,6 +101,7 @@ static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "id author Thomas Mergener" << std::endl;
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
     displayOption(ctx, "Hash", "spin", strutils::toString(ai::TranspositionTable::DEFAULT_SIZE_MB), "1", "1048576");
+    displayOption(ctx, "UseOwnBook", "check", "false");
     std::cout << "uciok" << std::endl;
 }
 
@@ -134,6 +137,17 @@ static void processOption(UCIContext& ctx, std::string_view option, std::string_
         size_t size;
         if (strutils::tryParseInteger(value, size)) {
             ctx.searcher.getTT().resize(size * 1024 * 1024);
+        }
+    }
+    else if (option == "UseOwnBook") {
+        if (value == "true") {
+            ctx.useOpBook = true;
+        }
+        else if (value == "false") {
+            ctx.useOpBook = false;
+        }
+        else {
+            std::cerr << "Invalid value '" << value << "'. Expected 'true' or 'false'." << std::endl;
         }
     }
 }
@@ -272,6 +286,18 @@ static bool readTime(std::string_view sv, int& dest) {
 }
 
 static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& searchSettings) {
+    if (ctx.useOpBook) {
+        // Use opening book if position is covered in it
+        const auto& book = OpeningBook::getDefault();
+        Move move = book.getRandomMoveForPosition(pos);
+        if (move != MOVE_INVALID) {
+            // We found a book move
+            std::cout << "bestmove " << move << std::endl;
+            ctx.state = WAITING;
+            return;
+        }
+    }
+
     TimePoint startTime = Clock::now();
     searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
         ai::SearchedVariation& var = res.searchedVariations[pv];

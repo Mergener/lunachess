@@ -52,7 +52,10 @@ add_executable(luna
         src/ai/quiescevaluator.cpp
         src/uci.cpp
         src/ai/neuraleval/nn.cpp
-        src/utils.cpp src/ai/neuraleval/neuralgenetic.cpp src/endgame.cpp src/endgame.h)
+        src/utils.cpp
+        src/ai/neuraleval/neuralgenetic.cpp
+        src/endgame.cpp
+        src/endgame.h src/openingbook.cpp src/openingbook.h)
 
 ##
 # Compilation settings

@@ -11,8 +11,8 @@
 #include "transpositiontable.h"
 #include "evaluator.h"
 #include "aimovefactory.h"
-#include "classic/classicevaluator.h"
-#include "neural/neuraleval.h"
+#include "classiceval/classicevaluator.h"
+#include "neuraleval/neuraleval.h"
 #include "timemanager.h"
 
 #include "../clock.h"

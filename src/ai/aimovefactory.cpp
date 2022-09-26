@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "../movegen.h"
-#include "classic/hotmap.h"
+#include "classiceval/hotmap.h"
 
 namespace lunachess::ai {
 

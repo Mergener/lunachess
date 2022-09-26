@@ -16,7 +16,7 @@ namespace lunachess::ai {
 
 struct ScoreTable {
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ScoreTable, materialScore, hotmapGroups,
-                                       kingHotmap, xrayScores, mobilityScore,
+                                       kingHotmap, xrayScores, mobilityScores,
                                        bishopPairScore, outpostScore, goodComplexScore,
                                        tropismScore, nearKingAttacksScore, pawnShieldScore,
                                        kingOnOpenFileScore, kingNearOpenFileScore,
@@ -34,7 +34,7 @@ struct ScoreTable {
     Hotmap kingHotmap;
 
     std::array<int, PT_COUNT> xrayScores;
-    int mobilityScore = 0;
+    std::array<int, PT_COUNT> mobilityScores;
     int bishopPairScore = 0;
     int outpostScore = 0;
     int goodComplexScore = 0;

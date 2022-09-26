@@ -1,7 +1,6 @@
 #include "texel.h"
 
 #include <future>
-#include <memory>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -11,6 +10,7 @@
 #include "classicevaluator.h"
 #include "../../chessgame.h"
 #include "../search.h"
+#include "../../openingbook.h"
 
 namespace lunachess::ai {
 
@@ -19,6 +19,7 @@ struct TuningContext {
     std::shared_ptr<ClassicEvaluator> versionB;
     std::unordered_map<std::string, int> fensAndEvals;
     TimeControl timeControl;
+    OpeningBook openingBook;
 };
 
 using GamePositions = std::vector<std::pair<std::string, int>>;
@@ -33,30 +34,34 @@ static GamePositions simulate(TuningContext& ctx,
     PlayerFunc playerFunc[2];
     for (int i = 0; i < 2; ++i) {
         playerFunc[i] = [&searchers, &ret, i](const Position &pos, TimeControl ours, TimeControl theirs) {
-            SearchSettings settings;
-            settings.ourTimeControl = ours;
-            settings.theirTimeControl = theirs;
-            SearchResults res = searchers[i].search(pos, settings);
+            const OpeningBook& book = OpeningBook::getDefault();
 
-            if (pos.getColorToMove() == CL_WHITE) {
-                std::cout << "White: " << res.bestMove.toAlgebraic(pos) << " (" << res.bestScore / 10 << " cp)" << std::endl;
+
+            Move bestMove = book.getRandomMoveForPosition(pos);
+
+            if (bestMove == MOVE_INVALID) {
+                SearchSettings settings;
+                settings.ourTimeControl = ours;
+                settings.theirTimeControl = theirs;
+
+                SearchResults res = searchers[i].search(pos, settings);
+
+                bestMove = res.bestMove;
+                if (res.bestScore < FORCED_MATE_THRESHOLD) {
+                    ret.emplace_back(pos.toFen(), searchers[i].quiesce(pos));
+                }
             }
-            else {
-                std::cout << "Black: " << res.bestMove.toAlgebraic(pos) << " (" << -res.bestScore / 10 << " cp)" << std::endl;
-            }
 
-
-            if (res.bestScore < FORCED_MATE_THRESHOLD) {
-                ret.emplace_back(pos.toFen(), res.bestScore);
-            }
-
-            return res.bestMove;
+            return bestMove;
         };
     }
 
     ChessGame game;
 
-    playGame(game, playerFunc[0], playerFunc[1]);
+    PlayGameArgs gameArgs;
+    gameArgs.timeControl[0] = ctx.timeControl;
+    gameArgs.timeControl[1] = ctx.timeControl;
+    playGame(game, playerFunc[0], playerFunc[1], gameArgs);
 
     std::cout << "Finished game:\n" << game.toPgn() << std::endl;
 
@@ -88,6 +93,9 @@ static void playGames(TuningContext& ctx,
 
 void runTexelTuning() {
     TuningContext ctx;
+    ctx.versionA = std::make_shared<ClassicEvaluator>();
+    ctx.versionB = std::make_shared<ClassicEvaluator>();
+    ctx.timeControl = TimeControl(1000, 50, TC_FISCHER);
 
     playGames(ctx, 4);
 

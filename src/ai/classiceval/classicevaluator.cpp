@@ -45,13 +45,16 @@ void ClassicEvaluator::generateNewMgTable() {
     defaultMgTable.xrayScores[PT_QUEEN] = 60;
     defaultMgTable.xrayScores[PT_KING] = 70;
 
-    defaultMgTable.nearKingAttacksScore[PT_PAWN] = -22;
-    defaultMgTable.nearKingAttacksScore[PT_KNIGHT] = -27;
-    defaultMgTable.nearKingAttacksScore[PT_BISHOP] = -25;
-    defaultMgTable.nearKingAttacksScore[PT_ROOK] = -32;
-    defaultMgTable.nearKingAttacksScore[PT_QUEEN] = -38;
+    defaultMgTable.nearKingAttacksScore[PT_PAWN] = -42;
+    defaultMgTable.nearKingAttacksScore[PT_KNIGHT] = -47;
+    defaultMgTable.nearKingAttacksScore[PT_BISHOP] = -55;
+    defaultMgTable.nearKingAttacksScore[PT_ROOK] = -62;
+    defaultMgTable.nearKingAttacksScore[PT_QUEEN] = -48;
 
-    defaultMgTable.mobilityScore = 46;
+    defaultMgTable.mobilityScores[PT_KNIGHT] = 17;
+    defaultMgTable.mobilityScores[PT_BISHOP] = 24;
+    defaultMgTable.mobilityScores[PT_ROOK] = 12;
+    defaultMgTable.mobilityScores[PT_QUEEN] = 3;
 
     defaultMgTable.goodComplexScore = 25;
 
@@ -88,8 +91,6 @@ void ClassicEvaluator::generateNewEgTable() {
     defaultEgTable.xrayScores[PT_KING] = 0;
 
     defaultEgTable.pawnShieldScore = 15;
-
-    defaultEgTable.mobilityScore = 4;
 
     defaultEgTable.doublePawnScore = -120;
 
@@ -172,7 +173,6 @@ int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) co
 
 int ClassicEvaluator::evaluatePawnComplex(const Position& pos, Color color, int gpf) const {
     // Score pawns that are on squares that favor the movement of a color's bishop.
-
     Bitboard lightSquares = bbs::LIGHT_SQUARES;
     Bitboard darkSquares = bbs::DARK_SQUARES;
 
@@ -375,13 +375,11 @@ int ClassicEvaluator::evaluateBishopPair(const Position& pos, Color color, int g
 int ClassicEvaluator::evaluateMobility(const Position& pos, Color c, int gpf) const {
     int total = 0;
 
-    int mobilityScore = adjustScores(m_MgScores.mobilityScore, m_EgScores.mobilityScore, gpf);
+    for (PieceType pt = PT_KNIGHT; pt <= PT_QUEEN; ++pt) {
+        int mobilityScore = adjustScores(m_MgScores.mobilityScores[pt], m_EgScores.mobilityScores[pt], gpf);
 
-    Bitboard theirPawnAttacks = pos.getAttacks(getOppositeColor(c), PT_PAWN);
-
-    total += Bitboard(pos.getAttacks(c, PT_BISHOP) & (~theirPawnAttacks)).count() * mobilityScore;
-    total += Bitboard(pos.getAttacks(c, PT_ROOK) & (~theirPawnAttacks)).count() * mobilityScore / 2;
-    total += Bitboard(pos.getAttacks(c, PT_QUEEN) & (~theirPawnAttacks)).count() * mobilityScore / 5;
+        total += pos.getAttacks(c, pt).count() * mobilityScore;
+    }
 
     return total;
 }

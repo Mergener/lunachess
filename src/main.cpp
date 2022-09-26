@@ -3,7 +3,7 @@
 
 #include "lunachess.h"
 
-#include "ai/classic/aibitboards.h"
+#include "ai/classiceval/aibitboards.h"
 
 int main() {
     try {
