@@ -59,6 +59,11 @@ add_executable(lunacli
         src/lunacli/uci.cpp
         src/lunacli/uci.h)
 
+add_executable(lunatest
+        src/lunatest/main.cpp
+        src/lunatest/testlist.cpp
+        )
+
 ##
 # Compilation settings
 ##
@@ -83,6 +88,8 @@ else()
 endif()
 
 target_link_libraries(lunacli PRIVATE luna)
+target_link_libraries(lunatest PRIVATE luna)
 
 target_include_directories(luna PUBLIC "ext/json/single_include")
 target_include_directories(lunacli PUBLIC "ext/json/single_include" "src/luna")
+target_include_directories(lunatest PUBLIC "ext/json/single_include" "src/luna")

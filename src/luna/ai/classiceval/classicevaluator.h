@@ -120,6 +120,8 @@ struct ScoreTable {
 };
 
 class ClassicEvaluator : public Evaluator {
+    LUNA_TESTABLE_CLASS
+
     static ScoreTable defaultMgTable;
     static ScoreTable defaultEgTable;
 

@@ -1,11 +1,16 @@
 #ifndef LUNA_DEBUG_H
 #define LUNA_DEBUG_H
 
+#include <functional>
 #include <string_view>
 #include <string>
 #include <sstream>
 
 //#define LUNA_ASSERTS_ON
+
+#ifndef LUNA_TESTABLE_CLASS
+#define LUNA_TESTABLE_CLASS
+#endif
 
 #ifndef NDEBUG
 #define LUNA_ASSERTS_ON
@@ -33,10 +38,10 @@
 
 namespace lunachess::debug {
 
-using AssertionFailHandler = void (*)(const char* fileName,
-                                      const char* funcName,
-                                      int line,
-                                      std::string_view msg);
+using AssertionFailHandler = std::function<void(const char* fileName,
+                                                const char* funcName,
+                                                int line,
+                                                std::string_view msg)>;
 
 /**
 	Asserts that a given condition is true. If the assertion fails, the last set assertion fail
@@ -53,6 +58,6 @@ void assertionFailure(const char* fileName, const char* funcName, int line, std:
 */
 void setAssertFailHandler(AssertionFailHandler h);
 
-}
+} // lunachess
 
 #endif // LUNA_DEBUG_H
