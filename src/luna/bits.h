@@ -90,6 +90,6 @@ inline i8 bitScanR(ui64 n) {
 #endif
 }
 
-}
+} // lunachess
 
 #endif // LUNA_BITS_H

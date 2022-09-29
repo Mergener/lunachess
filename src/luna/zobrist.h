@@ -29,5 +29,6 @@ inline ui64 getEnPassantSquareKey(Square sqr) {
     return g_EnPassantSquareKey[sqr];
 }
 
-}
+} // lunachess
+
 #endif // LUNA_ZOBRIST_H

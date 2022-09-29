@@ -103,6 +103,6 @@ private:
 
 std::ostream& operator<<(std::ostream& stream, Move m);
 
-}
+} // lunachess
 
 #endif // LUNA_MOVE_H

@@ -136,6 +136,6 @@ std::ostream& operator<<(std::ostream& stream, const StaticList<T, CAPACITY>& l)
     return stream;
 }
 
-}
+} // lunachess
 
 #endif //LUNA_STATICLIST_H

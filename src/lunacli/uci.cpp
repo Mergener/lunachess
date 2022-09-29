@@ -9,14 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "../lunalib/perft.h"
-#include "../lunalib/strutils.h"
-#include "../lunalib/lock.h"
-#include "../lunalib/clock.h"
-#include "../lunalib/openingbook.h"
-
-#include "../lunalib/ai/search.h"
-#include "../lunalib/ai/classiceval/texel.h"
+#include <lunachess.h>
 
 namespace lunachess {
 

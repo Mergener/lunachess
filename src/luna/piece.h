@@ -68,6 +68,6 @@ inline std::ostream& operator<<(std::ostream& stream, Piece p) {
     return stream;
 }
 
-}
+} // lunachess
 
 #endif // LUNA_PIECE_H

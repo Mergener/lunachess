@@ -417,6 +417,6 @@ bool Position::isMoveLegal(Move move) const {
     return true;
 }
 
-}
+} // lunachess
 
 #endif // LUNA_POSITION_H

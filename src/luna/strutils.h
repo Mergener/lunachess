@@ -53,6 +53,6 @@ bool tryParseInteger(std::string_view sv, TInt& ret) {
     return true;
 }
 
-}
+} // lunachess
 
 #endif //LUNA_STRUTILS_H

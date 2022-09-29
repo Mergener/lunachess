@@ -1,9 +1,9 @@
 #include <iostream>
 #include <thread>
 
-#include "../lunalib/lunachess.h"
+#include <lunachess.h>
 
-#include "../lunalib/ai/classiceval/aibitboards.h"
+#include "uci.h"
 
 int main() {
     try {

@@ -1,12 +1,5 @@
 #include "lunachess.h"
 
-#include <filesystem>
-
-#include "ai/classiceval/aibitboards.h"
-#include "ai/classiceval/hotmap.h"
-#include "ai/classiceval/classicevaluator.h"
-#include "ai/aimovefactory.h"
-
 namespace lunachess {
 
 static bool s_Initialized = false;

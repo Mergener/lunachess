@@ -28,6 +28,6 @@ private:
     bool m_Destroyed = false;
 };
 
-}
+} // lunachess
 
 #endif //LOCK_H
