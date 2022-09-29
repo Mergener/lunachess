@@ -23,6 +23,13 @@ public:
     static Hotmap defaultKingMgHotmap;
     static Hotmap defaultKingEgHotmap;
 
+    static Hotmap defaultMgPasserHotmap;
+    static Hotmap defaultMgChainedPawnHotmap;
+    static Hotmap defaultMgConnectedPasserHotmap;
+    static Hotmap defaultEgPasserHotmap;
+    static Hotmap defaultEgChainedPawnHotmap;
+    static Hotmap defaultEgConnectedPasserHotmap;
+
     static void initializeHotmaps();
 
     inline int getValue(Square s, Color pov) const {

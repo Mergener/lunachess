@@ -11,14 +11,11 @@ extern Bitboard g_PasserBlockers[64][2];
 extern Bitboard g_NearKingSquares[64];
 
 /**
- * Returns a bitboard that contains all the squares an opponent must have a pawn
- * in order to prevent a knight outpost on a given square.
- * @param s The knight outpost square.
- * @param c The color of the knight.
- * @return The contestants bitboard.
+ * Returns a bitboard of all the squares that can contain an opposing pawn
+ * which could be pushed to attack the square 's'.
  */
-inline Bitboard getFileContestantsBitboard(Square s, Side side) {
-    return g_FileContestantsBBs[s][(int)side - 1];
+inline Bitboard getFileContestantsBitboard(Square s, Color c) {
+    return g_FileContestantsBBs[s][c];
 }
 
 inline Bitboard getPawnShieldBitboard(Square s, Color c) {

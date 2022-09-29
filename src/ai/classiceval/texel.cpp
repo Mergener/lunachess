@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <filesystem>
+#include <fstream>
 
 #include <nlohmann/json.hpp>
 
@@ -14,17 +16,21 @@
 
 namespace lunachess::ai {
 
+namespace fs = std::filesystem;
+
 struct TuningContext {
     std::shared_ptr<ClassicEvaluator> versionA;
     std::shared_ptr<ClassicEvaluator> versionB;
     std::unordered_map<std::string, int> fensAndEvals;
     TimeControl timeControl;
     OpeningBook openingBook;
+    fs::path savePath;
 };
 
 using GamePositions = std::vector<std::pair<std::string, int>>;
 
 static GamePositions simulate(TuningContext& ctx,
+                              int gameId,
                               std::shared_ptr<ClassicEvaluator> a,
                               std::shared_ptr<ClassicEvaluator> b) {
     GamePositions ret;
@@ -63,7 +69,9 @@ static GamePositions simulate(TuningContext& ctx,
     gameArgs.timeControl[1] = ctx.timeControl;
     playGame(game, playerFunc[0], playerFunc[1], gameArgs);
 
-    std::cout << "Finished game:\n" << game.toPgn() << std::endl;
+    std::ofstream gameStream(ctx.savePath / (utils::toString(gameId) + ".pgn"));
+    gameStream << game.toPgn();
+    gameStream.close();
 
     return ret;
 }
@@ -73,8 +81,8 @@ static void playGames(TuningContext& ctx,
     std::vector<std::future<GamePositions>> gameFutures;
     for (int i = 0; i < nGames; ++i) {
         bool random = utils::randomBool();
-        gameFutures.emplace_back(std::async(std::launch::async, [&ctx, random]() {
-            return simulate(ctx,
+        gameFutures.emplace_back(std::async(std::launch::async, [&ctx, random, i]() {
+            return simulate(ctx, i + 1,
                             random ? ctx.versionA : ctx.versionB,
                             random ? ctx.versionB : ctx.versionA);
         }));
@@ -93,11 +101,18 @@ static void playGames(TuningContext& ctx,
 
 void runTexelTuning() {
     TuningContext ctx;
+
+    std::string path;
+    std::cout << "Select a path: ";
+    std::cin >> path;
+
+    ctx.savePath = path;
+    fs::create_directories(ctx.savePath);
     ctx.versionA = std::make_shared<ClassicEvaluator>();
     ctx.versionB = std::make_shared<ClassicEvaluator>();
     ctx.timeControl = TimeControl(1000, 50, TC_FISCHER);
 
-    playGames(ctx, 4);
+    playGames(ctx, 64000);
 
 }
 

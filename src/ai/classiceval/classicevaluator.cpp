@@ -17,72 +17,64 @@ ScoreTable ClassicEvaluator::defaultMgTable;
 ScoreTable ClassicEvaluator::defaultEgTable;
 
 void ClassicEvaluator::generateNewMgTable() {
+    // Material values
     defaultMgTable.materialScore[PT_PAWN] = 1000;
-    defaultMgTable.materialScore[PT_KNIGHT] = 3000;
-    defaultMgTable.materialScore[PT_BISHOP] = 3100;
-    defaultMgTable.materialScore[PT_ROOK] = 5000;
-    defaultMgTable.materialScore[PT_QUEEN] = 9200;
-    defaultMgTable.materialScore[PT_KING] = 0;
+    defaultMgTable.materialScore[PT_KNIGHT] = 3300;
+    defaultMgTable.materialScore[PT_BISHOP] = 3300;
+    defaultMgTable.materialScore[PT_ROOK] = 5100;
+    defaultMgTable.materialScore[PT_QUEEN] = 9800;
 
-    defaultMgTable.kingOnOpenFileScore = -120;
-    defaultMgTable.kingOnSemiOpenFileScore = -80;
-    defaultMgTable.kingNearOpenFileScore = -100;
-    defaultMgTable.kingNearSemiOpenFileScore = -60;
+    // X-Rays
+    defaultMgTable.xrayScores[PT_PAWN] = -30;
+    defaultMgTable.xrayScores[PT_KNIGHT] = 8;
+    defaultMgTable.xrayScores[PT_BISHOP] = 8;
+    defaultMgTable.xrayScores[PT_ROOK] = 48;
+    defaultMgTable.xrayScores[PT_QUEEN] = 96;
+    defaultMgTable.xrayScores[PT_KING] = 101;
 
-    defaultMgTable.pawnShieldScore = 50;
-
-    defaultMgTable.tropismScore[PT_PAWN] = 300;
-    defaultMgTable.tropismScore[PT_KNIGHT] = 360;
-    defaultMgTable.tropismScore[PT_BISHOP] = 140;
-    defaultMgTable.tropismScore[PT_ROOK] = 300;
-    defaultMgTable.tropismScore[PT_QUEEN] = 240;
-    defaultMgTable.tropismScore[PT_KING] = 0;
-
-    defaultMgTable.xrayScores[PT_PAWN] = -12;
-    defaultMgTable.xrayScores[PT_KNIGHT] = 2;
-    defaultMgTable.xrayScores[PT_BISHOP] = 3;
-    defaultMgTable.xrayScores[PT_ROOK] = 16;
-    defaultMgTable.xrayScores[PT_QUEEN] = 60;
-    defaultMgTable.xrayScores[PT_KING] = 70;
-
-    defaultMgTable.nearKingAttacksScore[PT_PAWN] = -42;
-    defaultMgTable.nearKingAttacksScore[PT_KNIGHT] = -47;
-    defaultMgTable.nearKingAttacksScore[PT_BISHOP] = -55;
-    defaultMgTable.nearKingAttacksScore[PT_ROOK] = -62;
-    defaultMgTable.nearKingAttacksScore[PT_QUEEN] = -48;
-
-    defaultMgTable.mobilityScores[PT_KNIGHT] = 17;
-    defaultMgTable.mobilityScores[PT_BISHOP] = 24;
+    // Mobility scores
+    defaultMgTable.mobilityScores[PT_KNIGHT] = 14;
+    defaultMgTable.mobilityScores[PT_BISHOP] = 15;
     defaultMgTable.mobilityScores[PT_ROOK] = 12;
-    defaultMgTable.mobilityScores[PT_QUEEN] = 3;
+    defaultMgTable.mobilityScores[PT_QUEEN] = 4;
 
-    defaultMgTable.goodComplexScore = 25;
+    // Piece specific scores
+    defaultMgTable.bishopPairScore = 150;
+    defaultMgTable.outpostScore = 200;
+    defaultMgTable.goodComplexScore = 20;
 
-    defaultMgTable.doublePawnScore = -50;
+    // King safety scores
+    defaultMgTable.nearKingAttacksScore[PT_PAWN]   = -60;
+    defaultMgTable.nearKingAttacksScore[PT_KNIGHT] = -70;
+    defaultMgTable.nearKingAttacksScore[PT_BISHOP] = -55;
+    defaultMgTable.nearKingAttacksScore[PT_ROOK]   = -100;
+    defaultMgTable.nearKingAttacksScore[PT_QUEEN]  = -95;
 
-    defaultMgTable.outpostScore = 188;
+    defaultMgTable.pawnShieldScore = 90;
 
-    defaultMgTable.bishopPairScore = 90;
+    // Pawn structures
+    defaultMgTable.blockingPawnScore = -100;
+    defaultMgTable.supportPawnsHotmap = Hotmap::defaultMgChainedPawnHotmap;
+    defaultMgTable.passersHotmap = Hotmap::defaultMgPasserHotmap;
+    defaultMgTable.connectedPassersHotmap = Hotmap::defaultMgConnectedPasserHotmap;
 
-    defaultMgTable.pawnChainScore = 45;
-
-    defaultMgTable.passerPercentBonus = 5;
-    defaultMgTable.outsidePasserPercentBonus = 70;
-
+    // Piece activity hotmaps
     for (PieceType pt = PT_PAWN; pt < PT_KING; ++pt) {
         defaultMgTable.getHotmap(pt) = Hotmap::defaultMiddlegameMaps[pt];
     }
     defaultMgTable.kingHotmap = Hotmap::defaultKingMgHotmap;
+
 }
 
 void ClassicEvaluator::generateNewEgTable() {
-    defaultEgTable.materialScore[PT_PAWN] = 1000;
-    defaultEgTable.materialScore[PT_KNIGHT] = 3900;
-    defaultEgTable.materialScore[PT_BISHOP] = 4400;
-    defaultEgTable.materialScore[PT_ROOK] = 6900;
-    defaultEgTable.materialScore[PT_QUEEN] = 11200;
-    defaultEgTable.materialScore[PT_KING] = 0;
+    // Material values
+    defaultEgTable.materialScore[PT_PAWN] = 1300;
+    defaultEgTable.materialScore[PT_KNIGHT] = 4200;
+    defaultEgTable.materialScore[PT_BISHOP] = 4700;
+    defaultEgTable.materialScore[PT_ROOK] = 6700;
+    defaultEgTable.materialScore[PT_QUEEN] = 12500;
 
+    // X-Rays
     defaultEgTable.xrayScores[PT_PAWN] = 0;
     defaultEgTable.xrayScores[PT_KNIGHT] = 0;
     defaultEgTable.xrayScores[PT_BISHOP] = 0;
@@ -90,30 +82,31 @@ void ClassicEvaluator::generateNewEgTable() {
     defaultEgTable.xrayScores[PT_QUEEN] = 0;
     defaultEgTable.xrayScores[PT_KING] = 0;
 
+    // Mobility scores
+    defaultEgTable.mobilityScores[PT_KNIGHT] = 6;
+    defaultEgTable.mobilityScores[PT_BISHOP] = 5;
+    defaultEgTable.mobilityScores[PT_ROOK] = 8;
+    defaultEgTable.mobilityScores[PT_QUEEN] = 4;
+
+    // Piece specific scores
+    defaultEgTable.bishopPairScore = 450;
+    defaultEgTable.outpostScore = 300;
+    defaultEgTable.goodComplexScore = 0;
+
+    // King safety scores
+    defaultEgTable.nearKingAttacksScore[PT_PAWN] = -30;
+    defaultEgTable.nearKingAttacksScore[PT_KNIGHT] = -40;
+    defaultEgTable.nearKingAttacksScore[PT_BISHOP] = -25;
+    defaultEgTable.nearKingAttacksScore[PT_ROOK] = -40;
+    defaultEgTable.nearKingAttacksScore[PT_QUEEN] = -45;
+
     defaultEgTable.pawnShieldScore = 15;
 
-    defaultEgTable.doublePawnScore = -120;
-
-    defaultEgTable.outpostScore = 300;
-
-    defaultEgTable.bishopPairScore = 400;
-
-    defaultEgTable.tropismScore[PT_PAWN] = 0;
-    defaultEgTable.tropismScore[PT_BISHOP] = 40;
-    defaultEgTable.tropismScore[PT_KNIGHT] = 120;
-    defaultEgTable.tropismScore[PT_ROOK] = 90;
-    defaultEgTable.tropismScore[PT_QUEEN] = 10;
-    defaultEgTable.tropismScore[PT_KING] = 400;
-
-    defaultEgTable.kingOnOpenFileScore = 0;
-    defaultEgTable.kingOnSemiOpenFileScore = 0;
-    defaultEgTable.kingNearOpenFileScore = 0;
-    defaultEgTable.kingNearSemiOpenFileScore = 0;
-
-    defaultEgTable.pawnChainScore = 120;
-
-    defaultEgTable.passerPercentBonus = 10;
-    defaultEgTable.outsidePasserPercentBonus = 85;
+    // Pawn structures
+    defaultEgTable.blockingPawnScore = -250;
+    defaultEgTable.supportPawnsHotmap = Hotmap::defaultEgChainedPawnHotmap;
+    defaultEgTable.passersHotmap = Hotmap::defaultEgPasserHotmap;
+    defaultEgTable.connectedPassersHotmap = Hotmap::defaultEgConnectedPasserHotmap;
 
     for (PieceType pt = PT_PAWN; pt < PT_KING; ++pt) {
         defaultEgTable.getHotmap(pt) = Hotmap::defaultEndgameMaps[pt];
@@ -124,35 +117,6 @@ void ClassicEvaluator::generateNewEgTable() {
 void ClassicEvaluator::initialize() {
     generateNewMgTable();
     generateNewEgTable();
-}
-
-ClassicEvaluator::PasserData ClassicEvaluator::getPasserData(const Position& pos, Color c, int gpf) const {
-    PasserData ret;
-
-    Color them = getOppositeColor(c);
-    Bitboard ourPawns = pos.getBitboard(Piece(c, PT_PAWN));
-    Bitboard theirPawns = pos.getBitboard(Piece(them, PT_PAWN));
-
-    for (Square s: ourPawns) {
-        Bitboard blockerBB = getPasserBlockerBitboard(s, c) & theirPawns;
-
-        if (blockerBB == 0) {
-            // No opposing blockers, we have a passer!
-            ret.allPassers.add(s);
-
-            // Now, check if it is an outside passer.
-            Bitboard contestantBB = getFileContestantsBitboard(s, c) & theirPawns;
-            if (contestantBB == 0) {
-                // It is an outside passer!
-                ret.outsidePassers.add(s);
-            }
-        }
-    }
-
-    ret.passerPercentBonus = adjustScores(m_MgScores.passerPercentBonus, m_EgScores.passerPercentBonus, gpf);
-    ret.outsidePasserPercentBonus = adjustScores(m_MgScores.outsidePasserPercentBonus, m_EgScores.outsidePasserPercentBonus, gpf);
-
-    return ret;
 }
 
 int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) const {
@@ -201,29 +165,6 @@ int ClassicEvaluator::evaluatePawnComplex(const Position& pos, Color color, int 
     return pawns.count() * individualScore;
 }
 
-int ClassicEvaluator::evaluateBlockingPawns(const Position& pos, Color c, int gpf) const {
-    int total = 0;
-
-    int doublePawnScore = adjustScores(m_MgScores.doublePawnScore, m_EgScores.doublePawnScore, gpf);
-
-    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
-
-    for (BoardFile f = FL_A; f < FL_COUNT; ++f) {
-        Bitboard fileBB = bbs::getFileBitboard(f);
-
-        Bitboard filePawns = fileBB & pawns;
-
-        // If two or more pawns of the same color are in a file,
-        // all but one are 'blocking' pawns.
-        int blockers = filePawns.count() - 1;
-        if (blockers > 0) {
-            total += blockers * doublePawnScore;
-        }
-    }
-
-    return total;
-}
-
 int ClassicEvaluator::evaluateOutposts(const Position& pos, Color color, int gpf) const {
     int total = 0;
     int individualScore = adjustScores(m_MgScores.outpostScore, m_EgScores.outpostScore, gpf);
@@ -241,38 +182,6 @@ int ClassicEvaluator::evaluateOutposts(const Position& pos, Color color, int gpf
         }
     }
 
-    return total;
-}
-
-int ClassicEvaluator::evaluateTropism(const Position& pos, Color c, int gpf) const {
-    int total = 0;
-
-    Square kingSquare = pos.getKingSquare(c);
-
-    Color them = getOppositeColor(c);
-
-    bool weHaveMoreMaterial = pos.countMaterial(c) > pos.countMaterial(them);
-
-    for (PieceType pt = PT_PAWN; pt < PT_KING; ++pt) {
-        if (weHaveMoreMaterial && pt == PT_KING) {
-            // Only give penalty for king proximity if they have more material
-            // than us
-            continue;
-        }
-
-        int trop = adjustScores(m_MgScores.tropismScore[pt], m_EgScores.tropismScore[pt], gpf);
-
-        Bitboard bb = pos.getBitboard(Piece(them, pt));
-        for (auto s : bb) {
-            // For every opponent piece, count tropism score based on their
-            // distance from our king
-            int dist = getManhattanDistance(kingSquare, s);
-            if (dist == 0) {
-                dist = 1;
-            }
-            total -= trop / dist; // The higher the distance, the lower the penalty.
-        }
-    }
     return total;
 }
 
@@ -325,30 +234,6 @@ int ClassicEvaluator::evaluateKingExposure(const Position& pos, Color c, int gpf
             default:
                 break;
         }
-    }
-
-    return total;
-}
-
-int ClassicEvaluator::evaluatePawnChains(const Position& pos, Color c, int gpf, const PasserData& pd) const {
-    int total = 0;
-    int pawnChainScore = adjustScores(m_MgScores.pawnChainScore, m_EgScores.pawnChainScore, gpf);
-
-    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
-    bool prevHasPawns = pawns & bbs::getFileBitboard(FL_A);
-
-    for (BoardFile f = FL_B; f < FL_COUNT; ++f) {
-        Bitboard filePawns = pawns & bbs::getFileBitboard(f);
-        bool hasPawn = filePawns != 0;
-
-        if (hasPawn && prevHasPawns) {
-            int score = pd.multiplyScore(pawnChainScore,
-                                         (filePawns & pd.allPassers) != 0,
-                                         (filePawns & pd.outsidePassers) != 0);
-
-            total += score;
-        }
-        prevHasPawns = hasPawn;
     }
 
     return total;
@@ -419,7 +304,7 @@ int ClassicEvaluator::evaluatePawnShield(const Position& pos, Color c, int gpf) 
     return pawnShieldBB.count() * pawnShieldScore;
 }
 
-int ClassicEvaluator::evaluatePlacement(const Position& pos, Color c, int gpf, const PasserData& pd) const {
+int ClassicEvaluator::evaluatePlacement(const Position& pos, Color c, int gpf) const {
     int total = 0;
 
     Square ourKingSquare = pos.getKingSquare(c);
@@ -427,18 +312,13 @@ int ClassicEvaluator::evaluatePlacement(const Position& pos, Color c, int gpf, c
 
     for (PieceType pt = PT_PAWN; pt < PT_KING; ++pt) {
         Bitboard bb = pos.getBitboard(Piece(c, pt));
+        const Hotmap& hotmapMg = m_MgScores.hotmapGroups[pt - 1].getHotmap(theirKingSquare);
+        const Hotmap& hotmapEg = m_EgScores.hotmapGroups[pt - 1].getHotmap(theirKingSquare);
 
         for (Square s: bb) {
-            const Hotmap& hotmapMg = m_MgScores.hotmapGroups[pt - 1].getHotmap(theirKingSquare);
-            const Hotmap& hotmapEg = m_EgScores.hotmapGroups[pt - 1].getHotmap(theirKingSquare);
-
             int score = adjustScores(hotmapMg.getValue(s, c),
                                      hotmapEg.getValue(s, c),
                                      gpf);
-
-            if (pt == PT_PAWN) {
-                score = pd.multiplyScoreIfPasser(s, score);
-            }
 
             total += score;
         }
@@ -447,6 +327,95 @@ int ClassicEvaluator::evaluatePlacement(const Position& pos, Color c, int gpf, c
     total += adjustScores(m_MgScores.kingHotmap.getValue(ourKingSquare, c),
                           m_EgScores.kingHotmap.getValue(ourKingSquare, c),
                           gpf);
+
+    return total;
+}
+
+Bitboard ClassicEvaluator::getPassedPawns(const Position& pos, Color c) {
+    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
+    Bitboard theirPawns = pos.getBitboard(Piece(getOppositeColor(c), PT_PAWN));
+    Bitboard bb = 0;
+
+    for (Square s: pawns) {
+        Bitboard cantHaveEnemyPawnsBB =
+                getFileContestantsBitboard(s, c) | getPasserBlockerBitboard(s, c);
+
+        if ((cantHaveEnemyPawnsBB & theirPawns) == 0) {
+            // No nearby file contestants and opposing blockers.
+            // Pawn is a passer!
+            bb.add(s);
+        }
+    }
+
+    return bb;
+}
+
+Bitboard ClassicEvaluator::getChainPawns(const Position& pos, Color c) {
+    Bitboard bb = 0;
+    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
+    Bitboard supportedPawns = 0;
+
+    for (BoardFile f = FL_A; f < FL_COUNT; ++f) {
+        Bitboard adjacentPawns = 0;
+        if (f > FL_A) {
+            adjacentPawns |= bbs::getFileBitboard(f - 1) & pawns;
+        }
+        if (f < FL_COUNT - 1) {
+            adjacentPawns |= bbs::getFileBitboard(f + 1) & pawns;
+        }
+        if (adjacentPawns == 0) {
+            // Isolated pawn
+            continue;
+        }
+        supportedPawns |= bbs::getFileBitboard(f) & pawns;
+    }
+
+    return bb;
+}
+
+int ClassicEvaluator::evaluateChainsAndPassers(const Position &pos, Color c, int gpf) const {
+    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
+    Bitboard chainedPawns = getChainPawns(pos, c);
+    Bitboard passedPawns = getPassedPawns(pos, c);
+    Bitboard connectedPassers = chainedPawns & passedPawns;
+
+    int total = 0;
+
+    for (Square s: pawns) {
+        if (chainedPawns.contains(s)) {
+            total += adjustScores(m_MgScores.supportPawnsHotmap.getValue(s, c),
+                                  m_EgScores.supportPawnsHotmap.getValue(s, c),
+                                  gpf);
+        }
+        if (passedPawns.contains(s)) {
+            total += adjustScores(m_MgScores.passersHotmap.getValue(s, c),
+                                  m_EgScores.passersHotmap.getValue(s, c),
+                                  gpf);
+        }
+        if (connectedPassers.contains(s)) {
+            total += adjustScores(m_MgScores.connectedPassersHotmap.getValue(s, c),
+                                  m_EgScores.connectedPassersHotmap.getValue(s, c),
+                                  gpf);
+        }
+    }
+
+    return total;
+}
+
+int ClassicEvaluator::evaluateBlockingPawns(const Position &pos, Color c, int gpf) const {
+    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
+
+    // Evaluate blocking pawns
+    int total = 0;
+    int individualBlockerScore = adjustScores(m_MgScores.blockingPawnScore, m_EgScores.blockingPawnScore, gpf);
+    for (BoardFile f = FL_A; f < FL_COUNT; ++f) {
+        Bitboard filePawns = bbs::getFileBitboard(f) & pawns;
+        if (filePawns == 0) {
+            continue;
+        }
+
+        total += (filePawns.count() - 1) * individualBlockerScore;
+    }
 
     return total;
 }
@@ -505,11 +474,7 @@ int ClassicEvaluator::evaluateShallow(const Position &pos) const {
     Color us = pos.getColorToMove();
     Color them = getOppositeColor(us);
 
-    PasserData ourPasserData = getPasserData(pos, us, gpf);
-    PasserData theirPasserData = getPasserData(pos, them, gpf);
-
-    return evaluateMaterial(pos, us, gpf) - evaluateMaterial(pos, them, gpf)
-        + evaluatePlacement(pos, us, gpf, ourPasserData) - evaluatePlacement(pos, them, gpf, theirPasserData);
+    return evaluateMaterial(pos, us, gpf) - evaluateMaterial(pos, them, gpf);
 }
 
 int ClassicEvaluator::evaluate(const Position& pos) const {
@@ -536,14 +501,12 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
     int material = evaluateMaterial(pos, us, gpf) - evaluateMaterial(pos, them, gpf);
 
     // Pawn structure
-    PasserData ourPasserData = getPasserData(pos, us, gpf);
-    PasserData theirPasserData = getPasserData(pos, them, gpf);
-    int doublePawns = evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
-    int pawnChains = evaluatePawnChains(pos, us, gpf, ourPasserData) - evaluatePawnChains(pos, them, gpf, theirPasserData);
+    int blockingPawns = evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
+    //int chainsAndPassers = evaluateChainsAndPassers(pos, us, gpf) - evaluateChainsAndPassers(pos, them, gpf);
     int pawnComplex = evaluatePawnComplex(pos, us, gpf) - evaluatePawnComplex(pos, them, gpf);
 
     // Activity
-    int placement = evaluatePlacement(pos, us, gpf, ourPasserData) - evaluatePlacement(pos, them, gpf, theirPasserData);
+    int placement = evaluatePlacement(pos, us, gpf) - evaluatePlacement(pos, them, gpf);
     int bishopPair = evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
     int mobility = evaluateMobility(pos, us, gpf) - evaluateMobility(pos, them, gpf);
     int outposts = evaluateOutposts(pos, us, gpf) - evaluateOutposts(pos, them, gpf);
@@ -556,7 +519,7 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
 
     int total = placement + bishopPair + mobility
                 + outposts + xrays
-                + doublePawns + pawnChains + pawnComplex
+                + blockingPawns + pawnComplex
                 + pawnShield + nearKingAttacks
                 + material;
 

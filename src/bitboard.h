@@ -408,16 +408,11 @@ inline Bitboard getQueenAttacks(Square s, Bitboard occ) {
 
 inline Bitboard getSliderAttacks(Square s, Bitboard occ, PieceType pt) {
     switch (pt) {
-        case PT_BISHOP:
-            return getBishopAttacks(s, occ);
-
-        case PT_ROOK:
-            return getRookAttacks(s, occ);
-
-        case PT_QUEEN:
-            return getQueenAttacks(s, occ);
+        case PT_BISHOP: return getBishopAttacks(s, occ);
+        case PT_ROOK:   return getRookAttacks(s, occ);
+        case PT_QUEEN:  return getQueenAttacks(s, occ);
+        default:        return 0;
     }
-    return 0;
 }
 
 /**
@@ -431,14 +426,14 @@ inline Bitboard getPawnAttacks(Square s, Color c) {
 
 inline Bitboard getPieceAttacks(Square s, Bitboard occ, Piece piece) {
     switch (piece.getType()) {
-        case PT_PAWN: return getPawnAttacks(s, piece.getColor()) & occ;
+        case PT_PAWN:   return getPawnAttacks(s, piece.getColor()) & occ;
         case PT_KNIGHT: return getKnightAttacks(s);
         case PT_BISHOP: return getBishopAttacks(s, occ);
-        case PT_ROOK: return getRookAttacks(s, occ);
-        case PT_QUEEN: return getQueenAttacks(s, occ);
-        case PT_KING: return getKingAttacks(s);
+        case PT_ROOK:   return getRookAttacks(s, occ);
+        case PT_QUEEN:  return getQueenAttacks(s, occ);
+        case PT_KING:   return getKingAttacks(s);
+        default:        return 0;
     }
-    return 0;
 }
 
 /**

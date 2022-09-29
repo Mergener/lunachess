@@ -31,7 +31,7 @@ static void generateFileContestantsBitboard() {
                     bb.add(rank * 8 + f);
                 }
             }
-            g_FileContestantsBBs[sq][(int)c - 1] = bb;
+            g_FileContestantsBBs[sq][c] = bb;
         }
     }
 }

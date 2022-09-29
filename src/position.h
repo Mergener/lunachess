@@ -57,16 +57,37 @@ public:
 
     inline ui64 getZobrist() const { return m_Status.zobrist; }
 
-    inline int getPlyCount() { return m_PlyCount; }
+    inline int getPlyCount() const { return m_PlyCount; }
 
+    /**
+     * Returns a bitboard of all occupied squares.
+     */
     inline Bitboard getCompositeBitboard() const { return m_Composite; }
+
+    /**
+     * Returns a bitboard with the location of all pieces equal to the one
+     * specified. If the specified piece's type is of type PT_NONE, returns
+     * all the pieces of the specified piece's color.
+     * Ex: Specifying p as Piece(CL_BLACK, PT_NONE) will return a bitboard
+     * with all black pieces' squares.
+     */
     inline Bitboard getBitboard(Piece p) const { return m_BBs[p.getType()][p.getColor()]; }
 
     inline Bitboard getAttacks(Color c, PieceType pt = PT_NONE) const {
         return m_Status.attacks[pt][c];
     }
 
+    /**
+     * Returns a bitboard with the squares of all pieces that are
+     * pinned to their respective king.
+     */
     inline Bitboard getPinned() const { return m_Pinned; }
+
+    /**
+     * For a given square s, returns the square of a piece that is currently
+     * pinning a piece on square s to its king.
+     * Returns SQ_INVALID if there is no pinner.
+     */
     inline Square getPinner(Square s) const { return m_Pinner[s]; }
 
     //
@@ -175,8 +196,10 @@ public:
      */
     void makeMove(Move move);
 
-    /** Undoes the effects of the last move made on the board.
-        Assumes a move has been previously made. */
+    /**
+     * Undoes the effects of the last move made on the board.
+     * Assumes a move has been previously made.
+     */
     void undoMove();
 
     /**
@@ -331,7 +354,7 @@ bool Position::isMoveLegal(Move move) const {
         }
     }
 
-    // En-passants must be treated with extra care.
+    // En-passant must be treated with extra care.
     if (move.getType() == MT_EN_PASSANT_CAPTURE) {
         Square capturedPawnSq = dest + getPawnStepDir(them);
         Bitboard epOcc = occ;

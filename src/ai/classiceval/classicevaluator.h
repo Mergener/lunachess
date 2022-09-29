@@ -18,13 +18,16 @@ struct ScoreTable {
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ScoreTable, materialScore, hotmapGroups,
                                        kingHotmap, xrayScores, mobilityScores,
                                        bishopPairScore, outpostScore, goodComplexScore,
-                                       tropismScore, nearKingAttacksScore, pawnShieldScore,
+                                       nearKingAttacksScore, pawnShieldScore,
                                        kingOnOpenFileScore, kingNearOpenFileScore,
                                        kingOnSemiOpenFileScore, kingNearSemiOpenFileScore,
-                                       doublePawnScore, pawnChainScore, passerPercentBonus,
-                                       outsidePasserPercentBonus);
+                                       supportPawnsHotmap, passersHotmap, connectedPassersHotmap);
 
-    std::array<int, PT_COUNT> materialScore;
+    /**
+     * Score given for the mere existence of pieces of our color.
+     * Score is specific for each piece type.
+     */
+    std::array<int, PT_COUNT> materialScore {};
 
     // Activity scores:
     std::array<KingSquareHotmapGroup, PT_COUNT - 2> hotmapGroups;
@@ -33,26 +36,71 @@ struct ScoreTable {
 
     Hotmap kingHotmap;
 
-    std::array<int, PT_COUNT> xrayScores;
-    std::array<int, PT_COUNT> mobilityScores;
+    /**
+     * Score given for every opposing piece that is either
+     * under the line of sight or xray of one of our sliding pieces.
+     * The score is specific to each piece type of piece being xrayed.
+     * Ex: a score of 50 for PT_ROOK will give us 50 mps for every xray
+     * being applied on an opposing rook.
+     */
+    std::array<int, PT_COUNT> xrayScores{};
+
+    /**
+     * Score given for each square being attacked by a piece of a color.
+     * The score is specific to each piece type. Does not apply to pawns or
+     * kings.
+     */
+    std::array<int, PT_COUNT> mobilityScores{};
+
+    /**
+     * Score given for having two bishops of opposite colors.
+     */
     int bishopPairScore = 0;
+
+    /**
+     * Score given for each knight that is placed on a square that has no
+     * opposing pawns on adjacent files that can be pushed to kick
+     * them away.
+     */
     int outpostScore = 0;
+
+    /**
+     * Score given for each pawn that is placed on a score that favors
+     * our bishop, if we only have one.
+     */
     int goodComplexScore = 0;
 
     // King safety scores:
-    std::array<int, PT_COUNT> tropismScore;
-    std::array<int, PT_COUNT> nearKingAttacksScore;
+    std::array<int, PT_COUNT> nearKingAttacksScore{};
     int pawnShieldScore = 0;
     int kingOnOpenFileScore = 0;
     int kingNearOpenFileScore = 0;
     int kingOnSemiOpenFileScore = 0;
     int kingNearSemiOpenFileScore = 0;
 
-    // Pawn structure scores:
-    int doublePawnScore = 0;
-    int pawnChainScore = 0;
-    int passerPercentBonus = 0;
-    int outsidePasserPercentBonus = 0;
+    /**
+     * Hotmap for support pawn scores.
+     * A pawn is a support pawn if it has pawns of the
+     * same color in adjacent files.
+     */
+    Hotmap supportPawnsHotmap;
+
+    /**
+     * Hotmap for passed pawn scores.
+     * A pawn is passed (aka a passer) when no opposing pawn can either
+     * block it or capture it further down its file.
+     */
+    Hotmap passersHotmap;
+
+    /**
+     * Extra score given to pawns that are both passers and support pawns.
+     */
+    Hotmap connectedPassersHotmap;
+
+    /**
+     * Score given to pawns that are blocking other pawns of the same color in the file.
+     */
+    int blockingPawnScore = 0;
 
     inline ScoreTable() noexcept {
         std::memset(reinterpret_cast<void*>(this), 0, sizeof(*this));
@@ -76,44 +124,11 @@ class ClassicEvaluator : public Evaluator {
     static ScoreTable defaultEgTable;
 
 public:
-    virtual int getDrawScore() const override;
-    virtual int evaluate(const Position& pos) const override;
-    virtual int evaluateShallow(const Position& pos) const override;
+    int getDrawScore() const override;
+    int evaluate(const Position& pos) const override;
+    int evaluateShallow(const Position& pos) const override;
 
     int getGamePhaseFactor(const Position& pos) const;
-
-    struct PasserData {
-        Bitboard allPassers = 0;
-        Bitboard outsidePassers = 0;
-
-        int passerPercentBonus;
-        int outsidePasserPercentBonus;
-
-        inline bool isPasser(Square s) const { return allPassers.contains(s); }
-        inline bool isOutsidePasser(Square s) const { return outsidePassers.contains(s); }
-
-        inline int multiplyScore(int score, bool isPasser, bool isOutsidePasser) const {
-            int mult = 100;
-
-            if (isPasser) {
-                mult += passerPercentBonus;
-                if (isOutsidePasser) {
-                    mult += outsidePasserPercentBonus;
-                }
-            }
-
-            int ret = (score * mult) / 100;
-
-            return ret;
-        }
-
-        inline int multiplyScoreIfPasser(Square square, int score) const {
-            return multiplyScore(score, isPasser(square), isOutsidePasser(square));
-        }
-    };
-    inline PasserData getPasserData(const Position& pos, Color c) const {
-        return getPasserData(pos, c, getGamePhaseFactor(pos));
-    }
 
     inline ScoreTable& getMiddlegameScores() { return m_MgScores; }
     inline const ScoreTable& getMiddlegameScores() const { return m_MgScores; }
@@ -144,15 +159,14 @@ private:
     int evaluateNearKingAttacks(const Position& pos, Color c, int gpf) const;
 
     // Pawn structure
-
-    PasserData getPasserData(const Position& pos, Color c, int gpf) const;
-
+    static Bitboard getPassedPawns(const Position& pos, Color c);
+    static Bitboard getChainPawns(const Position& pos, Color c);
     int evaluateBlockingPawns(const Position& pos, Color c, int gpf) const;
-    int evaluatePawnChains(const Position& pos, Color c, int gpf, const PasserData& pd) const;
+    int evaluateChainsAndPassers(const Position& pos, Color c, int gpf) const;
 
     // Activity
     int evaluatePawnComplex(const Position& pos, Color c, int gpf) const;
-    int evaluatePlacement(const Position& pos, Color c, int gpf, const PasserData& pd) const;
+    int evaluatePlacement(const Position& pos, Color c, int gpf) const;
     int evaluateOutposts(const Position& pos, Color c, int gpf) const;
     int evaluateMobility(const Position& pos, Color c, int gpf) const;
     int evaluateBishopPair(const Position& pos, Color c, int gpf) const;

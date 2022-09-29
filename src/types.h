@@ -413,29 +413,19 @@ inline constexpr bool isLoss(ChessResult r) {
 inline constexpr bool isDraw(ChessResult r) {
     return r >= RES_DRAW_BEGIN && r <= RES_DRAW_END;
 }
-
+/**
+ * Turns a win result into the equivalent loss result or vice-versa and
+ * returns it. Draw/Unfinished results are returned with no change.
+ */
 inline constexpr ChessResult getOppositeResult(ChessResult r) {
     switch (r) {
-        case RES_WIN_CHECKMATE:
-            return RES_LOSS_CHECKMATE;
-
-        case RES_WIN_TIME:
-            return RES_LOSS_TIME;
-
-        case RES_WIN_RESIGN:
-            return RES_LOSS_RESIGN;
-
-        case RES_LOSS_CHECKMATE:
-            return RES_WIN_CHECKMATE;
-
-        case RES_LOSS_TIME:
-            return RES_WIN_TIME;
-
-        case RES_LOSS_RESIGN:
-            return RES_WIN_RESIGN;
-
-        default:
-            return r;
+        case RES_WIN_CHECKMATE:  return RES_LOSS_CHECKMATE;
+        case RES_WIN_TIME:       return RES_LOSS_TIME;
+        case RES_WIN_RESIGN:     return RES_LOSS_RESIGN;
+        case RES_LOSS_CHECKMATE: return RES_WIN_CHECKMATE;
+        case RES_LOSS_TIME:      return RES_WIN_TIME;
+        case RES_LOSS_RESIGN:    return RES_WIN_RESIGN;
+        default:                 return r;
     }
 }
 

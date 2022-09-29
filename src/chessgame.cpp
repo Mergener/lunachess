@@ -45,13 +45,26 @@ std::string ChessGame::toPgn(ToPgnArgs args) const {
         } else {
             ss << moveNumber << "... ";
         }
-        ss << m_Moves[0].toAlgebraic(pos) << ' ';
+        ss << m_Moves[0].toAlgebraic(pos);
         pos.makeMove(m_Moves[0]);
 
         // Finally, write the moves
         for (int i = 1; i < m_Moves.size(); ++i) {
+            if (pos.isCheck()) {
+                // Check if mate
+                if (pos.getResult(CL_WHITE) != RES_UNFINISHED) {
+                    // Mate
+                    ss << '#';
+                    break;
+                }
+                ss << '+';
+            }
+
             if (i % args.pliesPerLine == 0) {
                 ss << std::endl;
+            }
+            else {
+                ss << ' ';
             }
 
             if (pos.getPlyCount() % 2 == 0) {
@@ -59,7 +72,7 @@ std::string ChessGame::toPgn(ToPgnArgs args) const {
                 ss << moveNumber << ". ";
             }
             Move m = m_Moves[i];
-            ss << m.toAlgebraic(pos) << ' ';
+            ss << m.toAlgebraic(pos);
             pos.makeMove(m);
         }
     }
