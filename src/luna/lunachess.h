@@ -15,7 +15,7 @@
 #include "staticlist.h"
 #include "strutils.h"
 #include "types.h"
-#include "uci.h"
+#include "../lunacli/uci.h"
 #include "utils.h"
 #include "zobrist.h"
 

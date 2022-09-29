@@ -28,9 +28,9 @@ void ClassicEvaluator::generateNewMgTable() {
     defaultMgTable.xrayScores[PT_PAWN] = -30;
     defaultMgTable.xrayScores[PT_KNIGHT] = 8;
     defaultMgTable.xrayScores[PT_BISHOP] = 8;
-    defaultMgTable.xrayScores[PT_ROOK] = 48;
-    defaultMgTable.xrayScores[PT_QUEEN] = 96;
-    defaultMgTable.xrayScores[PT_KING] = 101;
+    defaultMgTable.xrayScores[PT_ROOK]   = 48;
+    defaultMgTable.xrayScores[PT_QUEEN]  = 96;
+    defaultMgTable.xrayScores[PT_KING]   = 101;
 
     // Mobility scores
     defaultMgTable.mobilityScores[PT_KNIGHT] = 14;

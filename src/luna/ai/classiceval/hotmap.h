@@ -40,7 +40,7 @@ public:
         m_Values[squareToIdx(s, pov)] = value;
     }
 
-    inline Hotmap() {
+    inline Hotmap() noexcept {
         std::fill(m_Values.begin(), m_Values.end(), 0);
     }
 
