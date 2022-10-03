@@ -848,7 +848,7 @@ std::ostream& operator<<(std::ostream& stream, const Position& pos) {
         for (BoardFile f = FL_A; f <= FL_H; f++) {
             Square s = getSquare(f, r);
 
-            std::cout << " " << pos.getPieceAt(s).getIdentifier();
+            stream << " " << pos.getPieceAt(s).getIdentifier();
         }
 
         stream << " ]\n";

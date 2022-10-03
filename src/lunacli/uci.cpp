@@ -259,6 +259,7 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
 
     // FEN string successfully interpreted, set the position accordingly
     ctx.pos = *posOpt;
+    std::cout << ctx.pos << std::endl;
 
     if (movesArgsIdx == -1) {
         return;
@@ -438,7 +439,7 @@ static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
 
     auto before = Clock::now();
 
-    ui64 res = perft(ctx.pos, depth, pseudoLegal, algNotation);
+    ui64 res = perft(ctx.pos, depth, true, pseudoLegal, algNotation);
 
     i64 elapsed = deltaMs(Clock::now(), before);
 

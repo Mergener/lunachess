@@ -52,7 +52,8 @@ add_library(luna STATIC
         src/luna/utils.cpp
         src/luna/ai/neuraleval/neuralgenetic.cpp
         src/luna/endgame.cpp
-        src/luna/endgame.h src/luna/openingbook.cpp src/luna/openingbook.h)
+        src/luna/endgame.h src/luna/openingbook.cpp
+        src/luna/openingbook.h)
 
 add_executable(lunacli
         src/lunacli/main.cpp
@@ -61,8 +62,7 @@ add_executable(lunacli
 
 add_executable(lunatest
         src/lunatest/main.cpp
-        src/lunatest/testlist.cpp
-        )
+        src/lunatest/testlist.cpp)
 
 ##
 # Compilation settings
@@ -72,6 +72,9 @@ set_target_properties(lunacli PROPERTIES OUTPUT_NAME ${LUNA_OUT_NAME})
 target_compile_definitions(lunacli PUBLIC LUNA_VERSION_MAJOR=${LUNA_VERSION_MAJOR})
 target_compile_definitions(lunacli PUBLIC LUNA_VERSION_MINOR=${LUNA_VERSION_MINOR})
 target_compile_definitions(lunacli PUBLIC LUNA_VERSION_PATCH=${LUNA_VERSION_PATCH})
+target_compile_definitions(lunatest PUBLIC LUNA_VERSION_MAJOR=${LUNA_VERSION_MAJOR})
+target_compile_definitions(lunatest PUBLIC LUNA_VERSION_MINOR=${LUNA_VERSION_MINOR})
+target_compile_definitions(lunatest PUBLIC LUNA_VERSION_PATCH=${LUNA_VERSION_PATCH})
 
 ##
 # Add external dependencies

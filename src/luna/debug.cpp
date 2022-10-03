@@ -11,6 +11,15 @@ public:
             : std::runtime_error("Assertion failure") { }
 };
 
+
+bool assertsEnabledInLib() {
+#ifdef LUNA_ASSERTS_ON
+    return true;
+#else
+    return false;
+#endif
+}
+
 static void defaultAssertionFailHandler(const char* fileName, const char* funcName, int line, std::string_view msg) {
     std::cerr << "[Assertion Failure] In file " << fileName << ", function " << funcName << ", line " << line << " -- Message:\n";
     std::cerr << msg;

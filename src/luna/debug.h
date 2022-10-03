@@ -8,10 +8,6 @@
 
 //#define LUNA_ASSERTS_ON
 
-#ifndef LUNA_TESTABLE_CLASS
-#define LUNA_TESTABLE_CLASS
-#endif
-
 #ifndef NDEBUG
 #define LUNA_ASSERTS_ON
 #endif
@@ -37,6 +33,8 @@
 
 
 namespace lunachess::debug {
+
+bool assertsEnabledInLib();
 
 using AssertionFailHandler = std::function<void(const char* fileName,
                                                 const char* funcName,

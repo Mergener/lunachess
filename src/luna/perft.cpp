@@ -57,23 +57,31 @@ static ui64 perftInternal(Position& pos, int depth) {
     return ret;
 }
 
-ui64 perft(const Position& pos, int depth, bool pseudoLegal, bool algNotation) {
+ui64 perft(const Position& pos, int depth, bool log, bool pseudoLegal, bool algNotation) {
     Position repl = pos;
 
     ui64 ret;
 
-    if (algNotation) {
-        if (pseudoLegal) {
-            ret = perftInternal<true, true, true>(repl, depth);
+    if (log) {
+        if (algNotation) {
+            if (pseudoLegal) {
+                ret = perftInternal<true, true, true>(repl, depth);
+            } else {
+                ret = perftInternal<false, true, true>(repl, depth);
+            }
         } else {
-            ret = perftInternal<false, true, true>(repl, depth);
+            if (pseudoLegal) {
+                ret = perftInternal<true, false, true>(repl, depth);
+            } else {
+                ret = perftInternal<false, false, true>(repl, depth);
+            }
         }
     }
     else {
         if (pseudoLegal) {
-            ret = perftInternal<true, false, true>(repl, depth);
+            ret = perftInternal<true, true, false>(repl, depth);
         } else {
-            ret = perftInternal<false, false, true>(repl, depth);
+            ret = perftInternal<false, true, false>(repl, depth);
         }
     }
 

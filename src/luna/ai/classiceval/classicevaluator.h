@@ -120,8 +120,6 @@ struct ScoreTable {
 };
 
 class ClassicEvaluator : public Evaluator {
-    LUNA_TESTABLE_CLASS
-
     static ScoreTable defaultMgTable;
     static ScoreTable defaultEgTable;
 
@@ -148,36 +146,31 @@ public:
 
     static void initialize();
 
-private:
-    ScoreTable m_MgScores;
-    ScoreTable m_EgScores;
-
-    int evaluateMaterial(const Position& pos, Color c, int gpf) const;
-
-    // King safety
-    int evaluateTropism(const Position& pos, Color c, int gpf) const;
-    int evaluatePawnShield(const Position& pos, Color c, int gpf) const;
-    int evaluateKingExposure(const Position& pos, Color c, int gpf) const;
-    int evaluateNearKingAttacks(const Position& pos, Color c, int gpf) const;
-
-    // Pawn structure
-    static Bitboard getPassedPawns(const Position& pos, Color c);
-    static Bitboard getChainPawns(const Position& pos, Color c);
     int evaluateBlockingPawns(const Position& pos, Color c, int gpf) const;
     int evaluateChainsAndPassers(const Position& pos, Color c, int gpf) const;
-
-    // Activity
     int evaluatePawnComplex(const Position& pos, Color c, int gpf) const;
     int evaluatePlacement(const Position& pos, Color c, int gpf) const;
     int evaluateOutposts(const Position& pos, Color c, int gpf) const;
     int evaluateMobility(const Position& pos, Color c, int gpf) const;
     int evaluateBishopPair(const Position& pos, Color c, int gpf) const;
     int evaluateXrays(const Position& pos, Color c, int gpf) const;
-
     int evaluateClassic(const Position& pos) const;
     int evaluateEndgame(const Position& pos, EndgameData egData) const;
     int evaluateKPK(const Position& pos, Color lhs) const;
     int evaluateKBNK(const Position& pos, Color lhs) const;
+    int evaluateNearKingAttacks(const Position& pos, Color c, int gpf) const;
+    int evaluatePawnShield(const Position& pos, Color c, int gpf) const;
+    int evaluateKingExposure(const Position& pos, Color c, int gpf) const;
+
+private:
+    ScoreTable m_MgScores;
+    ScoreTable m_EgScores;
+
+    int evaluateMaterial(const Position& pos, Color c, int gpf) const;
+
+    // Pawn structure
+    static Bitboard getPassedPawns(const Position& pos, Color c);
+    static Bitboard getChainPawns(const Position& pos, Color c);
 
     static void generateNewMgTable();
     static void generateNewEgTable();

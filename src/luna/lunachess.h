@@ -9,6 +9,7 @@
 #include "lock.h"
 #include "move.h"
 #include "movegen.h"
+#include "openingbook.h"
 #include "perft.h"
 #include "piece.h"
 #include "position.h"
