@@ -1,6 +1,9 @@
 #ifndef LUNA_TEST_H
 #define LUNA_TEST_H
 
+#define LUNA_ASSERTS_ON
+#include <lunachess.h>
+
 #include <string>
 
 #include "rang.h"

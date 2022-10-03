@@ -2,13 +2,17 @@
 
 #include <vector>
 
-#define LUNA_ASSERTS_ON
-#include "tests/perfttests.cpp"
+#include "tests/movegen/perfttests.cpp"
+#include "tests/template.cpp"
 
 namespace lunachess::tests {
 
-std::vector<TestSuite*> g_TestSuites = {
-    new PerftTests(),
-};
+std::vector<TestSuite*> g_TestSuites;
+
+void createTests() {
+    g_TestSuites = {
+        new PerftTests(),
+    };
+}
 
 }

@@ -8,6 +8,7 @@
 
 namespace lunachess::tests {
 
+void createTests();
 extern std::vector<TestSuite*> g_TestSuites;
 
 class AssertionFailure {
@@ -40,6 +41,7 @@ struct TestContext {
 
 int testMain() {
     TERMINAL_COLOR_DEFAULT();
+    createTests();
 
     if (!debug::assertsEnabledInLib()) {
         // LUNA_ASSERT will be working on unit tests, but not
@@ -68,11 +70,12 @@ int testMain() {
     for (int i = 0; i < g_TestSuites.size(); ++i) {
         TERMINAL_ERASE_LINE();
         std::cout << i << " of " << g_TestSuites.size() << " tests finished...";
-        std::cout.flush();
         const auto& test = g_TestSuites[i];
         try {
             ctx.nTests++;
             ctx.currentTestName = test->getName();
+            std::cout << " (running test '" << ctx.currentTestName << "')";
+            std::cout.flush();
             test->run();
             ctx.nTestsPassed++;
         }
