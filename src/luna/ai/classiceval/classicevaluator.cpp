@@ -351,9 +351,8 @@ Bitboard ClassicEvaluator::getPassedPawns(const Position& pos, Color c) {
 }
 
 Bitboard ClassicEvaluator::getChainPawns(const Position& pos, Color c) {
-    Bitboard bb = 0;
     Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
-    Bitboard supportedPawns = 0;
+    Bitboard bb = 0;
 
     for (BoardFile f = FL_A; f < FL_COUNT; ++f) {
         Bitboard adjacentPawns = 0;
@@ -367,7 +366,7 @@ Bitboard ClassicEvaluator::getChainPawns(const Position& pos, Color c) {
             // Isolated pawn
             continue;
         }
-        supportedPawns |= bbs::getFileBitboard(f) & pawns;
+        bb |= bbs::getFileBitboard(f) & pawns;
     }
 
     return bb;
