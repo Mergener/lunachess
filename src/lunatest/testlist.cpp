@@ -1,17 +1,21 @@
 #include "lunatest.h"
 
-#include <vector>
+#include <string>
+#include <unordered_map>
 
-#include "tests/movegen/perfttests.cpp"
-#include "tests/template.cpp"
+#include "tests/movegen/perft.cpp"
+#include "tests/classiceval/classiceval.cpp"
+#include "tests/endgame.cpp"
 
 namespace lunachess::tests {
 
-std::vector<TestSuite*> g_TestSuites;
+std::unordered_map<std::string, std::vector<TestCase>> testGroups;
 
 void createTests() {
-    g_TestSuites = {
-        new PerftTests(),
+    testGroups = {
+        { "passers", passerTests },
+        { "perft", perftTests },
+        { "endgame", endgameTests },
     };
 }
 

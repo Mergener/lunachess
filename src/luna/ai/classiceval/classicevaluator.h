@@ -162,15 +162,16 @@ public:
     int evaluatePawnShield(const Position& pos, Color c, int gpf) const;
     int evaluateKingExposure(const Position& pos, Color c, int gpf) const;
 
+    // Pawn structure
+    static Bitboard getPassedPawns(const Position& pos, Color c);
+    static Bitboard getChainPawns(const Position& pos, Color c);
+
 private:
     ScoreTable m_MgScores;
     ScoreTable m_EgScores;
 
     int evaluateMaterial(const Position& pos, Color c, int gpf) const;
 
-    // Pawn structure
-    static Bitboard getPassedPawns(const Position& pos, Color c);
-    static Bitboard getChainPawns(const Position& pos, Color c);
 
     static void generateNewMgTable();
     static void generateNewEgTable();

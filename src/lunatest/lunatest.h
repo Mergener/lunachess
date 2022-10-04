@@ -5,6 +5,7 @@
 #include <lunachess.h>
 
 #include <string>
+#include <functional>
 
 #include "rang.h"
 
@@ -18,24 +19,7 @@
 
 namespace lunachess::tests {
 
-/**
- * Class for test suites.
- */
-class TestSuite {
-public:
-    virtual void run() = 0;
-
-    inline const std::string& getName() const {
-        return m_Name;
-    }
-
-protected:
-    explicit TestSuite(std::string name)
-            : m_Name(std::move(name)) {}
-
-private:
-    std::string m_Name;
-};
+using TestCase = std::function<void()>;
 
 } // lunachess::tests
 

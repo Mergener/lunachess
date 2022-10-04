@@ -8,23 +8,26 @@
 
 namespace lunachess::tests {
 
+extern std::unordered_map<std::string, std::vector<TestCase>> testGroups;
 void createTests();
-extern std::vector<TestSuite*> g_TestSuites;
 
 class AssertionFailure {
 public:
-    std::string testName;
+    std::string testGroup;
+    int caseIndex;
     std::string assertMessage;
     std::string assertFunction;
     std::string assertFile;
     int assertLine;
 
-    AssertionFailure(std::string testName,
+    AssertionFailure(std::string testGroup,
+                     int caseIndex,
                      std::string assertMessage,
                      std::string assertFunction,
                      std::string assertFile,
                      int assertLine)
-     : testName(std::move(testName)),
+     : testGroup(std::move(testGroup)),
+       caseIndex(caseIndex),
        assertMessage(std::move(assertMessage)),
        assertFunction(std::move(assertFunction)),
        assertFile(std::move(assertFile)),
@@ -36,6 +39,7 @@ struct TestContext {
     int nTestsPassed = 0;
 
     std::string currentTestName;
+    int currentTestCase;
     std::vector<AssertionFailure> assertionFailures;
 };
 
@@ -56,48 +60,63 @@ int testMain() {
 
     TestContext ctx;
 
+    // We store assertion failures at the context to log them only
+    // after running all tests.
     debug::setAssertFailHandler([&ctx](const char* fileName, const char* funcName, int line, std::string_view msg) {
-        ctx.assertionFailures.emplace_back(ctx.currentTestName, std::string(msg), funcName, fileName, line);
+        ctx.assertionFailures.emplace_back(ctx.currentTestName, ctx.currentTestCase, std::string(msg), funcName, fileName, line);
     });
 
-    std::cout << "The following tests will be executed: " << std::endl;
-    for (const auto& test: g_TestSuites) {
-        std::cout << "\t- " << test->getName() << std::endl;
+    std::cout << "The following test groups will be executed: " << std::endl;
+    for (const auto& pair: testGroups) {
+        std::cout << "\t- " << pair.first << std::endl;
     }
 
     std::cout << "\nRunning tests..." << std::endl;
     std::cout << std::endl;
-    for (int i = 0; i < g_TestSuites.size(); ++i) {
+    int i = 0; // Used to count how many tests have been executed so far
+    for (const auto& pair: testGroups) {
         TERMINAL_ERASE_LINE();
-        std::cout << i << " of " << g_TestSuites.size() << " tests finished...";
-        const auto& test = g_TestSuites[i];
+        std::cout << i << " of " << testGroups.size() << " tests finished...";
+
+        auto name = pair.first;
+        const auto& group = pair.second;
         try {
             ctx.nTests++;
-            ctx.currentTestName = test->getName();
-            std::cout << " (running test '" << ctx.currentTestName << "')";
+            ctx.currentTestName = name;
+            std::cout << " (running test group '" << ctx.currentTestName << "')";
             std::cout.flush();
-            test->run();
+
+            for (int j = 0; j < group.size(); ++j) {
+                ctx.currentTestCase = j;
+                group[j]();
+            }
+
             ctx.nTestsPassed++;
         }
         catch (const std::exception& e) {
+            // Unhandled exceptions are worse than failed assertions in this case, since
+            // they can impact the state of further tests or even worse.
+            // Log and abort tests.
             TERMINAL_COLOR_ERROR();
-            std::cerr << "Unhandled exception occurred during test " << ctx.currentTestName << ":\n" << e.what() << std::endl;
+            std::cerr << "Unhandled exception occurred during test group " << ctx.currentTestName << ":\n" << e.what() << std::endl;
             TERMINAL_COLOR_DEFAULT();
             throw e;
         }
+        i++;
     }
 
     TERMINAL_ERASE_LINE();
     std::cout << "All tests finished.\n" << std::endl;
 
     if (ctx.assertionFailures.empty()) {
+        // All tests passed :)
         TERMINAL_COLOR_SUCCESS();
         std::cout << "All " << ctx.nTests << " tests passed." << std::endl;
         TERMINAL_COLOR_DEFAULT();
 
         return 0;
     }
-
+    // Not all tests passed :(
     TERMINAL_COLOR_ASSERTFAIL();
     int nTestFails = ctx.nTests - ctx.nTestsPassed;
     std::cout << nTestFails << " of " << ctx.nTests << " tests passed. " << std::endl;
@@ -107,8 +126,11 @@ int testMain() {
 
     std::string currTest = "";
     for (const AssertionFailure& f: ctx.assertionFailures) {
-        if (f.testName != currTest) {
-            currTest = f.testName;
+        if (f.testGroup != currTest) {
+            // Assertion failures from a single group are placed contiguously.
+            // If the test group changes, this means that we are now reporting
+            // failures from a different group -- log it.
+            currTest = f.testGroup;
             std::cout << "\nTest '" << currTest << "':" << std::endl;
         }
 
@@ -116,13 +138,16 @@ int testMain() {
         std::cout << "\tFile: " << f.assertFile << std::endl;
         std::cout << "\tFunction: " << f.assertFunction << std::endl;
         std::cout << "\tLine: " << f.assertLine << std::endl;
+        std::cout << "\tTest Case: " << f.caseIndex << std::endl;
         std::cout << "\tMessage: " << f.assertMessage << std::endl;
 
         std::cout << std::endl;
         TERMINAL_COLOR_DEFAULT();
     }
 
-    return ctx.nTests - ctx.nTestsPassed;
+    // Return the number of failed tests.
+    // This should be the return code for our program.
+    return nTestFails;
 }
 
 } // lunachess::tests
@@ -139,7 +164,6 @@ int main() {
                   << LUNA_VERSION_MINOR << "."
                   << LUNA_VERSION_PATCH << ".\n"
                   << std::endl;
-
 
         int ret = lunachess::tests::testMain();
 
