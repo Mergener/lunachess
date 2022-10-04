@@ -143,6 +143,8 @@ public:
     }
 
     ClassicEvaluator();
+    inline ClassicEvaluator(const ScoreTable& mg, const ScoreTable& eg)
+        : m_MgScores(mg), m_EgScores(eg) {}
 
     static void initialize();
 

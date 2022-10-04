@@ -4,8 +4,6 @@
 #include <cstring>
 #include <mmintrin.h>
 #include <random>
-#include <vector>
-#include "../../position.h"
 
 namespace lunachess::ai::neural {
 

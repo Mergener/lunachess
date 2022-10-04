@@ -29,7 +29,7 @@ struct PasserAndChainTest {
     }
 };
 
-std::vector<TestCase> passerTests = {
+std::vector<TestCase> passerAndChainTests = {
     PasserAndChainTest("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", CL_WHITE, 0x0, 0xff00),
     PasserAndChainTest("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", CL_BLACK, 0x0, 0xff000000000000),
     PasserAndChainTest("8/pp2k2p/8/8/8/PP2K3/8/8 w - - 0 1", CL_WHITE, 0x0, 0x30000),
@@ -39,7 +39,6 @@ std::vector<TestCase> passerTests = {
     PasserAndChainTest("8/3p4/8/8/3PP3/4p3/1K1k4/8 w - - 0 1", CL_WHITE, 0x0, 0x18000000),
     PasserAndChainTest("8/3p4/8/8/3PP3/4p3/1K1k4/8 w - - 0 1", CL_BLACK, 0x100000, 0x8000000100000),
 };
-
 
 
 }

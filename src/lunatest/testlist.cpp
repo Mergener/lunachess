@@ -4,7 +4,8 @@
 #include <unordered_map>
 
 #include "tests/movegen/perft.cpp"
-#include "tests/classiceval/classiceval.cpp"
+#include "tests/classiceval/nearkingatks.cpp"
+#include "tests/classiceval/passerandchains.cpp"
 #include "tests/endgame.cpp"
 
 namespace lunachess::tests {
@@ -13,8 +14,9 @@ std::unordered_map<std::string, std::vector<TestCase>> testGroups;
 
 void createTests() {
     testGroups = {
-        { "passers", passerTests },
-        { "perft", perftTests },
+        { "passers", passerAndChainTests },
+        { "near-king-attacks", nearKingAttacksTests },
+        { "perft",   perftTests },
         { "endgame", endgameTests },
     };
 }
