@@ -11,8 +11,6 @@
 
 namespace lunachess::ai::neural {
 
-extern int n;
-
 enum class ActivationFunctionType {
     None,
     ReLu

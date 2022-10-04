@@ -329,14 +329,13 @@ inline constexpr Square getCastleRookDestSquare(Color color, Side side) {
     return CASTLE_ROOK_SQ[color][side];
 }
 
-extern int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
-extern int g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
-
 inline int getChebyshevDistance(Square a, Square b) {
+    extern int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
     return g_ChebyshevDistances[a][b];
 }
 
 inline int getManhattanDistance(Square a, Square b) {
+    extern int g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
     return g_ManhattanDistances[a][b];
 }
 

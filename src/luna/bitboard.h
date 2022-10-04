@@ -199,12 +199,8 @@ std::ostream& operator<<(std::ostream& stream, Bitboard bitboard);
 
 namespace bbs {
 
-extern Bitboard g_BishopAttacks[64][512];
-extern Bitboard g_RookAttacks[64][4096];
-extern Bitboard g_Between[64][64];
-extern Bitboard g_PawnAttacks[64][2];
-
 inline Bitboard getSquaresBetween(Square a, Square b) {
+    extern Bitboard g_Between[64][64];
     return g_Between[a][b];
 }
 
@@ -391,12 +387,14 @@ inline Bitboard getKingAttacks(Square s) {
 }
 
 inline Bitboard getBishopAttacks(Square s, Bitboard occ) {
+    extern Bitboard g_BishopAttacks[64][512];
     occ &= BISHOP_MASKS[s];
     ui64 key = (occ * BISHOP_MAGICS[s]) >> (BISHOP_SHIFTS[s]);
     return g_BishopAttacks[s][key];
 }
 
 inline Bitboard getRookAttacks(Square s, Bitboard occ) {
+    extern Bitboard g_RookAttacks[64][4096];
     occ &= ROOK_MASKS[s];
     ui64 key = (occ * ROOK_MAGICS[s]) >> (ROOK_SHIFTS[s]);
     return g_RookAttacks[s][key];
@@ -421,6 +419,7 @@ inline Bitboard getSliderAttacks(Square s, Bitboard occ, PieceType pt) {
  * are diagonal, and do not include pushes (vertical).
  */
 inline Bitboard getPawnAttacks(Square s, Color c) {
+    extern Bitboard g_PawnAttacks[64][2];
     return g_PawnAttacks[s][c];
 }
 
