@@ -111,7 +111,7 @@ int testMain() {
     if (ctx.assertionFailures.empty()) {
         // All tests passed :)
         TERMINAL_COLOR_SUCCESS();
-        std::cout << "All " << ctx.nTests << " tests passed." << std::endl;
+        std::cout << "All " << ctx.nTests << " test groups passed." << std::endl;
         TERMINAL_COLOR_DEFAULT();
 
         return 0;
