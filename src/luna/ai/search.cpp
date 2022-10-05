@@ -52,8 +52,8 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
 
     // Check whether we have pawns that can be promoted
     Bitboard promoters = m_Pos.getColorToMove() == CL_WHITE
-            ? bbs::getRankBitboard(RANK_7)
-            : bbs::getRankBitboard(RANK_2);
+                         ? bbs::getRankBitboard(RANK_7)
+                         : bbs::getRankBitboard(RANK_2);
     promoters &= m_Pos.getBitboard(Piece(m_Pos.getColorToMove(), PT_PAWN));
     if (promoters > 0) {
         bigDelta += 9000;
@@ -94,7 +94,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
 int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                                  int alpha, int beta,
                                  bool nullMoveAllowed,
-                                 MoveList* searchMoves) {
+                                 MoveList *searchMoves) {
     m_LastResults.visitedNodes++;
 
     bool isRoot = ply == 0;
@@ -121,7 +121,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     // there is a great chance that the best move at this position on a depth d
     // is also the best move at d - 1 depth. Thus, we can search the best move
     // at depth d - 1 first.
-    
+
     Move hashMove = MOVE_INVALID; // Move extracted from TT
     ui64 posKey = m_Pos.getZobrist();
     TranspositionTable::Entry ttEntry = {};
@@ -144,9 +144,11 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                         // includes the move found in the TT.
                         return ttEntry.score;
                     }
-                } else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
+                }
+                else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
                     alpha = std::max(alpha, ttEntry.score);
-                } else if (ttEntry.type == TranspositionTable::UPPERBOUND) {
+                }
+                else if (ttEntry.type == TranspositionTable::UPPERBOUND) {
                     beta = std::min(beta, ttEntry.score);
                 }
 
@@ -175,44 +177,29 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     int drawScore = m_Eval->getDrawScore();
 
-    //// #----------------------------------------
-    //// # NULL MOVE PRUNING
-    //// #----------------------------------------
-    //// Prune if making a null move fails high
-    //constexpr int NULL_SEARCH_DEPTH_RED = 2;
-    //constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
-    //constexpr int NULL_MOVE_MIN_PIECES = 4;
-//
-    //if (nullMoveAllowed && !isCheck &&
-    //    depth >= NULL_SEARCH_MIN_DEPTH &&
-    //    m_Pos.getBitboard(Piece(m_Pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
-//
-    //    // Null move pruning allowed
-    //    m_Pos.makeNullMove();
-//
-    //    int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
-    //    if (score >= beta) {
-    //        m_Pos.undoNullMove();
-    //        return beta; // Prune
-    //    }
-//
-    //    m_Pos.undoNullMove();
-//
-    //    // #----------------------------------------
-    //    // # FAIL HIGH REDUCTIONS
-    //    // #----------------------------------------
-    //    constexpr int THREAT_LEVEL = 2500;
-    //    constexpr int MIN_ADVANTAGE = 5000;
-    //    constexpr int FAIL_HIGH_RED = 2;
-    //    if (staticEval > MIN_ADVANTAGE &&
-    //        score > staticEval - THREAT_LEVEL) {
-    //        // We have a substantial advantage and, based on the
-    //        // null move observation, the opponent didn't have any substantial
-    //        // threats against us. We can reduce the search depth.
-    //        depth -= FAIL_HIGH_RED;
-    //    }
-    //    // #----------------------------------------
-    //}
+    // #----------------------------------------
+    // # NULL MOVE PRUNING
+    // #----------------------------------------
+    // Prune if making a null move fails high
+    constexpr int NULL_SEARCH_DEPTH_RED = 2;
+    constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
+    constexpr int NULL_MOVE_MIN_PIECES = 4;
+
+    if (nullMoveAllowed && !isCheck &&
+        depth >= NULL_SEARCH_MIN_DEPTH &&
+        m_Pos.getBitboard(Piece(m_Pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
+
+        // Null move pruning allowed
+        m_Pos.makeNullMove();
+
+        int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
+        if (score >= beta) {
+            m_Pos.undoNullMove();
+            return beta; // Prune
+        }
+
+        m_Pos.undoNullMove();
+    }
     // #----------------------------------------
 
     // Generate moves
@@ -271,7 +258,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                 d -= 2;
             }
             // #----------------------------------------
-            score = -alphaBeta(d, ply + 1, -alpha-1, -alpha);
+            score = -alphaBeta(d, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
                 score = -alphaBeta(depth, ply + 1, -beta, -alpha);
             }
@@ -320,10 +307,10 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     ttEntry.staticEval = staticEval;
     m_TT.maybeAdd(ttEntry);
 
-    return alpha;    
+    return alpha;
 }
 
-static void filterMoves(MoveList& ml, std::function<bool(Move)> filter) {
+static void filterMoves(MoveList &ml, std::function<bool(Move)> filter) {
     if (filter == nullptr) {
         return;
     }
@@ -336,7 +323,7 @@ static void filterMoves(MoveList& ml, std::function<bool(Move)> filter) {
     }
 }
 
-SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings settings) {
+SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings settings) {
     while (m_Searching); // Wait current search.
 
     try {
@@ -397,7 +384,6 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                 }
 
                 // Prepare results object for this search
-                m_LastResults.visitedNodes = 0;
                 m_LastResults.currDepthStart = Clock::now();
 
                 // Perform the search
@@ -422,7 +408,7 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                     // We finished the search on this variation at this depth.
                     // Now, properly fill the searched variation object for this pv
                     // in the results object.
-                    auto& pv = m_LastResults.searchedVariations[multipv];
+                    auto &pv = m_LastResults.searchedVariations[multipv];
                     pv.score = ttEntry.score;
                     pv.type = TranspositionTable::EXACT;
 
@@ -453,7 +439,7 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
                         settings.onPvFinish(m_LastResults, multipv);
                     }
                 }
-                catch (const TimeUp&) {
+                catch (const TimeUp &) {
                     // Time over
                     break;
                 }
@@ -475,7 +461,7 @@ SearchResults AlphaBetaSearcher::search(const Position& pos, SearchSettings sett
 
         return m_LastResults;
     }
-    catch (const std::exception& e) {
+    catch (const std::exception &e) {
         m_Searching = false;
         std::cerr << e.what() << std::endl;
         throw;

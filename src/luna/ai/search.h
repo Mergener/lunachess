@@ -94,7 +94,7 @@ struct SearchResults {
      * The number of nodes being searched every second.
      */
     inline ui64 getNPS() const {
-        return static_cast<ui64>(static_cast<double>(visitedNodes) / getCurrDepthTime() * 1000);
+        return static_cast<ui64>(static_cast<double>(visitedNodes) / getSearchTime() * 1000);
     }
 };
 
