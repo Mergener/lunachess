@@ -30,9 +30,6 @@
 #include "ai/classiceval/aibitboards.h"
 #include "ai/classiceval/classicevaluator.h"
 #include "ai/classiceval/hotmap.h"
-#include "ai/neuraleval/neuraleval.h"
-#include "ai/neuraleval/neuralgenetic.h"
-#include "ai/neuraleval/nn.h"
 
 namespace lunachess {
 

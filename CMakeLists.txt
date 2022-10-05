@@ -39,7 +39,6 @@ add_library(luna STATIC
         src/luna/posutils.cpp
         src/luna/strutils.cpp
         src/luna/ai/classiceval/hotmap.cpp
-        src/luna/ai/neuraleval/neuraleval.cpp
         src/luna/ai/timemanager.cpp
         src/luna/ai/classiceval/classicevaluator.cpp
         src/luna/ai/search.cpp
@@ -47,9 +46,7 @@ add_library(luna STATIC
         src/luna/ai/aimovefactory.cpp
         src/luna/ai/classiceval/aibitboards.cpp
         src/luna/ai/quiescevaluator.cpp
-        src/luna/ai/neuraleval/nn.cpp
         src/luna/utils.cpp
-        src/luna/ai/neuraleval/neuralgenetic.cpp
         src/luna/endgame.cpp
         src/luna/endgame.h src/luna/openingbook.cpp
         src/luna/openingbook.h)

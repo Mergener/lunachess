@@ -12,7 +12,6 @@
 #include "evaluator.h"
 #include "aimovefactory.h"
 #include "classiceval/classicevaluator.h"
-#include "neuraleval/neuraleval.h"
 #include "timemanager.h"
 
 #include "../clock.h"
