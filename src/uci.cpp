@@ -37,18 +37,9 @@ struct UCIContext {
     // Internal state
     UCIState state = WAITING;
 
-    std::queue<std::function<void()>> workQueue;
-    Lock workQueueLock;
-
     // Search settings
     ai::AlphaBetaSearcher searcher;
 };
-
-static void schedule(UCIContext& ctx, std::function<void()> job) {
-    ctx.workQueueLock.lock();
-    ctx.workQueue.push(std::move(job));
-    ctx.workQueueLock.unlock();
-}
 
 using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
 
@@ -311,12 +302,18 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
-    schedule(ctx, [=, &ctx] {
-        ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
-        std::cout << "bestmove " << res.bestMove << std::endl;
+    std::thread([=, &ctx]() {
+        try {
+            ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
+            std::cout << "bestmove " << res.bestMove << std::endl;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Unhandled exception during search:\n" << e.what() << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
 
         ctx.state = WAITING;
-    });
+    }).detach();
 }
 
 static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
@@ -646,30 +643,11 @@ static void inputThreadMain(UCIContext& ctx) {
     }
 }
 
-static void workerThreadMain(UCIContext& ctx) {
-    while (ctx.state != STOPPING) {
-        std::function<void()> work = nullptr;
-
-        ctx.workQueueLock.lock();
-        if (!ctx.workQueue.empty()) {
-            work = ctx.workQueue.front();
-            ctx.workQueue.pop();
-        }
-        ctx.workQueueLock.unlock();
-
-        if (work != nullptr) {
-            work();
-        }
-    }
-}
-
 int uciMain() {
     std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
 
     // Main loop
-    std::thread inputThread([&ctx]() { inputThreadMain(*ctx); });
-
-    workerThreadMain(*ctx);
+    inputThreadMain(*ctx);
 
     return 0;
 }
