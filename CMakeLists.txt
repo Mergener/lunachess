@@ -40,7 +40,6 @@ add_library(luna STATIC
         src/luna/strutils.cpp
         src/luna/ai/classiceval/hotmap.cpp
         src/luna/ai/neuraleval/neuraleval.cpp
-        src/luna/ai/classiceval/texel.cpp
         src/luna/ai/timemanager.cpp
         src/luna/ai/classiceval/classicevaluator.cpp
         src/luna/ai/search.cpp
