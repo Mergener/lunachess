@@ -33,24 +33,24 @@ void ClassicEvaluator::generateNewMgTable() {
     defaultMgTable.xrayScores[PT_KING]   = 101;
 
     // Mobility scores
-    defaultMgTable.mobilityScores[PT_KNIGHT] = 14;
-    defaultMgTable.mobilityScores[PT_BISHOP] = 15;
-    defaultMgTable.mobilityScores[PT_ROOK] = 12;
-    defaultMgTable.mobilityScores[PT_QUEEN] = 4;
+    defaultMgTable.mobilityScores[PT_KNIGHT] = 6;
+    defaultMgTable.mobilityScores[PT_BISHOP] = 10;
+    defaultMgTable.mobilityScores[PT_ROOK] = 8;
+    defaultMgTable.mobilityScores[PT_QUEEN] = 0;
 
     // Piece specific scores
-    defaultMgTable.bishopPairScore = 150;
-    defaultMgTable.outpostScore = 200;
-    defaultMgTable.goodComplexScore = 20;
+    defaultMgTable.bishopPairScore = 180;
+    defaultMgTable.outpostScore = 220;
+    defaultMgTable.goodComplexScore = 16;
 
     // King safety scores
     defaultMgTable.nearKingAttacksScore[PT_PAWN]   = -60;
-    defaultMgTable.nearKingAttacksScore[PT_KNIGHT] = -70;
-    defaultMgTable.nearKingAttacksScore[PT_BISHOP] = -55;
-    defaultMgTable.nearKingAttacksScore[PT_ROOK]   = -100;
-    defaultMgTable.nearKingAttacksScore[PT_QUEEN]  = -95;
+    defaultMgTable.nearKingAttacksScore[PT_KNIGHT] = -60;
+    defaultMgTable.nearKingAttacksScore[PT_BISHOP] = -45;
+    defaultMgTable.nearKingAttacksScore[PT_ROOK]   = -85;
+    defaultMgTable.nearKingAttacksScore[PT_QUEEN]  = -40;
 
-    defaultMgTable.pawnShieldScore = 90;
+    defaultMgTable.pawnShieldScore = 95;
 
     // Pawn structures
     defaultMgTable.blockingPawnScore = -100;
@@ -83,10 +83,10 @@ void ClassicEvaluator::generateNewEgTable() {
     defaultEgTable.xrayScores[PT_KING] = 0;
 
     // Mobility scores
-    defaultEgTable.mobilityScores[PT_KNIGHT] = 6;
-    defaultEgTable.mobilityScores[PT_BISHOP] = 5;
-    defaultEgTable.mobilityScores[PT_ROOK] = 8;
-    defaultEgTable.mobilityScores[PT_QUEEN] = 4;
+    defaultEgTable.mobilityScores[PT_KNIGHT] = 4;
+    defaultEgTable.mobilityScores[PT_BISHOP] = 3;
+    defaultEgTable.mobilityScores[PT_ROOK] = 6;
+    defaultEgTable.mobilityScores[PT_QUEEN] = 1;
 
     // Piece specific scores
     defaultEgTable.bishopPairScore = 450;
@@ -160,7 +160,7 @@ int ClassicEvaluator::evaluatePawnComplex(const Position& pos, Color color, int 
 
     int individualScore = adjustScores(m_MgScores.goodComplexScore, m_EgScores.goodComplexScore, gpf);
 
-    Bitboard pawns = pos.getBitboard(Piece(PT_PAWN, color)) & desiredColorComplex;
+    Bitboard pawns = pos.getBitboard(Piece(color, PT_PAWN)) & desiredColorComplex;
 
     return pawns.count() * individualScore;
 }
@@ -501,7 +501,7 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
 
     // Pawn structure
     int blockingPawns = evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
-    //int chainsAndPassers = evaluateChainsAndPassers(pos, us, gpf) - evaluateChainsAndPassers(pos, them, gpf);
+    int chainsAndPassers = evaluateChainsAndPassers(pos, us, gpf) - evaluateChainsAndPassers(pos, them, gpf);
     int pawnComplex = evaluatePawnComplex(pos, us, gpf) - evaluatePawnComplex(pos, them, gpf);
 
     // Activity
