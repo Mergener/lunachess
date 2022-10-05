@@ -175,44 +175,44 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     int drawScore = m_Eval->getDrawScore();
 
-    // #----------------------------------------
-    // # NULL MOVE PRUNING
-    // #----------------------------------------
-    // Prune if making a null move fails high
-    constexpr int NULL_SEARCH_DEPTH_RED = 2;
-    constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
-    constexpr int NULL_MOVE_MIN_PIECES = 4;
-
-    if (nullMoveAllowed && !isCheck &&
-        depth >= NULL_SEARCH_MIN_DEPTH &&
-        m_Pos.getBitboard(Piece(m_Pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
-
-        // Null move pruning allowed
-        m_Pos.makeNullMove();
-
-        int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
-        if (score >= beta) {
-            m_Pos.undoNullMove();
-            return beta; // Prune
-        }
-
-        m_Pos.undoNullMove();
-
-        // #----------------------------------------
-        // # FAIL HIGH REDUCTIONS
-        // #----------------------------------------
-        constexpr int THREAT_LEVEL = 2500;
-        constexpr int MIN_ADVANTAGE = 5000;
-        constexpr int FAIL_HIGH_RED = 2;
-        if (staticEval > MIN_ADVANTAGE &&
-            score > staticEval - THREAT_LEVEL) {
-            // We have a substantial advantage and, based on the
-            // null move observation, the opponent didn't have any substantial
-            // threats against us. We can reduce the search depth.
-            depth -= FAIL_HIGH_RED;
-        }
-        // #----------------------------------------
-    }
+    //// #----------------------------------------
+    //// # NULL MOVE PRUNING
+    //// #----------------------------------------
+    //// Prune if making a null move fails high
+    //constexpr int NULL_SEARCH_DEPTH_RED = 2;
+    //constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
+    //constexpr int NULL_MOVE_MIN_PIECES = 4;
+//
+    //if (nullMoveAllowed && !isCheck &&
+    //    depth >= NULL_SEARCH_MIN_DEPTH &&
+    //    m_Pos.getBitboard(Piece(m_Pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
+//
+    //    // Null move pruning allowed
+    //    m_Pos.makeNullMove();
+//
+    //    int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
+    //    if (score >= beta) {
+    //        m_Pos.undoNullMove();
+    //        return beta; // Prune
+    //    }
+//
+    //    m_Pos.undoNullMove();
+//
+    //    // #----------------------------------------
+    //    // # FAIL HIGH REDUCTIONS
+    //    // #----------------------------------------
+    //    constexpr int THREAT_LEVEL = 2500;
+    //    constexpr int MIN_ADVANTAGE = 5000;
+    //    constexpr int FAIL_HIGH_RED = 2;
+    //    if (staticEval > MIN_ADVANTAGE &&
+    //        score > staticEval - THREAT_LEVEL) {
+    //        // We have a substantial advantage and, based on the
+    //        // null move observation, the opponent didn't have any substantial
+    //        // threats against us. We can reduce the search depth.
+    //        depth -= FAIL_HIGH_RED;
+    //    }
+    //    // #----------------------------------------
+    //}
     // #----------------------------------------
 
     // Generate moves
@@ -231,8 +231,8 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     // Finally, do the search
     int bestMoveIdx = 0;
+    bool searchPv = true;
     for (int i = 0; i < searchMoves->size(); ++i) {
-        bool thisMoveEvaluatedInDepth = false;
         Move move = (*searchMoves)[i];
 
         int d = depth;
@@ -253,34 +253,31 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
             }
         }
         // #----------------------------------------
-
-        // #----------------------------------------
-        // # LATE MOVE REDUCTIONS
-        // #----------------------------------------
-        //bool reduced = false;
-        //constexpr int LMR_START_IDX = 4;
-        //if (d >= 4 &&
-        //    !isCheck &&
-        //    move.is<MTM_QUIET>() &&
-        //    !m_MvFactory.isKillerMove(move, ply) &&
-        //    i >= LMR_START_IDX &&
-        //    (foundInTT && ttEntry.type == TranspositionTable::UPPERBOUND)) {
-        //    d--;
-        //    reduced = true;
-        //}
-
-        // #----------------------------------------
-
         m_Pos.makeMove(move);
 
-        int score = -alphaBeta(d, ply + 1, -beta, -alpha);
-        //if (score > alpha && reduced) {
-        //    // Research
-        //    score = alphaBeta(depth, ply + 1, -beta, -alpha);
-        //}
+        int score;
+        if (searchPv) {
+            score = -alphaBeta(d, ply + 1, -beta, -alpha);
+        }
+        else {
+            // #----------------------------------------
+            // # LATE MOVE REDUCTIONS
+            // #----------------------------------------
+            constexpr int LMR_START_IDX = 2;
+            if (d >= 2 &&
+                !isCheck &&
+                i >= LMR_START_IDX &&
+                move.is<MTM_QUIET>()) {
+                d -= 2;
+            }
+            // #----------------------------------------
+            score = -alphaBeta(d, ply + 1, -alpha-1, -alpha);
+            if (score > alpha) {
+                score = -alphaBeta(depth, ply + 1, -beta, -alpha);
+            }
+        }
 
         m_Pos.undoMove();
-
 
         if (score >= beta) {
             // Beta cutoff
@@ -290,7 +287,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
             if (move.is<MTM_QUIET>()) {
                 m_MvFactory.storeHistory(move, d);
-                m_MvFactory.storeKillerMove(move, ply);
+                //m_MvFactory.storeKillerMove(move, ply);
             }
             break;
         }
@@ -298,6 +295,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
             alpha = score;
             bestMoveIdx = i;
         }
+        searchPv = false;
     }
 
     // Store search data in transposition table
