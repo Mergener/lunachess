@@ -244,6 +244,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
         int score;
         if (searchPv) {
+            // Perform PVS. First move of the list is always PVS.
             score = -alphaBeta(d, ply + 1, -beta, -alpha);
         }
         else {
@@ -258,6 +259,10 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                 d -= 2;
             }
             // #----------------------------------------
+
+            // Perform a ZWS. Searches after the first move are performed
+            // with a null window. If the search fails high, do a re-search
+            // with the full window.
             score = -alphaBeta(d, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
                 score = -alphaBeta(depth, ply + 1, -beta, -alpha);
@@ -274,7 +279,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
             if (move.is<MTM_QUIET>()) {
                 m_MvFactory.storeHistory(move, d);
-                //m_MvFactory.storeKillerMove(move, ply);
+                m_MvFactory.storeKillerMove(move, ply);
             }
             break;
         }

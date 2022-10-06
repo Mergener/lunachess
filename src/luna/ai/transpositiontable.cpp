@@ -9,14 +9,7 @@ bool TranspositionTable::maybeAdd(const Entry& entry) {
         b.valid = true;
         return true;
     }
-    //// We had a valid bucket, check if same key
-    //if (b.entry.zobristKey != entry.zobristKey) {
-    //    // Different keys, never replace
-    //    return false;
-    //    //b.entry = entry;
-    //    //b.valid = true;
-    //    //return true;
-    //}
+
     if (b.entry.depth == entry.depth &&
         entry.type == TranspositionTable::EXACT &&
         b.entry.type != TranspositionTable::EXACT) {
