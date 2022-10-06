@@ -5,7 +5,7 @@ project(luna)
 # Luna version numbers
 ##
 set(LUNA_VERSION_MAJOR "0")
-set(LUNA_VERSION_MINOR "2")
+set(LUNA_VERSION_MINOR "3")
 set(LUNA_VERSION_PATCH "0")
 
 message("Luna version is set to ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH}")
