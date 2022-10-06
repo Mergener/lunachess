@@ -7,7 +7,6 @@
 #include "clock.h"
 #include "debug.h"
 #include "endgame.h"
-#include "lock.h"
 #include "move.h"
 #include "movegen.h"
 #include "openingbook.h"
