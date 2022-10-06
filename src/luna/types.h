@@ -339,6 +339,20 @@ inline int getManhattanDistance(Square a, Square b) {
     return g_ManhattanDistances[a][b];
 }
 
+inline constexpr int getCenterManhattanDistance(Square s) {
+    constexpr int CENTER_MANHATTAN_DISTANCE[] = {
+        6, 5, 4, 3, 3, 4, 5, 6,
+        5, 4, 3, 2, 2, 3, 4, 5,
+        4, 3, 2, 1, 1, 2, 3, 4,
+        3, 2, 1, 0, 0, 1, 2, 3,
+        3, 2, 1, 0, 0, 1, 2, 3,
+        4, 3, 2, 1, 1, 2, 3, 4,
+        5, 4, 3, 2, 2, 3, 4, 5,
+        6, 5, 4, 3, 3, 4, 5, 6
+    };
+    return CENTER_MANHATTAN_DISTANCE[s];
+}
+
 const char* getSquareName(Square s);
 
 //

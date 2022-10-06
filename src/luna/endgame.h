@@ -8,10 +8,22 @@ namespace lunachess {
 enum EndgameType {
     EG_UNKNOWN,
 
+    //
+    // 1 man endgames
+    //
+
     EG_KP_K,
+    EG_KR_K,
+    EG_KQ_K,
+
+    //
+    // 2 men endgames
+    //
+
+    EG_KBB_K,
+    EG_KBN_K,
     EG_KR_KN,
     EG_KR_KB,
-    EG_KBN_K
 };
 
 struct EndgameData {

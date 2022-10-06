@@ -148,6 +148,7 @@ public:
 
     static void initialize();
 
+    int evaluateMaterial(const Position& pos, Color c, int gpf) const;
     int evaluateBlockingPawns(const Position& pos, Color c, int gpf) const;
     int evaluateChainsAndPassers(const Position& pos, Color c, int gpf) const;
     int evaluatePawnComplex(const Position& pos, Color c, int gpf) const;
@@ -172,8 +173,7 @@ private:
     ScoreTable m_MgScores;
     ScoreTable m_EgScores;
 
-    int evaluateMaterial(const Position& pos, Color c, int gpf) const;
-
+    int evaluateCornerMateEndgame(const Position& pos, EndgameData eg) const;
 
     static void generateNewMgTable();
     static void generateNewEgTable();

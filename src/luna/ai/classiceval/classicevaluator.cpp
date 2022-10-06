@@ -538,11 +538,61 @@ int ClassicEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) c
         case EG_KBN_K:
             return evaluateKBNK(pos, egData.lhs);
 
+        case EG_KQ_K:
+        case EG_KR_K:
+        case EG_KBB_K:
+            return evaluateCornerMateEndgame(pos, egData);
+
         default:
             // Not implemented endgame, resort to default evaluation:
             return evaluateClassic(pos);
     }
 
+}
+
+int ClassicEvaluator::evaluateCornerMateEndgame(const Position& pos, EndgameData eg) const {
+    int materialScore;
+    switch (eg.type) {
+        case EG_KQ_K:
+            materialScore = m_EgScores.materialScore[PT_QUEEN];
+            break;
+
+        case EG_KR_K:
+            materialScore = m_EgScores.materialScore[PT_ROOK];
+            break;
+
+        case EG_KBB_K:
+            materialScore = m_EgScores.materialScore[PT_BISHOP] * 2;
+            break;
+
+        default:
+            materialScore = evaluateMaterial(pos, eg.lhs, 0);
+            break;
+    }
+
+    constexpr int LOSING_KING_PSQT[] {
+        70, 60, 50, 40, 40, 50, 60, 70,
+        60, 50, 30, 20, 20, 30, 50, 60,
+        50, 30,  0,  0,  0,  0, 30, 50,
+        40, 20,  0,  0,  0,  0, 20, 40,
+        40, 20,  0,  0,  0,  0, 20, 40,
+        50, 30,  0,  0,  0,  0, 30, 50,
+        60, 50, 30, 20, 20, 30, 50, 60,
+        70, 60, 50, 40, 40, 50, 60, 70,
+    };
+
+    Color winner = eg.lhs;
+    Color loser = getOppositeColor(winner);
+
+    Square losingKingSquare = pos.getKingSquare(loser);
+    Square winningKingSquare = pos.getKingSquare(winner);
+
+    int kingDistanceScore = -6 * getManhattanDistance(losingKingSquare, winningKingSquare);
+    int losingKingCornerScore = LOSING_KING_PSQT[losingKingSquare];
+
+    constexpr int BASE_BONUS = 500;
+
+    return materialScore + kingDistanceScore + losingKingCornerScore + BASE_BONUS;
 }
 
 int ClassicEvaluator::evaluateKPK(const Position &pos, Color lhs) const {
