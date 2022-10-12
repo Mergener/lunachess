@@ -363,7 +363,7 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
         filterMoves(moves, settings.moveFilter);
 
         // Setup results object
-        m_LastResults.visitedNodes = 1;
+        m_LastResults.visitedNodes = 0;
         m_LastResults.searchStart = Clock::now();
 
         // Last lastSearchResults could have been filled with a previous search
@@ -404,7 +404,9 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
                         // The score and move found in this pv search are the best for the
                         // position being searched.
                         m_LastResults.bestScore = score;
-                        m_LastResults.bestMove = ttEntry.move;
+                        if (ttEntry.move != MOVE_INVALID) {
+                            m_LastResults.bestMove = ttEntry.move;
+                        }
                         m_LastResults.searchedDepth = depth;
                     }
                     moves.remove(ttEntry.move);
@@ -420,6 +422,9 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
                     // Check for moves on the PV in transposition table
                     pv.moves.clear();
                     while (m_TT.probe(m_Pos, ttEntry)) {
+                        if (ttEntry.move == MOVE_INVALID) {
+                            break;
+                        }
                         pv.moves.push_back(ttEntry.move);
                         m_Pos.makeMove(ttEntry.move);
 
@@ -468,7 +473,6 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
     }
     catch (const std::exception &e) {
         m_Searching = false;
-        std::cerr << e.what() << std::endl;
         throw;
     }
 }
