@@ -403,14 +403,13 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
                         // multipv == 0 means that this is the true principal variation.
                         // The score and move found in this pv search are the best for the
                         // position being searched.
-                        m_LastResults.bestScore = score;
                         if (ttEntry.move != MOVE_INVALID) {
                             m_LastResults.bestMove = ttEntry.move;
+                            m_LastResults.bestScore = score;
+                            m_LastResults.searchedDepth = depth;
                         }
-                        m_LastResults.searchedDepth = depth;
                     }
                     moves.remove(ttEntry.move);
-
 
                     // We finished the search on this variation at this depth.
                     // Now, properly fill the searched variation object for this pv
