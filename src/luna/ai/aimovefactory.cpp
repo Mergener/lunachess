@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "../movegen.h"
-#include "classiceval/hotmap.h"
+#include "classiceval/evalscores.h"
 
 namespace lunachess::ai {
 
@@ -86,8 +86,8 @@ int AIMoveFactory::getHotmapDelta(Move move) {
 
     const Hotmap& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
 
-    int dstVal = hotmap.getValue(move.getDest(), us);
-    int srcVal = hotmap.getValue(move.getSource(), us);
+    int dstVal = hotmap.valueAt(move.getDest(), us);
+    int srcVal = hotmap.valueAt(move.getSource(), us);
 
     int ret = dstVal - srcVal;
 
@@ -144,6 +144,10 @@ int AIMoveFactory::scoreQuietMove(const Position& pos, Move move) const {
     int total = 0;
 
     total += getHotmapDelta(move) * m_Scores.placementDeltaMultiplier;
+
+    if (pos.getAttacks(getOppositeColor(pos.getColorToMove()), PT_PAWN).contains(move.getDest())) {
+        total -= m_Scores.squareGuardedByPawnPenalty;
+    }
 
     //int guardValue = posutils::guardValue(pos, move.getDest(), pos.getColorToMove()) * m_Scores.guardValueMultiplier;
     //total += guardValue;

@@ -1,7 +1,5 @@
 #include "position.h"
 
-#include "debug.h"
-#include "zobrist.h"
 #include "posutils.h"
 #include "movegen.h"
 

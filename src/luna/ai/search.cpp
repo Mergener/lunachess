@@ -95,7 +95,6 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                                  int alpha, int beta,
                                  bool nullMoveAllowed,
                                  MoveList *searchMoves) {
-    m_LastResults.visitedNodes++;
 
     bool isRoot = ply == 0;
     if (m_Pos.isDraw(1) && !isRoot) {
@@ -142,6 +141,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                         // Only use transposition table exact moves if we're either not using
                         // an external provided search moves list or the one we're using
                         // includes the move found in the TT.
+                        m_LastResults.visitedNodes++;
                         return ttEntry.score;
                     }
                 }
@@ -153,6 +153,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                 }
 
                 if (alpha >= beta) {
+                    m_LastResults.visitedNodes++;
                     return ttEntry.score;
                 }
             }
@@ -167,6 +168,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     if (depth <= 0) {
         return quiesce(ply, alpha, beta);
     }
+    m_LastResults.visitedNodes++;
 
     bool isCheck = m_Pos.isCheck();
     if (!isCheck) {
@@ -404,7 +406,9 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
                         // The score and move found in this pv search are the best for the
                         // position being searched.
                         m_LastResults.bestScore = score;
-                        m_LastResults.bestMove = ttEntry.move;
+                        if (ttEntry.move != MOVE_INVALID) {
+                            m_LastResults.bestMove = ttEntry.move;
+                        }
                         m_LastResults.searchedDepth = depth;
                     }
                     moves.remove(ttEntry.move);
@@ -419,7 +423,7 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
 
                     // Check for moves on the PV in transposition table
                     pv.moves.clear();
-                    while (m_TT.probe(m_Pos, ttEntry)) {
+                    while (m_TT.probe(m_Pos, ttEntry) && ttEntry.move != MOVE_INVALID) {
                         pv.moves.push_back(ttEntry.move);
                         m_Pos.makeMove(ttEntry.move);
 

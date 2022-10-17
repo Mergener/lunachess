@@ -4,6 +4,7 @@
 #include <fstream>
 #include <future>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <queue>
 #include <string>
@@ -254,7 +255,6 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
 
     // FEN string successfully interpreted, set the position accordingly
     ctx.pos = *posOpt;
-    std::cout << ctx.pos << std::endl;
 
     if (movesArgsIdx == -1) {
         return;
@@ -480,7 +480,6 @@ static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
 
         ctx.pos.makeMove(move);
     }
-    std::cout << ctx.pos << std::endl;
 }
 
 static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
@@ -520,6 +519,66 @@ static void cmdGetpos(UCIContext& ctx, const CommandArgs& args) {
 
 static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos.toFen() << std::endl;
+}
+
+static int doEval(UCIContext& ctx, int depth) {
+    int eval = 0;
+    if (depth == 0) {
+        eval = ctx.searcher.getEvaluator().evaluate(ctx.pos);
+    }
+    else {
+        ai::SearchSettings settings;
+        settings.maxDepth = depth;
+        settings.ourTimeControl.mode = TC_INFINITE;
+        settings.theirTimeControl.mode = TC_INFINITE;
+        eval = ctx.searcher.search(ctx.pos, settings).bestScore;
+    }
+
+    if (ctx.pos.getColorToMove() == CL_BLACK) {
+        eval *= -1;
+    }
+    return eval;
+}
+
+static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
+    if (args.size() > 2) {
+        std::cerr << "Too many arguments for eval." << std::endl;
+        return;
+    }
+    int depth = 0;
+    if (args.size() == 1) {
+        if (!strutils::tryParseInteger(args[0], depth)) {
+            errorWrongArg("eval", args[0]);
+            return;
+        }
+    }
+
+    ai::Hotmap hotmap;
+    Position& pos = ctx.pos;
+    Bitboard pieces = pos.getCompositeBitboard();
+
+    int currentEval = doEval(ctx, depth);
+
+    for (Square s: pieces) {
+        Piece p = pos.getPieceAt(s);
+        if (p.getType() == PT_KING) {
+            continue;
+        }
+
+        pos.setPieceAt(s, PIECE_NONE);
+        int evalWithoutPiece = doEval(ctx, depth);
+        pos.setPieceAt(s, p);
+
+        int delta = currentEval - evalWithoutPiece;
+
+        hotmap.valueAt(s, CL_WHITE) = delta;
+    }
+
+    std::cout << hotmap << std::endl;
+    std::cout << "Total evaluation: "
+        << std::setprecision(2)
+        << double(currentEval) / 1000
+        << std::endl;
 }
 
 #ifndef NDEBUG
@@ -612,6 +671,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["takeback"] = Command(cmdTakeback, 0, false);
+    cmds["eval"] = Command(cmdEval, 0, false);
 
 #ifndef NDEBUG
     // Debug commands

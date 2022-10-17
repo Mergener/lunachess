@@ -20,8 +20,7 @@ void initializeEverything() {
 
     // Initialize AI functionalities
     ai::initializeAIBitboards();
-    ai::Hotmap::initializeHotmaps();
-    ai::ClassicEvaluator::initialize();
+    ai::initializeEvalScores();
     ai::AIMoveFactory::initialize();
 }
 

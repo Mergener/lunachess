@@ -38,7 +38,7 @@ add_library(luna STATIC
         src/luna/debug.cpp
         src/luna/posutils.cpp
         src/luna/strutils.cpp
-        src/luna/ai/classiceval/hotmap.cpp
+        src/luna/ai/classiceval/evalscores.cpp
         src/luna/ai/timemanager.cpp
         src/luna/ai/classiceval/classicevaluator.cpp
         src/luna/ai/search.cpp

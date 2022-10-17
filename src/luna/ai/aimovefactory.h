@@ -20,6 +20,8 @@ struct MoveOrderingScores {
     int placementDeltaMultiplier = 4;
     int guardValueMultiplier = 6;
 
+    int squareGuardedByPawnPenalty = 50;
+
     int mvvLva[PT_COUNT][PT_COUNT] = {
         /*         x-    xP    xN    xB    xR    xQ    xK  */
         /* -- */ { 0,    0,    0,    0,    0,    0,    0   },
