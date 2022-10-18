@@ -339,6 +339,7 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
     total += evaluateAttacks(pos, us, gpf) - evaluateAttacks(pos, them, gpf);
     total += evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
     total += evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
+    total += evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
 
     if (!pos.colorHasSufficientMaterial(us)) {
         total = std::min(getDrawScore() - 1, total);
