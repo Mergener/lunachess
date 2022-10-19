@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <iostream>
 
+#include "utils.h"
 #include "debug.h"
 
 namespace lunachess {
@@ -101,6 +102,13 @@ public:
             }
         }
         m_Size = 0;
+    }
+
+    inline void shuffle() {
+        for (int i = 0; i < size(); ++i) {
+            int otherIdx = utils::random(i, size());
+            std::swap((*this)[i], (*this)[otherIdx]);
+        }
     }
 
     inline TVal& operator[](int index) { return *std::launder(reinterpret_cast<T*>(&m_Arr[index])); }

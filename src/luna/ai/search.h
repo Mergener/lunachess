@@ -7,6 +7,7 @@
 #include <optional>
 #include <vector>
 #include <atomic>
+#include <mutex>
 
 #include "transpositiontable.h"
 #include "evaluator.h"
@@ -103,6 +104,7 @@ struct SearchSettings {
     //
     int multiPvCount = 1;
     int maxDepth = MAX_SEARCH_DEPTH;
+    int nHelperThreads = 0;
 
     /**
      * Predicate that should return true only to moves that should be searched in the root node.
@@ -142,8 +144,9 @@ public:
      * @return The score of the position after the quiescence search.
      */
     inline int quiesce(const Position& pos, int ply = 0, int alpha = -HIGH_BETA, int beta = HIGH_BETA) {
-        m_Pos = pos;
-        return quiesce(ply, alpha, beta);
+        ThreadContext ctx;
+        ctx.position = pos;
+        return quiesce(ctx, ply, alpha, beta);
     }
 
     inline AlphaBetaSearcher()
@@ -165,18 +168,29 @@ public:
     }
 
 private:
-    Position m_Pos = Position::getInitialPosition();
     TranspositionTable m_TT;
     SearchResults m_LastResults;
-    AIMoveFactory m_MvFactory;
+
+    struct ThreadContext {
+        Position position;
+        AIMoveFactory moveFactory;
+        int nodesVisited = 0;
+    };
+
     std::shared_ptr<const Evaluator> m_Eval;
     TimeManager m_TimeManager;
     bool m_ShouldStop = false;
     bool m_Searching = false;
 
-    int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
+    int alphaBeta(ThreadContext& ctx, int depth,
+                  int ply, int alpha, int beta,
+                  bool nullMoveAllowed = true,
+                  const MoveList* searchMoves = nullptr);
 
-    int quiesce(int ply, int alpha, int beta);
+    void threadFinishedSearch(int eval);
+
+    int quiesce(ThreadContext& ctx, int ply,
+                int alpha, int beta);
 
     /**
      * Checks whether the current search should stop, either if its time

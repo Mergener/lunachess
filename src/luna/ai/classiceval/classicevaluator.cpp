@@ -13,6 +13,15 @@ static int adjustScores(int mg, int eg, int gpf) {
     return (mg * gpf) / 100 + (eg * (100 - gpf)) / 100;
 }
 
+int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
+    constexpr int STARTING_MATERIAL_COUNT = 62; // Excluding pawns
+
+    int totalMaterial = pos.countMaterial<true>();
+    int ret = (totalMaterial * 100) / STARTING_MATERIAL_COUNT;
+
+    return ret;
+}
+
 int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) const {
     int total = 0;
 
@@ -280,15 +289,6 @@ int ClassicEvaluator::evaluateBlockingPawns(const Position &pos, Color c, int gp
 
 int ClassicEvaluator::getDrawScore() const {
     return 0;
-}
-
-int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
-    constexpr int STARTING_MATERIAL_COUNT = 62; // Excluding pawns
-
-    int totalMaterial = pos.countMaterial<true>();
-    int ret = (totalMaterial * 100) / STARTING_MATERIAL_COUNT;
-
-    return ret;
 }
 
 int ClassicEvaluator::evaluateShallow(const Position &pos) const {
