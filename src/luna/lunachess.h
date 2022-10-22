@@ -7,7 +7,6 @@
 #include "clock.h"
 #include "debug.h"
 #include "endgame.h"
-#include "lock.h"
 #include "move.h"
 #include "movegen.h"
 #include "openingbook.h"
@@ -29,7 +28,7 @@
 #include "ai/transpositiontable.h"
 #include "ai/classiceval/aibitboards.h"
 #include "ai/classiceval/classicevaluator.h"
-#include "ai/classiceval/hotmap.h"
+#include "ai/classiceval/evalscores.h"
 
 namespace lunachess {
 

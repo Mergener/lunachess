@@ -13,6 +13,13 @@ static EndgameType get1ManEndgameType(const Position& pos, Color lhs) {
     if (pos.getBitboard(Piece(lhs, PT_PAWN)) != 0) {
         return EG_KP_K;
     }
+    if (pos.getBitboard(Piece(lhs, PT_ROOK)) != 0) {
+        return EG_KR_K;
+    }
+    if (pos.getBitboard(Piece(lhs, PT_QUEEN)) != 0) {
+        return EG_KQ_K;
+    }
+
     return EG_UNKNOWN;
 }
 

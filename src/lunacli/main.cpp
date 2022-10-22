@@ -13,6 +13,8 @@ int main() {
         std::cin.tie();
         std::cout << std::boolalpha;
 
+        //test();
+
         std::cout << "LunaChess AB v" << LUNA_VERSION_MAJOR << "." << LUNA_VERSION_MINOR << "." << LUNA_VERSION_PATCH << std::endl;
 
 #ifdef LUNA_ASSERTS_ON

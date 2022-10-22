@@ -4,6 +4,7 @@
 #include <fstream>
 #include <future>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <queue>
 #include <string>
@@ -16,8 +17,8 @@ namespace lunachess {
 using CommandArgs = std::vector<std::string_view>;
 
 enum UCIState {
-    WAITING,
-    WORKING,
+    IDLE,
+    BUSY,
     STOPPING
 };
 
@@ -30,23 +31,14 @@ struct UCIContext {
     int multiPvCount = 1;
 
     // Internal state
-    UCIState state = WAITING;
-
-    std::queue<std::function<void()>> workQueue;
-    Lock workQueueLock;
+    UCIState state = IDLE;
 
     // Search settings
     ai::AlphaBetaSearcher searcher;
     bool useOpBook = false;
 };
 
-static void schedule(UCIContext &ctx, std::function<void()> job) {
-    ctx.workQueueLock.lock();
-    ctx.workQueue.push(std::move(job));
-    ctx.workQueueLock.unlock();
-}
-
-using UCICommandFunction = std::function<void(UCIContext &, const CommandArgs &)>;
+using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
 
 struct Command {
     int minExpectedArgs = 0;
@@ -58,11 +50,11 @@ struct Command {
 
     Command() = default;
 
-    Command(Command &&other) = default;
+    Command(Command&& other) = default;
 
-    Command(const Command &other) = default;
+    Command(const Command& other) = default;
 
-    Command &operator=(const Command &other) = default;
+    Command& operator=(const Command& other) = default;
 
     ~Command() = default;
 };
@@ -75,7 +67,7 @@ static void errorWrongArg(std::string_view cmdName, std::string_view wrongArg) {
 // UCI Commands:
 //
 
-static void displayOption(UCIContext &ctx, std::string_view optName,
+static void displayOption(UCIContext& ctx, std::string_view optName,
                           std::string_view optType, std::string_view defaultVal = "",
                           std::string_view minVal = "", std::string_view maxVal = "") {
     std::cout << "option name " << optName << " type " << optType;
@@ -93,7 +85,7 @@ static void displayOption(UCIContext &ctx, std::string_view optName,
     std::cout << std::endl;
 }
 
-static void cmdUci(UCIContext &ctx, const CommandArgs &args) {
+static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "id name LunaChess" << std::endl;
     std::cout << "id author Thomas Mergener" << std::endl;
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
@@ -102,12 +94,12 @@ static void cmdUci(UCIContext &ctx, const CommandArgs &args) {
     std::cout << "uciok" << std::endl;
 }
 
-static void cmdQuit(UCIContext &ctx, const CommandArgs &args) {
+static void cmdQuit(UCIContext& ctx, const CommandArgs& args) {
     ctx.state = STOPPING;
     std::exit(0);
 }
 
-static void cmdDebug(UCIContext &ctx, const CommandArgs &args) {
+static void cmdDebug(UCIContext& ctx, const CommandArgs& args) {
     if (args[0] == "on") {
         ctx.debugMode = true;
     }
@@ -119,11 +111,11 @@ static void cmdDebug(UCIContext &ctx, const CommandArgs &args) {
     }
 }
 
-static void cmdIsready(UCIContext &ctx, const CommandArgs &args) {
+static void cmdIsready(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "readyok" << std::endl;
 }
 
-static void processOption(UCIContext &ctx, std::string_view option, std::string_view value) {
+static void processOption(UCIContext& ctx, std::string_view option, std::string_view value) {
     if (option == "MultiPV") {
         int count;
         if (strutils::tryParseInteger(value, count)) {
@@ -149,8 +141,8 @@ static void processOption(UCIContext &ctx, std::string_view option, std::string_
     }
 }
 
-static void cmdSetoption(UCIContext &ctx, const CommandArgs &args) {
-    if (ctx.state != WAITING) {
+static void cmdSetoption(UCIContext& ctx, const CommandArgs& args) {
+    if (ctx.state != IDLE) {
         std::cerr << "Can only change option when Luna is not busy." << std::endl;
         return;
     }
@@ -190,10 +182,10 @@ static void cmdSetoption(UCIContext &ctx, const CommandArgs &args) {
 
 }
 
-static void cmdUcinewgame(UCIContext &ctx, const CommandArgs &args) {
+static void cmdUcinewgame(UCIContext& ctx, const CommandArgs& args) {
 }
 
-static void playMovesAfterPos(UCIContext &ctx,
+static void playMovesAfterPos(UCIContext& ctx,
                               CommandArgs::const_iterator begin,
                               CommandArgs::const_iterator end) {
     if (begin == end) {
@@ -216,7 +208,7 @@ static void playMovesAfterPos(UCIContext &ctx,
     }
 }
 
-static void cmdPosition(UCIContext &ctx, const CommandArgs &args) {
+static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
     if (args[0] == "startpos") {
         ctx.pos = Position::getInitialPosition();
 
@@ -263,7 +255,6 @@ static void cmdPosition(UCIContext &ctx, const CommandArgs &args) {
 
     // FEN string successfully interpreted, set the position accordingly
     ctx.pos = *posOpt;
-    std::cout << ctx.pos << std::endl;
 
     if (movesArgsIdx == -1) {
         return;
@@ -273,7 +264,7 @@ static void cmdPosition(UCIContext &ctx, const CommandArgs &args) {
     playMovesAfterPos(ctx, args.cbegin() + movesArgsIdx, args.cend());
 }
 
-static bool readTime(std::string_view sv, int &dest) {
+static bool readTime(std::string_view sv, int& dest) {
     bool success = strutils::tryParseInteger(sv, dest);
     if (!success) {
         // Invalid depth value
@@ -283,22 +274,22 @@ static bool readTime(std::string_view sv, int &dest) {
     return true;
 }
 
-static void goSearch(UCIContext &ctx, const Position &pos, ai::SearchSettings &searchSettings) {
+static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& searchSettings) {
     if (ctx.useOpBook) {
         // Use opening book if position is covered in it
-        const auto &book = OpeningBook::getDefault();
+        const auto& book = OpeningBook::getDefault();
         Move move = book.getRandomMoveForPosition(pos);
         if (move != MOVE_INVALID) {
             // We found a book move
             std::cout << "bestmove " << move << std::endl;
-            ctx.state = WAITING;
+            ctx.state = IDLE;
             return;
         }
     }
 
     TimePoint startTime = Clock::now();
     searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
-        ai::SearchedVariation &var = res.searchedVariations[pv];
+        ai::SearchedVariation& var = res.searchedVariations[pv];
 
         std::cout << "info depth " << res.searchedDepth;
 
@@ -337,28 +328,34 @@ static void goSearch(UCIContext &ctx, const Position &pos, ai::SearchSettings &s
         std::cout << std::endl;
     };
 
+    // Spawn a secondary thread to run the search in order to keep listening
+    // for user input.
+    // The solution below is probably flawed due to the fact that we are not
+    // able to properly handle exceptions thrown from the thread
     std::thread([&ctx, searchSettings, pos]() {
         try {
             ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
             std::cout << "bestmove " << res.bestMove << std::endl;
 
-            ctx.state = WAITING;
+            ctx.state = IDLE;
         }
-        catch (const std::exception &e) {
-            ctx.state = WAITING;
+        catch (const std::exception& e) {
+            std::cerr << "Unhandled exception during search: " << std::endl
+                << e.what() << std::endl;
+            std::exit(EXIT_FAILURE);
         }
     }).detach();
 }
 
-static void cmdGo(UCIContext &ctx, const CommandArgs &args) {
-    if (ctx.state != WAITING) {
+static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
+    if (ctx.state != IDLE) {
         std::cerr << "Cannot call go while a search is currently running. Call 'stop' first." << std::endl;
         return;
     }
     // Create position clone
     Position pos = ctx.pos;
 
-    ctx.state = WORKING;
+    ctx.state = BUSY;
 
     TimeControl timeControl[CL_COUNT];
 
@@ -437,7 +434,7 @@ static void cmdGo(UCIContext &ctx, const CommandArgs &args) {
     goSearch(ctx, pos, searchSettings);
 }
 
-static void cmdLunaPerft(UCIContext &ctx, const CommandArgs &args) {
+static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
     int depth;
     if (!strutils::tryParseInteger(args[0], depth)) {
         errorWrongArg("perft", args[0]);
@@ -468,8 +465,8 @@ static void cmdLunaPerft(UCIContext &ctx, const CommandArgs &args) {
     std::cout << "NPS: " << ui64(double(res) / double(elapsed + 1) * 1000) << std::endl;
 }
 
-static void cmdDoMoves(UCIContext &ctx, const CommandArgs &args) {
-    for (const auto &arg: args) {
+static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
+    for (const auto& arg: args) {
         Move move(ctx.pos, arg);
 
         if (move == MOVE_INVALID) {
@@ -483,10 +480,9 @@ static void cmdDoMoves(UCIContext &ctx, const CommandArgs &args) {
 
         ctx.pos.makeMove(move);
     }
-    std::cout << ctx.pos << std::endl;
 }
 
-static void cmdTakeback(UCIContext &ctx, const CommandArgs &args) {
+static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
     int n;
 
     if (!args.empty()) {
@@ -503,12 +499,12 @@ static void cmdTakeback(UCIContext &ctx, const CommandArgs &args) {
     std::cout << ctx.pos << std::endl;
 }
 
-static void stopSearch(UCIContext &ctx) {
+static void stopSearch(UCIContext& ctx) {
     ctx.searcher.stop();
 }
 
-static void cmdStop(UCIContext &ctx, const CommandArgs &args) {
-    if (ctx.state != WORKING) {
+static void cmdStop(UCIContext& ctx, const CommandArgs& args) {
+    if (ctx.state != BUSY) {
         // No searches ongoing
         std::cerr << "Not searching at the moment." << std::endl;
         return;
@@ -517,12 +513,72 @@ static void cmdStop(UCIContext &ctx, const CommandArgs &args) {
     stopSearch(ctx);
 }
 
-static void cmdGetpos(UCIContext &ctx, const CommandArgs &args) {
+static void cmdGetpos(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos << std::endl;
 }
 
-static void cmdGetfen(UCIContext &ctx, const CommandArgs &args) {
+static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos.toFen() << std::endl;
+}
+
+static int doEval(UCIContext& ctx, int depth) {
+    int eval = 0;
+    if (depth == 0) {
+        eval = ctx.searcher.getEvaluator().evaluate(ctx.pos);
+    }
+    else {
+        ai::SearchSettings settings;
+        settings.maxDepth = depth;
+        settings.ourTimeControl.mode = TC_INFINITE;
+        settings.theirTimeControl.mode = TC_INFINITE;
+        eval = ctx.searcher.search(ctx.pos, settings).bestScore;
+    }
+
+    if (ctx.pos.getColorToMove() == CL_BLACK) {
+        eval *= -1;
+    }
+    return eval;
+}
+
+static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
+    if (args.size() > 2) {
+        std::cerr << "Too many arguments for eval." << std::endl;
+        return;
+    }
+    int depth = 0;
+    if (args.size() == 1) {
+        if (!strutils::tryParseInteger(args[0], depth)) {
+            errorWrongArg("eval", args[0]);
+            return;
+        }
+    }
+
+    ai::Hotmap hotmap;
+    Position& pos = ctx.pos;
+    Bitboard pieces = pos.getCompositeBitboard();
+
+    int currentEval = doEval(ctx, depth);
+
+    for (Square s: pieces) {
+        Piece p = pos.getPieceAt(s);
+        if (p.getType() == PT_KING) {
+            continue;
+        }
+
+        pos.setPieceAt(s, PIECE_NONE);
+        int evalWithoutPiece = doEval(ctx, depth);
+        pos.setPieceAt(s, p);
+
+        int delta = currentEval - evalWithoutPiece;
+
+        hotmap.valueAt(s, CL_WHITE) = delta;
+    }
+
+    std::cout << hotmap << std::endl;
+    std::cout << "Total evaluation: "
+        << std::setprecision(2)
+        << double(currentEval) / 1000
+        << std::endl;
 }
 
 #ifndef NDEBUG
@@ -615,6 +671,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["takeback"] = Command(cmdTakeback, 0, false);
+    cmds["eval"] = Command(cmdEval, 0, false);
 
 #ifndef NDEBUG
     // Debug commands
@@ -630,7 +687,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
 //  UCI Main loop functions:
 //
 
-static void handleInput(UCIContext &ctx, std::unordered_map<std::string, Command> &cmds) {
+static void handleInput(UCIContext& ctx, std::unordered_map<std::string, Command>& cmds) {
     std::string in;
     std::getline(std::cin, in);
 
@@ -654,30 +711,25 @@ static void handleInput(UCIContext &ctx, std::unordered_map<std::string, Command
         }
         else {
             // Command found, execute it.
-            Command &c = it->second;
-            try {
-                // First check if there's an argument count mismatch.
-                // If not, execute the command.
-                if (args.size() < size_t(c.minExpectedArgs)) {
-                    std::cerr << "Expected at least " << c.minExpectedArgs << " argument(s) for '" << cmd
-                              << "', got " << args.size() << "." << std::endl;
-                }
-                else if (args.size() > size_t(c.minExpectedArgs) && c.exactArgsCount) {
-                    std::cerr << "Expected only " << c.minExpectedArgs << " argument(s) for '" << cmd
-                              << "', got " << args.size() << "." << std::endl;
-                }
-                else {
-                    it->second.function(ctx, args);
-                }
+            Command& c = it->second;
+            // First check if there's an argument count mismatch.
+            // If not, execute the command.
+            if (args.size() < size_t(c.minExpectedArgs)) {
+                std::cerr << "Expected at least " << c.minExpectedArgs << " argument(s) for '" << cmd
+                          << "', got " << args.size() << "." << std::endl;
             }
-            catch (const std::exception &ex) {
-                std::cerr << ex.what() << std::endl;
+            else if (args.size() > size_t(c.minExpectedArgs) && c.exactArgsCount) {
+                std::cerr << "Expected only " << c.minExpectedArgs << " argument(s) for '" << cmd
+                          << "', got " << args.size() << "." << std::endl;
+            }
+            else {
+                it->second.function(ctx, args);
             }
         }
     }
 }
 
-static void inputThreadMain(UCIContext &ctx) {
+static void inputThreadMain(UCIContext& ctx) {
     // Generate commands dictionary
     auto dict = generateCommands();
 

@@ -160,6 +160,10 @@ public:
     inline const TranspositionTable& getTT() const { return m_TT; }
     inline TranspositionTable& getTT() { return m_TT; }
 
+    inline const Evaluator& getEvaluator() const {
+        return *m_Eval;
+    }
+
 private:
     Position m_Pos = Position::getInitialPosition();
     TranspositionTable m_TT;

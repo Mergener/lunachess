@@ -18,8 +18,9 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
      - History heuristic
      - Quiescence search
      - Iterative deepening with Transposition Tables
-     - PV-Node heuristic
-     - MVV-LVA ordering for captures
+     - Principal Variation Search
+     - Late Move Reductions
+     - SEE + MVV-LVA ordering for captures
      - Null move pruning
      - Futility pruning
      - Delta pruning
