@@ -13,6 +13,9 @@ int main() {
         std::cin.tie();
         std::cout << std::boolalpha;
 
+        lunachess::ai::neural::NNLayer<4, 3> nnLayer = j;
+        std::cout << nlohmann::json(nnLayer) << std::endl;
+
         //test();
 
         std::cout << "LunaChess AB v" << LUNA_VERSION_MAJOR << "." << LUNA_VERSION_MINOR << "." << LUNA_VERSION_PATCH << std::endl;
