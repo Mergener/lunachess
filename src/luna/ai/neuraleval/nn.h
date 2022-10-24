@@ -33,8 +33,8 @@ template <int N_NEURONS, int N_INPUT_NEURONS,
           ActivationFunctionType ACT_FN_TYPE = ActivationFunctionType::ReLu>
 struct NNLayer {
     static constexpr int N_PER_CHUNK = 8;
-    static constexpr int N           = ceilToMultiple(N_NEURONS, N_PER_CHUNK);
-    static constexpr int N_INPUTS    = ceilToMultiple(N_NEURONS, N_PER_CHUNK);
+    static constexpr int N           = N_NEURONS;
+    static constexpr int N_INPUTS    = ceilToMultiple(N_INPUT_NEURONS, N_PER_CHUNK);
 
     std::array<std::array<i32, N_INPUTS>, N> weights;
     std::array<i32, N> biases;
@@ -48,22 +48,28 @@ struct NNLayer {
     }
 
     void propagate(const std::array<i32, N_INPUTS>& inputs,
-                   std::array<i32, N>& outputs) {
-        for (int i = 0; i < N; i += N_PER_CHUNK) {
-            __m256i sum = _mm256_set1_epi32(0);
+                   std::array<i32, N>& outputs) const {
+        const __m256i* wPtr  = weights.data();
+        const __m256i* inPtr = inputs.data();
+        __m256i* outPtr      = outputs.data();
 
+        for (int i = 0; i < N; ++i) {
+            __m256i sum = _mm256_set1_epi32(biases[i]);
             for (int j = 0; j < N_INPUTS; j += N_PER_CHUNK) {
-                __m256i iw = _mm256_mul_epi32(weights[i][j], inputs[j]);
+                __m256i iw = _mm256_mullo_epi32(*wPtr, *inPtr);
                 sum = _mm256_add_epi32(sum, iw);
+                inPtr++; wPtr++;
             }
-            __m256i bias = _mm256_set1_epi32(biases[i]);
-            outputs[i] = activationFunction(_mm256_add_epi32(sum, bias));
+            *outPtr = activationFunction(sum);
+            outPtr++;
         }
     }
 
     void fillWeights(i32 val) {
-        for (auto& w: weights) {
-            w = _mm256_set1_epi32(val);
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N_INPUT_NEURONS; ++j) {
+                weights[i][j] = val;
+            }
         }
     }
 
