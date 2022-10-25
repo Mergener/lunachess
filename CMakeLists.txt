@@ -52,7 +52,7 @@ add_library(luna STATIC
         src/luna/openingbook.h
         src/luna/ai/neuraleval/neuraleval.cpp
         src/luna/ai/neuraleval/neuralgenetic.cpp
-        src/luna/ai/neuraleval/nn.cpp)
+        )
 
 add_executable(lunacli
         src/lunacli/main.cpp
@@ -82,7 +82,8 @@ add_subdirectory("ext")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC requires some flags in order for threads and <filesystem> to work.
-    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc")
+    set(CMAKE_CXX_FLAGS  "-pthread -static-libstdc++ -static-libgcc -march=native -O3")
+
     target_link_libraries(luna PUBLIC stdc++fs
             PUBLIC nlohmann_json)
 else()

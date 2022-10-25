@@ -374,6 +374,11 @@ bool Position::isRepetitionDraw(int maxRepetitions) const {
             return true;
         }
         const auto& status = *it;
+        Move lastMove = status.lastMove;
+        if (lastMove.getSourcePiece().getType() == PT_PAWN ||
+            lastMove.is<MTM_CAPTURE>()) {
+            return false;
+        }
         if (status.zobrist == m_Status.zobrist) {
             rep++;
         }
