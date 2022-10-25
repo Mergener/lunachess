@@ -52,7 +52,7 @@ add_library(luna STATIC
         src/luna/openingbook.h
         src/luna/ai/neuraleval/neuraleval.cpp
         src/luna/ai/neuraleval/neuralgenetic.cpp
-        )
+        src/luna/ai/neuraleval/evalnn.cpp)
 
 add_executable(lunacli
         src/lunacli/main.cpp

@@ -54,9 +54,10 @@ struct NNLayer {
     void propagate(const std::array<i32, INPUT_ARRAY_SIZE>& inputs,
                    std::array<i32, N>& outputs) const {
         const __m128i* wVec = reinterpret_cast<const __m128i*>(weights.data());
+        __m128i* outVec     = reinterpret_cast<__m128i*>(outputs.data());
+
         for (int i = 0; i < N; ++i) {
-            const __m128i* inVec  = reinterpret_cast<const __m128i*>(inputs.data());
-            __m128i* outVec       = reinterpret_cast<__m128i*>(outputs.data());
+            const __m128i* inVec = reinterpret_cast<const __m128i*>(inputs.data());
 
             __m128i sum = _mm_set1_epi32(biases[i]);
 
@@ -70,7 +71,7 @@ struct NNLayer {
 
             sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
             sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 4));
-            outputs[i] = activationFunction(_mm_cvtsi128_si32(sum));
+            outputs[i] = activationFunction(_mm_cvtsi128_si32(sum) >> 6);
             outVec++;
         }
     }
@@ -93,6 +94,32 @@ struct NNLayer {
     NNLayer& operator=(const NNLayer& other) = default;
     NNLayer(NNLayer&& other) = default;
     ~NNLayer() = default;
+};
+
+struct NNInputs {
+    enum {
+        IDX_OO_US = SQ_COUNT,
+        IDX_OOO_US,
+        IDX_OO_THEM,
+        IDX_OOO_THEM
+    };
+
+    enum {
+        NO_PIECE,
+        OUR_PAWN,
+        OUR_KNIGHT,
+        OUR_BISHOP,
+        OUR_ROOK,
+        OUR_QUEEN,
+    };
+
+    std::array<i32, SQ_COUNT + 4> data;
+
+    void fromPosition(Position& pos);
+    void updateMakeMove(Move move);
+    void updateUndoMove(Move move);
+    void updateMakeNullMove();
+    void updateUndoNullMove();
 };
 #pragma pack(pop)
 
@@ -122,10 +149,6 @@ void from_json(const nlohmann::json& j, NNLayer<N, N_INPUTS, ACT_FN_TYPE>& layer
     
     layer.biases = j["biases"];
 }
-
-struct EvalNN {
-
-};
 
 } // lunachess::ai::neural
 

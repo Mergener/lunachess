@@ -14,12 +14,15 @@ void test() {
 
     // Create and zero arrays
     InputArray inputs;
-    std::fill(inputs.begin(), inputs.end(), 1);
+    std::fill(inputs.begin(), inputs.end(), 0);
+    inputs[0] = 1;
+    inputs[1] = 2;
+    inputs[2] = 4;
     OutputArray outputs;
     std::fill(outputs.begin(), outputs.end(), 0);
 
     // Initialize layer
-    TLayer layer = nlohmann::json::parse(R"({"weights": [[1,1,1], [1,1,1], [1,1,1], [1,1,1]], "biases": [0,0,0,0]})");
+    TLayer layer = nlohmann::json::parse(R"({"weights": [[100, 100, 100], [3,0,0], [0,0,0], [0,0,4]], "biases": [0,0,0,0]})");
     std::cout << "INPUT_ARRAY_SIZE: " << TLayer::INPUT_ARRAY_SIZE << std::endl;
 
     std::cout << "Layer: " << nlohmann::json(layer) << std::endl;
