@@ -11,6 +11,8 @@
 #include "../../position.h"
 #include "../../utils.h"
 
+#define LUNA_NN_STRIDE 4
+
 namespace lunachess::ai::neural {
 
 enum class ActivationFunctionType {
@@ -22,8 +24,6 @@ inline static constexpr int ceilToMultiple(int n, int mult) {
         ? n
         : (n + mult - (n % mult));
 }
-
-#define LUNA_NN_STRIDE 4
 
 /**
  * Represents a single layer of an evaluation neural network.
@@ -37,6 +37,7 @@ template <int N, int N_INPUTS,
 struct NNLayer {
     /** Input array length, including padding necessary for SIMD. */
     static constexpr int INPUT_ARRAY_SIZE = ceilToMultiple(N_INPUTS, LUNA_NN_STRIDE);
+    static constexpr int N_NEURONS = N;
 
     using InputArray  = std::array<i32, INPUT_ARRAY_SIZE>;
     using OutputArray = std::array<i32, N>;
@@ -51,13 +52,13 @@ struct NNLayer {
         return x;
     }
 
-    void propagate(const std::array<i32, INPUT_ARRAY_SIZE>& inputs,
-                   std::array<i32, N>& outputs) const {
+    void propagate(const i32* inputs,
+                   i32* outputs) const {
         const __m128i* wVec = reinterpret_cast<const __m128i*>(weights.data());
-        __m128i* outVec     = reinterpret_cast<__m128i*>(outputs.data());
+        __m128i* outVec     = reinterpret_cast<__m128i*>(outputs);
 
         for (int i = 0; i < N; ++i) {
-            const __m128i* inVec = reinterpret_cast<const __m128i*>(inputs.data());
+            const __m128i* inVec = reinterpret_cast<const __m128i*>(inputs);
 
             __m128i sum = _mm_set1_epi32(biases[i]);
 
@@ -96,31 +97,6 @@ struct NNLayer {
     ~NNLayer() = default;
 };
 
-struct NNInputs {
-    enum {
-        IDX_OO_US = SQ_COUNT,
-        IDX_OOO_US,
-        IDX_OO_THEM,
-        IDX_OOO_THEM
-    };
-
-    enum {
-        NO_PIECE,
-        OUR_PAWN,
-        OUR_KNIGHT,
-        OUR_BISHOP,
-        OUR_ROOK,
-        OUR_QUEEN,
-    };
-
-    std::array<i32, SQ_COUNT + 4> data;
-
-    void fromPosition(Position& pos);
-    void updateMakeMove(Move move);
-    void updateUndoMove(Move move);
-    void updateMakeNullMove();
-    void updateUndoNullMove();
-};
 #pragma pack(pop)
 
 template <int N, int N_INPUTS, ActivationFunctionType ACT_FN_TYPE = ActivationFunctionType::ReLu>

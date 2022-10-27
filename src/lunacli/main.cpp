@@ -6,41 +6,7 @@
 #include "uci.h"
 
 void test() {
-    using namespace lunachess;
-    
-    using TLayer      = ai::neural::NNLayer<4, 3>;
-    using InputArray  = TLayer::InputArray;
-    using OutputArray = TLayer::OutputArray;
 
-    // Create and zero arrays
-    InputArray inputs;
-    std::fill(inputs.begin(), inputs.end(), 0);
-    inputs[0] = 1;
-    inputs[1] = 2;
-    inputs[2] = 4;
-    OutputArray outputs;
-    std::fill(outputs.begin(), outputs.end(), 0);
-
-    // Initialize layer
-    TLayer layer = nlohmann::json::parse(R"({"weights": [[100, 100, 100], [3,0,0], [0,0,0], [0,0,4]], "biases": [0,0,0,0]})");
-    std::cout << "INPUT_ARRAY_SIZE: " << TLayer::INPUT_ARRAY_SIZE << std::endl;
-
-    std::cout << "Layer: " << nlohmann::json(layer) << std::endl;
-
-    // Perform propagation and output results
-    std::cout << "Inputs: [ ";
-    for (int i = 0; i < inputs.size(); ++i) {
-        std::cout << inputs[i] << " ";
-    }
-    std::cout << "]" << std::endl;
-
-    layer.propagate(inputs, outputs);
-    
-    std::cout << "Outputs: [ ";
-    for (int i = 0; i < outputs.size(); ++i) {
-        std::cout << outputs[i] << " ";
-    }
-    std::cout << "]" << std::endl;
 }
 
 int main() {

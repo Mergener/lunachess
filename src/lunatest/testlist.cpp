@@ -16,7 +16,7 @@ void createTests() {
     testGroups = {
         //{ "passers", passerAndChainTests },
         //{ "color-complex", colorComplexTests },
-        //{ "perft",   perftTests },
+        { "perft",   perftTests },
         //{ "endgame", endgameTests },
     };
 }

@@ -359,6 +359,26 @@ inline constexpr Square getCastleRookDestSquare(Color color, Side side) {
     return CASTLE_ROOK_SQ[color][side];
 }
 
+inline constexpr Square getEnPassantVictimSquare(Square epSquare) {
+    constexpr Square EN_PASSANT_VICTIM_SQUARES[64] = {
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_A4, SQ_B4, SQ_C4, SQ_D4, SQ_E4, SQ_F4, SQ_G4, SQ_H4,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_F5, SQ_G5, SQ_H5,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+        SQ_INVALID, SQ_INVALID, SQ_INVALID, SQ_INVALID,
+    };
+    return EN_PASSANT_VICTIM_SQUARES[epSquare];
+}
+
 inline int getChebyshevDistance(Square a, Square b) {
     extern int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
     return g_ChebyshevDistances[a][b];

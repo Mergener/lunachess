@@ -3,6 +3,7 @@
 #include <random>
 #include <mutex>
 #include <type_traits>
+#include <cstring>
 
 #include "types.h"
 
@@ -54,6 +55,5 @@ i32 random(i32 minInclusive, i32 maxExclusive) {
 ui32 random(ui32 minInclusive, ui32 maxExclusive) {
     return randomInteger(minInclusive, maxExclusive);
 }
-
 
 }

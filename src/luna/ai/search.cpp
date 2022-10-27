@@ -76,8 +76,10 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         }
 
         m_Pos.makeMove(move);
+        m_Eval->onMakeMove(move);
         int score = -quiesce(ply + 1, -beta, -alpha);
         m_Pos.undoMove();
+        m_Eval->onUndoMove(move);
 
         if (score >= beta) {
             // Fail high
@@ -193,6 +195,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
         // Null move pruning allowed
         m_Pos.makeNullMove();
+        m_Eval->onMakeNullMove();
 
         int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
@@ -201,6 +204,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         }
 
         m_Pos.undoNullMove();
+        m_Eval->onUndoNullMove();
     }
     // #----------------------------------------
 
@@ -243,6 +247,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         }
         // #----------------------------------------
         m_Pos.makeMove(move);
+        m_Eval->onMakeMove(move);
 
         int score;
         if (searchPv) {
@@ -272,6 +277,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         }
 
         m_Pos.undoMove();
+        m_Eval->onUndoMove(move);
 
         if (score >= beta) {
             // Beta cutoff
@@ -376,6 +382,8 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
 
         // Notify the time manager that we're starting a search
         m_TimeManager.start(settings.ourTimeControl);
+
+        m_Eval->preparePosition(pos);
 
         // Perform iterative deepening, starting at depth 1
         for (int depth = 1; depth <= maxDepth; depth++) {

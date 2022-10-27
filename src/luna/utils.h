@@ -1,6 +1,7 @@
 #ifndef LUNA_UTILS_H
 #define LUNA_UTILS_H
 
+#include <cstring>
 #include <string>
 #include <sstream>
 #include <functional>
@@ -39,6 +40,11 @@ inline bool randomChance(float chancePct) {
     float rnd = random(1.0f, 100.0f);
 
     return rnd <= chancePct;
+}
+
+template <typename T>
+void zero(T& val) {
+    std::memset(reinterpret_cast<void*>(&val), 0, sizeof(T));
 }
 
 } // lunachess::utils

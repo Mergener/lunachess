@@ -12,6 +12,11 @@ public:
     inline virtual int evaluateShallow(const Position& pos) const {
         return evaluate(pos);
     }
+    inline virtual void preparePosition(const Position& pos) {}
+    inline virtual void onMakeMove(Move move) const {}
+    inline virtual void onUndoMove(Move move) const {}
+    inline virtual void onMakeNullMove() const {}
+    inline virtual void onUndoNullMove() const {}
 
     virtual ~Evaluator() = default;
 };

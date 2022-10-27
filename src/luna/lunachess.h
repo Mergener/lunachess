@@ -29,7 +29,7 @@
 #include "ai/classiceval/aibitboards.h"
 #include "ai/classiceval/classicevaluator.h"
 #include "ai/classiceval/evalscores.h"
-#include "ai/neuraleval/evalnn.h"
+#include "ai/neuraleval/nnlayer.h"
 
 namespace lunachess {
 

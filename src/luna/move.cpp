@@ -40,7 +40,7 @@ Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPiece
             if (delta == 2) {
                 type = MT_DOUBLE_PUSH;
             }
-            else if (getPromotionPiece() != PT_NONE) {
+            else if (getPromotionPieceType() != PT_NONE) {
                 type = MT_SIMPLE_PROMOTION;
             }
             else {
@@ -53,7 +53,7 @@ Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPiece
                 // No piece at the destination square, en passant capture.
                 type = MT_EN_PASSANT_CAPTURE;
             }
-            else if (getPromotionPiece() == PT_NONE) {
+            else if (getPromotionPieceType() == PT_NONE) {
                 type = MT_SIMPLE_CAPTURE;
             }
             else {
@@ -87,7 +87,7 @@ std::ostream& operator<<(std::ostream& stream, Move m) {
     stream << getSquareName(m.getDest());
 
     if (m.is<MTM_PROMOTION>()) {
-        Piece p = Piece(CL_BLACK, m.getPromotionPiece());
+        Piece p = Piece(CL_BLACK, m.getPromotionPieceType());
         stream << p.getIdentifier();
     }
 
@@ -154,7 +154,7 @@ std::string Move::toAlgebraic(const Position& pos) const {
 
     if (is<MTM_PROMOTION>()) {
         ret[idx++] = '=';
-        ret[idx++] = Piece(CL_WHITE, getPromotionPiece()).getIdentifier();
+        ret[idx++] = Piece(CL_WHITE, getPromotionPieceType()).getIdentifier();
     }
 
     ret[idx] = '\0';

@@ -55,7 +55,7 @@ public:
     inline Square getDest() const { return (m_Data >> 6) & BITMASK(6); }
     inline Piece getSourcePiece() const { return Piece((m_Data >> 12) & BITMASK(4)); }
     inline Piece getDestPiece() const { return Piece((m_Data >> 16) & BITMASK(4)); }
-    inline PieceType getPromotionPiece() const { return (m_Data >> 20) & BITMASK(3); }
+    inline PieceType getPromotionPieceType() const { return (m_Data >> 20) & BITMASK(3); }
 
     inline MoveType getType() const { return MoveType((m_Data >> 23) & BITMASK(6)); }
 

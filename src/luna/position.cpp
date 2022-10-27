@@ -239,7 +239,7 @@ void Position::handleSpecialMove(Move move) {
         case MT_PROMOTION_CAPTURE: {
             // Promotion move -- replace the piece at the destination square with the desired
             // promotion piece.
-            setPieceAt<true, false>(move.getDest(), Piece(getColorToMove(), move.getPromotionPiece()));
+            setPieceAt<true, false>(move.getDest(), Piece(getColorToMove(), move.getPromotionPieceType()));
             break;
         }
 
@@ -275,8 +275,8 @@ void Position::handleSpecialMove(Move move) {
 
         case MT_EN_PASSANT_CAPTURE: {
             // En passant capture
-            int pushDir = getPawnStepDir(move.getSourcePiece().getColor());
-            Square captureSq = move.getDest() - pushDir;
+            //int pushDir = getPawnStepDir(move.getSourcePiece().getColor());
+            Square captureSq = getEnPassantVictimSquare(move.getDest());
             LUNA_ASSERT(getPieceAt(captureSq).getType() == PT_PAWN,
                         "Expects the captured en passant piece to be a pawn (got "
                                 << getPieceAt(captureSq).getIdentifier() << ")");
@@ -326,7 +326,7 @@ void Position::handleSpecialMoveUndo() {
         // En passant moves must replace the captured pawn back when undone
         auto epSquare = move.getDest();
         Color capturedPawnColor = getOppositeColor(move.getSourcePiece().getColor());
-        Square capturedPawnSquare = epSquare + getPawnStepDir(capturedPawnColor);
+        Square capturedPawnSquare = getEnPassantVictimSquare(epSquare);
         setPieceAt<false, false>(capturedPawnSquare, Piece(capturedPawnColor, PT_PAWN));
     }
     else if (move.getType() == MT_CASTLES_SHORT) {
