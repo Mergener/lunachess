@@ -47,6 +47,19 @@ void zero(T& val) {
     std::memset(reinterpret_cast<void*>(&val), 0, sizeof(T));
 }
 
+template <typename T>
+std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vec) {
+    stream << "[";
+    if (!vec.empty()) {
+        stream << vec[0];
+        for (int i = 1; i < vec.size(); ++i) {
+            stream << ", " << vec[i];
+        }
+    }
+    stream << "]";
+    return stream;
+}
+
 } // lunachess::utils
 
 #endif // LUNA_UTILS_H

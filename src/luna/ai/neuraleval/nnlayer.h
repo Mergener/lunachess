@@ -16,7 +16,9 @@
 namespace lunachess::ai::neural {
 
 enum class ActivationFunctionType {
-    ReLu
+    None,
+    ReLu,
+    LeakyReLu,
 };
 
 inline static constexpr int ceilToMultiple(int n, int mult) {
@@ -49,6 +51,12 @@ struct NNLayer {
         if constexpr (ACT_FN_TYPE == ActivationFunctionType::ReLu) {
             return std::max(x, 0);
         }
+        if constexpr (ACT_FN_TYPE == ActivationFunctionType::LeakyReLu) {
+            if (x > 0) {
+                return x;
+            }
+            return x >> 7;
+        }
         return x;
     }
 
@@ -72,7 +80,7 @@ struct NNLayer {
 
             sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
             sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 4));
-            outputs[i] = activationFunction(_mm_cvtsi128_si32(sum) >> 6);
+            outputs[i] = activationFunction(_mm_cvtsi128_si32(sum / 64));
             outVec++;
         }
     }

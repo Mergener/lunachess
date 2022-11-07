@@ -650,6 +650,17 @@ static void cmdBetween(UCIContext& ctx, const CommandArgs& args) {
 }
 #endif
 
+static void cmdGentrain(UCIContext& ctx, const CommandArgs& args) {
+    namespace fs = std::filesystem;
+    using namespace lunachess::ai::neural;
+
+    GeneticTrainingSettings settings;
+    settings.savePath = "out";
+    settings.datasetPath = R"(E:\Repositorios\LunaTrain\out)";
+
+    GeneticTraining training(settings);
+    training.run();
+}
 
 static std::unordered_map<std::string, Command> generateCommands() {
     std::unordered_map<std::string, Command> cmds;
@@ -672,6 +683,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["takeback"] = Command(cmdTakeback, 0, false);
     cmds["eval"] = Command(cmdEval, 0, false);
+    cmds["gentrain"] = Command(cmdGentrain, 0, false);
 
 #ifndef NDEBUG
     // Debug commands

@@ -30,6 +30,8 @@
 #include "ai/classiceval/classicevaluator.h"
 #include "ai/classiceval/evalscores.h"
 #include "ai/neuraleval/nnlayer.h"
+#include "ai/neuraleval/neuraleval.h"
+#include "ai/neuraleval/neuralgenetic.h"
 
 namespace lunachess {
 

@@ -13,9 +13,24 @@ public:
     int evaluate(const Position& pos) const override;
     inline int getDrawScore() const override { return 0; }
 
+    inline void preparePosition(const Position& pos) override {
+        m_Eval->preparePosition(pos);
+    }
+    inline void onMakeMove(Move move) const override {
+        m_Eval->onMakeMove(move);
+    }
+    inline void onUndoMove(Move move) const override {
+        m_Eval->onUndoMove(move);
+    }
+    inline void onMakeNullMove() const override {
+        m_Eval->onMakeNullMove();
+    }
+    inline void onUndoNullMove() const override {
+        m_Eval->onUndoNullMove();
+    }
+
     inline QuiesceEvaluator()
         : m_Eval(std::make_shared<ClassicEvaluator>()){
-
     }
 
     inline QuiesceEvaluator(std::shared_ptr<Evaluator> eval)

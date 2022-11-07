@@ -1,10 +1,5 @@
 #include "neuraleval.h"
 
-#include <algorithm>
-#include <cstring>
-#include <mmintrin.h>
-#include <random>
-
 namespace lunachess::ai::neural {
 
 void NNInputs::fromPosition(const Position& pos) {
@@ -165,6 +160,8 @@ int EvalNN::evaluate(const i32* arr) {
 
     return w4out[0];
 }
+
+const std::shared_ptr<EvalNN> g_DefaultNN = std::make_shared<EvalNN>();
 
 };
 
