@@ -25,11 +25,12 @@ void AlphaBetaSearcher::checkIfSearchIsOver() {
 }
 
 int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
+    const Position& pos = m_Eval->getPosition();
     m_LastResults.visitedNodes++;
 
     checkIfSearchIsOver();
 
-    int standPat = m_Eval->evaluate(m_Pos);
+    int standPat = m_Eval->evaluate();
 
     if (standPat >= beta) {
         // Fail high
@@ -43,7 +44,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     }
 
     MoveList moves;
-    int moveCount = m_MvFactory.generateNoisyMoves(moves, m_Pos, ply);
+    int moveCount = m_MvFactory.generateNoisyMoves(moves, pos, ply);
 
     // #----------------------------------------
     // # DELTA PRUNING
@@ -51,10 +52,10 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     int bigDelta = 10000;
 
     // Check whether we have pawns that can be promoted
-    Bitboard promoters = m_Pos.getColorToMove() == CL_WHITE
+    Bitboard promoters = pos.getColorToMove() == CL_WHITE
                          ? bbs::getRankBitboard(RANK_7)
                          : bbs::getRankBitboard(RANK_2);
-    promoters &= m_Pos.getBitboard(Piece(m_Pos.getColorToMove(), PT_PAWN));
+    promoters &= pos.getBitboard(Piece(pos.getColorToMove(), PT_PAWN));
     if (promoters > 0) {
         bigDelta += 9000;
     }
@@ -69,15 +70,15 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];
         if (move.getType() == MT_SIMPLE_CAPTURE &&
-            !posutils::hasGoodSEE(m_Pos, move)) {
+            !posutils::hasGoodSEE(pos, move)) {
             // The result of the exchange series will always result in
             // material loss after this capture, prune it.
             continue;
         }
 
-        m_Pos.makeMove(move);
+        m_Eval->makeMove(move);
         int score = -quiesce(ply + 1, -beta, -alpha);
-        m_Pos.undoMove();
+        m_Eval->undoMove();
 
         if (score >= beta) {
             // Fail high
@@ -95,9 +96,9 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                                  int alpha, int beta,
                                  bool nullMoveAllowed,
                                  MoveList *searchMoves) {
-
+    const Position& pos = m_Eval->getPosition();
     bool isRoot = ply == 0;
-    if (m_Pos.isDraw(1) && !isRoot) {
+    if (pos.isDraw(1) && !isRoot) {
         // Position is a draw (or has repeated already), return draw score.
         return m_Eval->getDrawScore();
     }
@@ -113,8 +114,8 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     // If we had already searched this same position before but with
     // equal or higher depth, we remove ourselves the burden of researching it
     // and reuse previous results.
-    // 
-    // If we find data in the TT searched at lowe depth, however, searching 
+    //
+    // If we find data in the TT searched at lowe depth, however, searching
     // will still be necessary. Although we can still use the found data
     // as a heuristic to accelerate the proccess of searching. For instance,
     // there is a great chance that the best move at this position on a depth d
@@ -122,7 +123,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     // at depth d - 1 first.
 
     Move hashMove = MOVE_INVALID; // Move extracted from TT
-    ui64 posKey = m_Pos.getZobrist();
+    ui64 posKey = pos.getZobrist();
     TranspositionTable::Entry ttEntry = {};
     ttEntry.zobristKey = posKey;
     ttEntry.move = MOVE_INVALID;
@@ -161,7 +162,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     }
     else {
         // No TT entry found, we need to compute the static eval here.
-        staticEval = m_Eval->evaluate(m_Pos);
+        staticEval = m_Eval->evaluate();
     }
     // #----------------------------------------
 
@@ -170,7 +171,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
     }
     m_LastResults.visitedNodes++;
 
-    bool isCheck = m_Pos.isCheck();
+    bool isCheck = pos.isCheck();
     if (!isCheck) {
         // Only decrease depth if we're not currently in check
         depth--;
@@ -189,25 +190,25 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     if (nullMoveAllowed && !isCheck &&
         depth >= NULL_SEARCH_MIN_DEPTH &&
-        m_Pos.getBitboard(Piece(m_Pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
+            pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
 
         // Null move pruning allowed
-        m_Pos.makeNullMove();
+        m_Eval->makeNullMove();
 
         int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
-            m_Pos.undoNullMove();
+            m_Eval->undoNullMove();
             return beta; // Prune
         }
 
-        m_Pos.undoNullMove();
+        m_Eval->undoNullMove();
     }
     // #----------------------------------------
 
     // Generate moves
     MoveList moves;
     if (searchMoves == nullptr) {
-        m_MvFactory.generateMoves(moves, m_Pos, ply, hashMove);
+        m_MvFactory.generateMoves(moves, pos, ply, hashMove);
         searchMoves = &moves;
     }
     if (searchMoves->size() == 0) {
@@ -242,7 +243,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
             }
         }
         // #----------------------------------------
-        m_Pos.makeMove(move);
+        m_Eval->makeMove(move);
 
         int score;
         if (searchPv) {
@@ -271,7 +272,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
             }
         }
 
-        m_Pos.undoMove();
+        m_Eval->undoMove();
 
         if (score >= beta) {
             // Beta cutoff
@@ -330,7 +331,7 @@ static void filterMoves(MoveList &ml, std::function<bool(Move)> filter) {
     }
 }
 
-SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings settings) {
+SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings settings) {
     while (m_Searching); // Wait current search.
 
     try {
@@ -340,17 +341,18 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
         m_MvFactory.resetHistory();
 
         // Setup variables
-        m_Pos = pos;
+        m_Eval->setPosition(argPos);
+        const Position& pos = m_Eval->getPosition();
         int drawScore = m_Eval->getDrawScore();
         int maxDepth = std::min(MAX_SEARCH_DEPTH, settings.maxDepth);
 
         // Generate and order all moves
         MoveList moves;
-        m_MvFactory.generateMoves(moves, m_Pos, 0, MOVE_INVALID);
+        m_MvFactory.generateMoves(moves, pos, 0, MOVE_INVALID);
 
         // If no moves were generated, position is a stalemate or checkmate.
         if (moves.size() == 0) {
-            int score = m_Pos.isCheck()
+            int score = pos.isCheck()
                         ? -MATE_SCORE // Checkmate
                         : drawScore;  // Stalemate
 
@@ -399,7 +401,7 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
 
                     int score = alphaBeta(depth, 0, -HIGH_BETA, HIGH_BETA, false, &moves);
 
-                    m_TT.probe(m_Pos, ttEntry);
+                    m_TT.probe(pos, ttEntry);
 
                     if (multipv == 0) {
                         // multipv == 0 means that this is the true principal variation.
@@ -423,24 +425,24 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
 
                     // Check for moves on the PV in transposition table
                     pv.moves.clear();
-                    while (m_TT.probe(m_Pos, ttEntry) && ttEntry.move != MOVE_INVALID) {
+                    while (m_TT.probe(pos, ttEntry) && ttEntry.move != MOVE_INVALID) {
                         pv.moves.push_back(ttEntry.move);
-                        m_Pos.makeMove(ttEntry.move);
+                        m_Eval->makeMove(ttEntry.move);
 
-                        if (m_Pos.isRepetitionDraw()) {
+                        if (pos.isRepetitionDraw()) {
                             break;
                         }
                     }
 
                     // Undo all moves
                     for (int i = 0; i < pv.moves.size(); ++i) {
-                        m_Pos.undoMove();
+                        m_Eval->undoMove();
                     }
 
                     // When using multi PVs, we need to clear the entry of the initial
                     // search position.
                     if (settings.multiPvCount > 1) {
-                        m_TT.remove(m_Pos);
+                        m_TT.remove(pos);
                     }
 
                     // Notify handler
@@ -457,7 +459,7 @@ SearchResults AlphaBetaSearcher::search(const Position &pos, SearchSettings sett
             // Re-generate moves list with new ordering
             moves.clear();
 
-            m_MvFactory.generateMoves(moves, m_Pos, 0, m_LastResults.bestMove);
+            m_MvFactory.generateMoves(moves, pos, 0, m_LastResults.bestMove);
             filterMoves(moves, settings.moveFilter);
 
             m_TimeManager.onNewDepth(m_LastResults);

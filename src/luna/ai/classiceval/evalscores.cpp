@@ -35,19 +35,10 @@ static void initializeDefaultMgTable() {
     defaultMgTable.materialScore[PT_ROOK] = 5100;
     defaultMgTable.materialScore[PT_QUEEN] = 9800;
 
-    // X-Rays
-    defaultMgTable.xrayScores[PT_PAWN] = -30;
-    defaultMgTable.xrayScores[PT_KNIGHT] = 8;
-    defaultMgTable.xrayScores[PT_BISHOP] = 8;
-    defaultMgTable.xrayScores[PT_ROOK]   = 48;
-    defaultMgTable.xrayScores[PT_QUEEN]  = 96;
-    defaultMgTable.xrayScores[PT_KING]   = 101;
-
     // Mobility scores
     //                                            0     1     2     3     4     5     6     7     8     9     10     11
     defaultMgTable.mobilityScores[PT_KNIGHT] = {  -80, -80, -80, -80, -60,  0,    0,    60,   60,   60,   60,    60 };
-    //defaultMgTable.mobilityScores[PT_KNIGHT] = {  0,       0,    0,    0,   0,  0,    0,    60,   60,   60,   60,    60 };
-    defaultMgTable.mobilityScores[PT_BISHOP] = {  -100, -100, -70,  -50,  -30,  0,    70,   135,  170,  200,  220,   230 };
+    defaultMgTable.mobilityScores[PT_BISHOP] = {  -120, -120, -115,  -110,  -100,  -65,    -10,   30,  80,  110,  125,   140 };
     defaultMgTable.mobilityScores[PT_ROOK]   = {  -120, -120, -120, -120, -100, -50,  0,    40,   80,   100,  120,   120 };
     defaultMgTable.mobilityScores[PT_QUEEN]  = {  0,    0,    0,    0,    0,    0,    12,   17,   26,   36,   38,   44 };
 
@@ -84,14 +75,6 @@ static void initializeDefaultEgTable() {
     defaultEgTable.materialScore[PT_BISHOP] = 4700;
     defaultEgTable.materialScore[PT_ROOK] = 6700;
     defaultEgTable.materialScore[PT_QUEEN] = 12500;
-
-    // X-Rays
-    defaultEgTable.xrayScores[PT_PAWN] = 0;
-    defaultEgTable.xrayScores[PT_KNIGHT] = 0;
-    defaultEgTable.xrayScores[PT_BISHOP] = 0;
-    defaultEgTable.xrayScores[PT_ROOK] = 0;
-    defaultEgTable.xrayScores[PT_QUEEN] = 0;
-    defaultEgTable.xrayScores[PT_KING] = 0;
 
     // Piece specific scores
     defaultEgTable.bishopPairScore = 450;
@@ -152,11 +135,11 @@ static void initializeHotmaps() {
 
     defaultPawnEgHotmap = {
         0, 0, 0, 0, 0, 0, 0, 0,
-        550, 500, 500, 500, 500, 500, 500, 550,
-        350, 300, 300, 300, 300, 300, 300, 350,
-        250, 200, 200, 200, 200, 200, 200, 250,
-        150, 100, 100, 100, 100, 100, 100, 150,
-        0, 0, 0, 0, 0, 0, 0, 0,
+        160, 160, 160, 160, 160, 160, 160, 160,
+        132, 132, 132, 132, 132, 132, 132, 132,
+        104, 104, 104, 104, 104, 104, 104, 104,
+        76, 76, 76, 76, 76, 76, 76, 76,
+        48, 48, 48, 48, 48, 48, 48, 48,
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
     };
@@ -193,25 +176,69 @@ static void initializeHotmaps() {
 
     defaultMgPasserHotmap = {
         0, 0, 0, 0, 0, 0, 0, 0,
-        110,110,110,110,110,110,110,110,
-        70,70,70,70,70,70,70,70,
-        50,50,50,50,50,50,50,50,
-        40, 40,40,40,40,40,40,40,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        45, 45, 45, 45, 45, 45, 45, 45,
+        40, 40, 40, 40, 40, 40, 40, 40,
         35, 35, 35, 35, 35, 35, 35, 35,
-        35, 35, 35, 35, 35, 35, 35, 35,
-        0, 0, 0, 0, 0, 0, 0, 0
+        30, 30, 30, 30, 30, 30, 30, 30,
+        30, 30, 30, 30, 30, 30, 30, 30,
+        0, 0, 0, 0, 0, 0, 0, 0,
     };
 
     defaultEgPasserHotmap = {
         0, 0, 0, 0, 0, 0, 0, 0,
-        230,230,230,230,230,230,230,230,
-        170,170,170,170,170,170,170,170,
-        120,120,120,120,120,120,120,120,
-        80,80,80,80,80,80,80,80,
-        60,60,60,60,60,60,60,60,
-        60,60,60,60,60,60,60,60,
-        0, 0, 0, 0, 0, 0, 0, 0
+        70, 70, 70, 70, 70, 70, 70, 70,
+        65, 65, 65, 65, 65, 65, 65, 65,
+        60, 60, 60, 60, 60, 60, 60, 60,
+        55, 55, 55, 55, 55, 55, 55, 55,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        0, 0, 0, 0, 0, 0, 0, 0,
     };
+
+    defaultMgChainedPawnHotmap = {
+        0, 0, 0, 0, 0, 0, 0, 0,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        46, 46, 46, 46, 46, 46, 46, 46,
+        42, 42, 42, 42, 42, 42, 42, 42,
+        38, 38, 38, 38, 38, 38, 38, 38,
+        34, 34, 34, 34, 34, 34, 34, 34,
+        30, 30, 30, 30, 30, 30, 30, 30,
+        0, 0, 0, 0, 0, 0, 0, 0,
+    };
+
+    defaultEgChainedPawnHotmap = {
+        0, 0, 0, 0, 0, 0, 0, 0,
+        80, 80, 80, 80, 80, 80, 80, 80,
+        74, 74, 74, 74, 74, 74, 74, 74,
+        68, 68, 68, 68, 68, 68, 68, 68,
+        62, 62, 62, 62, 62, 62, 62, 62,
+        56, 56, 56, 56, 56, 56, 56, 56,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        0, 0, 0, 0, 0, 0, 0, 0,
+    };
+//
+//    defaultMgConnectedPasserHotmap = {
+//            0, 0, 0, 0, 0, 0, 0, 0,
+//            50, 50, 50, 50, 50, 50, 50, 50,
+//            46, 46, 46, 46, 46, 46, 46, 46,
+//            42, 42, 42, 42, 42, 42, 42, 42,
+//            38, 38, 38, 38, 38, 38, 38, 38,
+//            34, 34, 34, 34, 34, 34, 34, 34,
+//            30, 30, 30, 30, 30, 30, 30, 30,
+//            0, 0, 0, 0, 0, 0, 0, 0,
+//    };
+//
+//    defaultEgConnectedPasserHotmap = {
+//            0, 0, 0, 0, 0, 0, 0, 0,
+//            80, 80, 80, 80, 80, 80, 80, 80,
+//            74, 74, 74, 74, 74, 74, 74, 74,
+//            68, 68, 68, 68, 68, 68, 68, 68,
+//            62, 62, 62, 62, 62, 62, 62, 62,
+//            56, 56, 56, 56, 56, 56, 56, 56,
+//            50, 50, 50, 50, 50, 50, 50, 50,
+//            0, 0, 0, 0, 0, 0, 0, 0,
+//    };
 }
 
 void initializeEvalScores() {

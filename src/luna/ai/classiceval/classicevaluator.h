@@ -15,10 +15,22 @@
 namespace lunachess::ai {
 
 class ClassicEvaluator : public Evaluator {
+    static constexpr bool DO_MATERIAL      = true;
+    static constexpr bool DO_MOBILITY      = true;
+    static constexpr bool DO_KING_EXPOSURE = true;
+    static constexpr bool DO_BISHOP_PAIR   = true;
+    static constexpr bool DO_OUTPOST       = true;
+    static constexpr bool DO_PAWN_COMPLEX  = true;
+    static constexpr bool DO_BLOCKING_PAWN = true;
+    static constexpr bool DO_PASSERS       = true;
+    static constexpr bool DO_CONN_PASSERS  = true;
+    static constexpr bool DO_PAWN_CHAINS   = true;
+    static constexpr bool DO_NEAR_KING_ATK = true;
+    static constexpr bool DO_PSQT          = true;
+
 public:
     int getDrawScore() const override;
-    int evaluate(const Position& pos) const override;
-    int evaluateShallow(const Position& pos) const override;
+    int evaluate() const override;
 
     int getGamePhaseFactor(const Position& pos) const;
 

@@ -142,7 +142,7 @@ public:
      * @return The score of the position after the quiescence search.
      */
     inline int quiesce(const Position& pos, int ply = 0, int alpha = -HIGH_BETA, int beta = HIGH_BETA) {
-        m_Pos = pos;
+        m_Eval->setPosition(pos);
         return quiesce(ply, alpha, beta);
     }
 
@@ -153,23 +153,22 @@ public:
     /**
      * Constructs a move searcher with an externally created evaluator.
      */
-    inline explicit AlphaBetaSearcher(std::shared_ptr<const Evaluator> eval)
+    inline explicit AlphaBetaSearcher(std::shared_ptr<Evaluator> eval)
         : m_Eval(std::move(eval)) {
     }
 
     inline const TranspositionTable& getTT() const { return m_TT; }
     inline TranspositionTable& getTT() { return m_TT; }
 
-    inline const Evaluator& getEvaluator() const {
+    inline Evaluator& getEvaluator() const {
         return *m_Eval;
     }
 
 private:
-    Position m_Pos = Position::getInitialPosition();
     TranspositionTable m_TT;
     SearchResults m_LastResults;
     AIMoveFactory m_MvFactory;
-    std::shared_ptr<const Evaluator> m_Eval;
+    std::shared_ptr<Evaluator> m_Eval;
     TimeManager m_TimeManager;
     bool m_ShouldStop = false;
     bool m_Searching = false;

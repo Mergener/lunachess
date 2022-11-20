@@ -524,7 +524,8 @@ static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
 static int doEval(UCIContext& ctx, int depth) {
     int eval = 0;
     if (depth == 0) {
-        eval = ctx.searcher.getEvaluator().evaluate(ctx.pos);
+        ctx.searcher.getEvaluator().setPosition(ctx.pos);
+        eval = ctx.searcher.getEvaluator().evaluate();
     }
     else {
         ai::SearchSettings settings;

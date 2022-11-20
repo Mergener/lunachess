@@ -14,6 +14,10 @@ static int adjustScores(int mg, int eg, int gpf) {
 }
 
 int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) const {
+    if constexpr (!DO_MATERIAL) {
+        return 0;
+    }
+
     int total = 0;
 
     for (PieceType pt = PT_PAWN; pt < PT_KING; ++pt) {
@@ -30,6 +34,10 @@ int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) co
 }
 
 int ClassicEvaluator::evaluatePawnComplex(const Position& pos, Color color, int gpf) const {
+    if constexpr (!DO_PAWN_COMPLEX) {
+        return 0;
+    }
+
     // Score pawns that are on squares that favor the movement of a color's bishop.
     Bitboard lightSquares = bbs::LIGHT_SQUARES;
     Bitboard darkSquares = bbs::DARK_SQUARES;
@@ -60,6 +68,9 @@ int ClassicEvaluator::evaluatePawnComplex(const Position& pos, Color color, int 
 }
 
 int ClassicEvaluator::evaluateOutposts(const Position& pos, Color color, int gpf) const {
+    if constexpr (!DO_OUTPOST) {
+        return 0;
+    }
     int total = 0;
     int individualScore = adjustScores(m_MgScores.outpostScore, m_EgScores.outpostScore, gpf);
 
@@ -80,6 +91,9 @@ int ClassicEvaluator::evaluateOutposts(const Position& pos, Color color, int gpf
 }
 
 int ClassicEvaluator::evaluateBishopPair(const Position& pos, Color color, int gpf) const {
+    if constexpr (!DO_BISHOP_PAIR) {
+        return 0;
+    }
     // min(nLightSquaredBishops, nDarkSquaredBishops) gives us the number of bishop pairs.
     // Multiply it by the bishop pair individual score to obtain the bishop pair bonus.
 
@@ -98,6 +112,10 @@ int ClassicEvaluator::evaluateBishopPair(const Position& pos, Color color, int g
 }
 
 int ClassicEvaluator::evaluateAttacks(const Position& pos, Color c, int gpf) const {
+    if constexpr (!DO_MOBILITY && !DO_NEAR_KING_ATK) {
+        return 0;
+    }
+
     int total = 0;
 
     Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN)) |
@@ -110,21 +128,26 @@ int ClassicEvaluator::evaluateAttacks(const Position& pos, Color c, int gpf) con
     for (PieceType pt = PT_KNIGHT; pt <= PT_QUEEN; ++pt) {
         Piece p = Piece(c, pt);
         Bitboard bb = pos.getBitboard(p);
-        int nearKingAtkUnitScore = adjustScores(m_MgScores.nearKingAttacksScore[pt],
+
+        int nearKingAtkUnitScore = DO_NEAR_KING_ATK ? adjustScores(m_MgScores.nearKingAttacksScore[pt],
                                                 m_EgScores.nearKingAttacksScore[pt],
-                                                gpf);
+                                                gpf) : 0;
 
         for (Square s: bb) {
             Bitboard atks = bbs::getPieceAttacks(s, occ, p);
-            Bitboard mobilityBB = atks & ~pawns;
+            if constexpr (DO_MOBILITY) {
+                Bitboard mobilityBB = atks & ~pawns;
 
-            // Add mobility score
-            int idx = std::min(mobilityBB.count(), ScoreTable::N_MOBILITY_SCORES - 1);
-            total += adjustScores(m_MgScores.mobilityScores[pt][idx], m_EgScores.mobilityScores[pt][idx], gpf);
+                // Add mobility score
+                int idx = std::min(mobilityBB.count(), ScoreTable::N_MOBILITY_SCORES - 1);
+                total += adjustScores(m_MgScores.mobilityScores[pt][idx], m_EgScores.mobilityScores[pt][idx], gpf);
+            }
 
             // Add near king attacks score
-            Bitboard nearKingAtks = atks & nearKingSquares;
-            total += nearKingAtks.count() * nearKingAtkUnitScore;
+            if constexpr (DO_NEAR_KING_ATK) {
+                Bitboard nearKingAtks = atks & nearKingSquares;
+                total += nearKingAtks.count() * nearKingAtkUnitScore;
+            }
         }
     }
 
@@ -132,6 +155,10 @@ int ClassicEvaluator::evaluateAttacks(const Position& pos, Color c, int gpf) con
 }
 
 int ClassicEvaluator::evaluateHotmaps(const Position& pos, Color c, int gpf) const {
+    if constexpr (!DO_PSQT && !DO_PAWN_CHAINS &&
+                  !DO_PASSERS && !DO_CONN_PASSERS) {
+        return 0;
+    }
     int total = 0;
 
     Square ourKingSquare = pos.getKingSquare(c);
@@ -145,33 +172,43 @@ int ClassicEvaluator::evaluateHotmaps(const Position& pos, Color c, int gpf) con
     Bitboard connectedPassers = passedPawns & chainedPawns;
 
     for (auto s: pawns) {
-        total += adjustScores(mgHotmap.valueAt(s, c),
-                              egHotmap.valueAt(s, c),
-                              gpf);
-
-        // Perform pawn chain evaluation
-        if (chainedPawns.contains(s)) {
-            total += adjustScores(m_MgScores.chainedPawnsHotmap.valueAt(s, c),
-                                  m_EgScores.chainedPawnsHotmap.valueAt(s, c),
+        if constexpr (DO_PSQT) {
+            total += adjustScores(mgHotmap.valueAt(s, c),
+                                  egHotmap.valueAt(s, c),
                                   gpf);
         }
-        if (passedPawns.contains(s)) {
-            total += adjustScores(m_MgScores.passersHotmap.valueAt(s, c),
-                                  m_EgScores.passersHotmap.valueAt(s, c),
-                                  gpf);
 
-            if (connectedPassers.contains(s)) {
-                total += adjustScores(m_MgScores.connectedPassersHotmap.valueAt(s, c),
-                                      m_EgScores.connectedPassersHotmap.valueAt(s, c),
+        if constexpr (DO_PAWN_CHAINS) {
+            // Perform pawn chain evaluation
+            if (chainedPawns.contains(s)) {
+                total += adjustScores(m_MgScores.chainedPawnsHotmap.valueAt(s, c),
+                                      m_EgScores.chainedPawnsHotmap.valueAt(s, c),
                                       gpf);
+            }
+        }
+        if (passedPawns.contains(s)) {
+            if constexpr (DO_PASSERS) {
+                total += adjustScores(m_MgScores.passersHotmap.valueAt(s, c),
+                                      m_EgScores.passersHotmap.valueAt(s, c),
+                                      gpf);
+            }
+
+            if constexpr (DO_CONN_PASSERS) {
+                if (connectedPassers.contains(s)) {
+                    total += adjustScores(m_MgScores.connectedPassersHotmap.valueAt(s, c),
+                                          m_EgScores.connectedPassersHotmap.valueAt(s, c),
+                                          gpf);
+                }
             }
         }
     }
 
     // Evaluate king placement
-    total += adjustScores(m_MgScores.kingHotmap.valueAt(ourKingSquare, c),
-                          m_EgScores.kingHotmap.valueAt(ourKingSquare, c),
-                          gpf);
+    if constexpr (DO_PSQT) {
+        total += adjustScores(m_MgScores.kingHotmap.valueAt(ourKingSquare, c),
+                              m_EgScores.kingHotmap.valueAt(ourKingSquare, c),
+                              gpf);
+    }
 
     return total;
 }
@@ -218,6 +255,10 @@ Bitboard ClassicEvaluator::getChainPawns(const Position& pos, Color c) {
 }
 
 int ClassicEvaluator::evaluateKingExposure(const Position& pos, Color c, int gpf) const {
+    if constexpr (!DO_KING_EXPOSURE) {
+        return 0;
+    }
+
     int total = 0;
     Color them = getOppositeColor(c);
     Square theirKingSquare = pos.getKingSquare(them);
@@ -261,6 +302,9 @@ int ClassicEvaluator::evaluateKingExposure(const Position& pos, Color c, int gpf
 }
 
 int ClassicEvaluator::evaluateBlockingPawns(const Position &pos, Color c, int gpf) const {
+    if constexpr (!DO_BLOCKING_PAWN) {
+        return 0;
+    }
     Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
 
     // Evaluate blocking pawns
@@ -291,16 +335,9 @@ int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
     return ret;
 }
 
-int ClassicEvaluator::evaluateShallow(const Position &pos) const {
-    int gpf = getGamePhaseFactor(pos);
+int ClassicEvaluator::evaluate() const {
+    const Position& pos = getPosition();
 
-    Color us = pos.getColorToMove();
-    Color them = getOppositeColor(us);
-
-    return evaluateMaterial(pos, us, gpf) - evaluateMaterial(pos, them, gpf);
-}
-
-int ClassicEvaluator::evaluate(const Position& pos) const {
     // First, check if we are facing a known endgame
     EndgameData eg = endgame::identify(pos);
     if (eg.type == EG_UNKNOWN) {
@@ -341,12 +378,12 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
     total += evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
     total += evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
 
-    if (!pos.colorHasSufficientMaterial(us)) {
-        total = std::min(getDrawScore() - 1, total);
-    }
-    if (!pos.colorHasSufficientMaterial(them)) {
-        total = std::max(getDrawScore() + 1, total);
-    }
+    //if (!pos.colorHasSufficientMaterial(us)) {
+    //    total = std::min(getDrawScore() - 1, total);
+    //}
+    //if (!pos.colorHasSufficientMaterial(them)) {
+    //    total = std::max(getDrawScore() + 1, total);
+    //}
 
     return total;
 }
