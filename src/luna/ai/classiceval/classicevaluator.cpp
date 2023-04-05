@@ -13,6 +13,32 @@ static int adjustScores(int mg, int eg, int gpf) {
     return (mg * gpf) / 100 + (eg * (100 - gpf)) / 100;
 }
 
+int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
+    constexpr int KNIGHT_VAL = 3;
+    constexpr int BISHOP_VAL = 3;
+    constexpr int ROOK_VAL   = 5;
+    constexpr int QUEEN_VAL  = 12;
+    constexpr int STARTING_MATERIAL_COUNT =
+            KNIGHT_VAL * 2 + BISHOP_VAL * 2 +
+            ROOK_VAL * 2   + QUEEN_VAL * 1; // Excluding pawns
+
+    int nKnights = bits::popcount(pos.getBitboard(WHITE_KNIGHT) | pos.getBitboard(BLACK_KNIGHT));
+    int nBishops = bits::popcount(pos.getBitboard(WHITE_BISHOP) | pos.getBitboard(BLACK_BISHOP));
+    int nRooks   = bits::popcount(pos.getBitboard(WHITE_ROOK) | pos.getBitboard(BLACK_ROOK));
+    int nQueens  = bits::popcount(pos.getBitboard(WHITE_QUEEN) | pos.getBitboard(BLACK_QUEEN));
+
+    int total = nKnights * KNIGHT_VAL +
+                nBishops * BISHOP_VAL +
+                nRooks + ROOK_VAL +
+                nQueens + QUEEN_VAL;
+
+    int ret = (total * 100) / STARTING_MATERIAL_COUNT;
+
+    std::cout << "total " << total << " ret " << ret << std::endl;
+
+    return ret;
+}
+
 int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) const {
     if constexpr (!DO_MATERIAL) {
         return 0;
@@ -262,6 +288,7 @@ int ClassicEvaluator::evaluateKingExposure(const Position& pos, Color c, int gpf
     int total = 0;
     Color them = getOppositeColor(c);
     Square theirKingSquare = pos.getKingSquare(them);
+    Bitboard theirPawns = pos.getBitboard(Piece(them, PT_PAWN));
 
     Bitboard bishops = pos.getBitboard(Piece(c, PT_BISHOP));
     Bitboard rooks = pos.getBitboard(Piece(c, PT_ROOK));
@@ -276,23 +303,32 @@ int ClassicEvaluator::evaluateKingExposure(const Position& pos, Color c, int gpf
 
     Bitboard occ = pos.getBitboard(Piece(them, PT_PAWN));
 
+    if (c == pos.getColorToMove()) {
+        std::cout << "FEN: " << pos.toFen() << std::endl;
+        std::cout << "unfiltered bishops:\n" << pos.getBitboard(Piece(c, PT_BISHOP));
+        std::cout << "filtered bishops:\n" << bishops;
+        std::cout << "popcount: " << bits::checkedPopcount(bbs::getBishopAttacks(theirKingSquare, occ) & ~theirPawns)
+                  << std::endl;
+        std::cout << std::endl;
+    }
+
     // Compute bishop exposure
     if (bishops != 0 &&
-        bbs::getBishopAttacks(theirKingSquare, occ).count() > 2) {
+        bits::checkedPopcount(bbs::getBishopAttacks(theirKingSquare, occ) & ~theirPawns) > 2) {
         total += adjustScores(m_MgScores.kingExposureScores[PT_BISHOP],
                               m_EgScores.kingExposureScores[PT_BISHOP],
                               gpf);
     }
 
     if (rooks != 0 &&
-        bbs::getRookAttacks(theirKingSquare, occ).count() > 8) {
+        bits::checkedPopcount(bbs::getRookAttacks(theirKingSquare, occ) & ~theirPawns) > 8) {
         total += adjustScores(m_MgScores.kingExposureScores[PT_ROOK],
                               m_EgScores.kingExposureScores[PT_ROOK],
                               gpf);
     }
 
     if (queens != 0 &&
-        bbs::getQueenAttacks(theirKingSquare, occ).count() > 11) {
+        bits::checkedPopcount(bbs::getQueenAttacks(theirKingSquare, occ) & ~theirPawns) > 11) {
         total += adjustScores(m_MgScores.kingExposureScores[PT_QUEEN],
                               m_EgScores.kingExposureScores[PT_QUEEN],
                               gpf);
@@ -324,15 +360,6 @@ int ClassicEvaluator::evaluateBlockingPawns(const Position &pos, Color c, int gp
 
 int ClassicEvaluator::getDrawScore() const {
     return 0;
-}
-
-int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
-    constexpr int STARTING_MATERIAL_COUNT = 62; // Excluding pawns
-
-    int totalMaterial = pos.countMaterial<true>();
-    int ret = (totalMaterial * 100) / STARTING_MATERIAL_COUNT;
-
-    return ret;
 }
 
 int ClassicEvaluator::evaluate() const {
@@ -371,12 +398,12 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
 
     int total = 0;
 
-    total += evaluateMaterial(pos, us, gpf) - evaluateMaterial(pos, them, gpf);
-    total += evaluateHotmaps(pos, us, gpf) - evaluateHotmaps(pos, them, gpf);
-    total += evaluateAttacks(pos, us, gpf) - evaluateAttacks(pos, them, gpf);
+    //total += evaluateMaterial(pos, us, gpf) - evaluateMaterial(pos, them, gpf);
+    //total += evaluateHotmaps(pos, us, gpf) - evaluateHotmaps(pos, them, gpf);
+    //total += evaluateAttacks(pos, us, gpf) - evaluateAttacks(pos, them, gpf);
     total += evaluateKingExposure(pos, us, gpf) - evaluateKingExposure(pos, them, gpf);
-    total += evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
-    total += evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
+    //total += evaluateBlockingPawns(pos, us, gpf) - evaluateBlockingPawns(pos, them, gpf);
+    //total += evaluateBishopPair(pos, us, gpf) - evaluateBishopPair(pos, them, gpf);
 
     //if (!pos.colorHasSufficientMaterial(us)) {
     //    total = std::min(getDrawScore() - 1, total);

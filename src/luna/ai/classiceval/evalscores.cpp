@@ -54,9 +54,9 @@ static void initializeDefaultMgTable() {
     defaultMgTable.nearKingAttacksScore[PT_ROOK]   = 85;
     defaultMgTable.nearKingAttacksScore[PT_QUEEN]  = 40;
 
-    defaultMgTable.kingExposureScores[PT_BISHOP] = 30;
-    defaultMgTable.kingExposureScores[PT_ROOK]   = 40;
-    defaultMgTable.kingExposureScores[PT_QUEEN]  = 70;
+    defaultMgTable.kingExposureScores[PT_BISHOP] = 70;
+    defaultMgTable.kingExposureScores[PT_ROOK]   = 100;
+    defaultMgTable.kingExposureScores[PT_QUEEN]  = 180;
 
     // Pawn structures
     defaultMgTable.blockingPawnScore = -80;

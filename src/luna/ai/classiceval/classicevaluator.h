@@ -17,7 +17,7 @@ namespace lunachess::ai {
 class ClassicEvaluator : public Evaluator {
     static constexpr bool DO_MATERIAL      = true;
     static constexpr bool DO_MOBILITY      = true;
-    static constexpr bool DO_KING_EXPOSURE = true;
+    static constexpr bool DO_KING_EXPOSURE = false;
     static constexpr bool DO_BISHOP_PAIR   = true;
     static constexpr bool DO_OUTPOST       = true;
     static constexpr bool DO_PAWN_COMPLEX  = true;

@@ -24,6 +24,10 @@ inline ui64 popcount(ui64 x) {
 #endif
 }
 
+inline ui64 checkedPopcount(ui64 x) {
+    return x != 0 ? popcount(x) : 0;
+}
+
 template <ui64 val>
 inline constexpr ui64 makeMask() {
     return BIT(val);

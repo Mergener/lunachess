@@ -48,6 +48,9 @@ const char* getPieceTypeName(PieceType pt) {
         case PT_KING:
             return "King";
 
+        case PT_NONE:
+            return "No piece";
+
         default:
             return "Unknown Piece Type";
     }
