@@ -1,6 +1,11 @@
-#include "posutils.h"
+#include "staticanalysis.h"
 
-namespace lunachess::posutils {
+#include <cstring>
+
+#include "bitboard.h"
+
+namespace lunachess::staticanalysis {
+
 
 static Bitboard getAllAttackersSEE(const Position& pos, Square s) {
     Bitboard atks = 0;
@@ -145,4 +150,23 @@ int guardValue(const Position& pos, Square s, Color us) {
     return gv;
 }
 
-} // lunachess::posutils
+Bitboard getPassedPawns(const Position& pos, Color c) {
+    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
+    Bitboard theirPawns = pos.getBitboard(Piece(getOppositeColor(c), PT_PAWN));
+    Bitboard bb = 0;
+
+    for (Square s: pawns) {
+        Bitboard cantHaveEnemyPawnsBB =
+            bbs::getFileContestantsBitboard(s, c) | bbs::getPasserBlockerBitboard(s, c);
+
+        if ((cantHaveEnemyPawnsBB & theirPawns) == 0) {
+            // No nearby file contestants and opposing blockers.
+            // Pawn is a passer!
+            bb.add(s);
+        }
+    }
+
+    return bb;
+}
+
+} // lunachess::staticanalysis

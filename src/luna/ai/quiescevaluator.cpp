@@ -32,7 +32,7 @@ int QuiesceEvaluator::quiesce(int depth, int alpha, int beta) const {
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];
         if (move.getType() == MT_SIMPLE_CAPTURE &&
-            !posutils::hasGoodSEE(pos, move)) {
+            !staticanalysis::hasGoodSEE(pos, move)) {
             // The result of the exchange series will always result in
             // material loss after this capture, prune it.
             continue;

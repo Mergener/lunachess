@@ -6,7 +6,7 @@
 
 #include "../position.h"
 #include "../movegen.h"
-#include "../posutils.h"
+#include "../staticanalysis.h"
 
 namespace lunachess::ai {
 

@@ -19,7 +19,6 @@ void initializeEverything() {
     initializeDistances();
 
     // Initialize AI functionalities
-    ai::initializeAIBitboards();
     ai::initializeEvalScores();
     ai::AIMoveFactory::initialize();
 }

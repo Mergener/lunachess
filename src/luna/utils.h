@@ -41,6 +41,10 @@ inline bool randomChance(float chancePct) {
     return rnd <= chancePct;
 }
 
+template <typename T> int sign(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 } // lunachess::utils
 
 #endif // LUNA_UTILS_H

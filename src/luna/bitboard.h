@@ -467,6 +467,35 @@ inline constexpr Bitboard getKingCastlePath(Color color, Side side) {
     return KING_CASTLE_PATHS[color][side];
 }
 
+/**
+ * Returns a bitboard of all the squares that can contain an opposing pawn
+ * which could be pushed to attack the square 's'.
+ */
+inline Bitboard getFileContestantsBitboard(Square s, Color c) {
+    extern Bitboard g_FileContestantsBBs[64][CL_COUNT];
+    return g_FileContestantsBBs[s][c];
+}
+
+inline Bitboard getPawnShieldBitboard(Square s, Color c) {
+    extern Bitboard g_PawnShields[64][CL_COUNT];
+    return g_PawnShields[s][c];
+}
+
+inline Bitboard getPasserBlockerBitboard(Square s, Color c) {
+    extern Bitboard g_PasserBlockers[64][2];
+    return g_PasserBlockers[s][c];
+}
+
+inline Bitboard getNearKingSquares(Square s) {
+    extern Bitboard g_NearKingSquares[64];
+    return g_NearKingSquares[s];
+}
+
+inline Bitboard getCentralSquares() {
+    constexpr Bitboard centralSquares = 0x1818000000;
+    return centralSquares;
+}
+
 void initialize();
 
 } // bbs

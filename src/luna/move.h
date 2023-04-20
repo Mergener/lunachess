@@ -57,6 +57,13 @@ public:
     inline Piece getDestPiece() const { return Piece((m_Data >> 16) & BITMASK(4)); }
     inline PieceType getPromotionPiece() const { return (m_Data >> 20) & BITMASK(3); }
 
+    inline Piece getCapturedPiece() const {
+        if (getType() == MT_EN_PASSANT_CAPTURE) {
+            return Piece(getOppositeColor(getSourcePiece().getColor()), PT_PAWN);
+        }
+        return getDestPiece();
+    }
+
     inline MoveType getType() const { return MoveType((m_Data >> 23) & BITMASK(6)); }
 
     inline ui32 getRaw() const { return m_Data; }

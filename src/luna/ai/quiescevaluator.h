@@ -14,7 +14,7 @@ public:
     inline int getDrawScore() const override { return 0; }
 
     inline QuiesceEvaluator()
-        : m_Eval(std::make_shared<ClassicEvaluator>()) {
+        : m_Eval(std::make_shared<HandCraftedEvaluator<>>()) {
     }
 
     inline QuiesceEvaluator(std::shared_ptr<Evaluator> eval)
@@ -29,7 +29,7 @@ protected:
         m_Eval->makeMove(move);
     }
 
-    inline void onUndoMove() override {
+    inline void onUndoMove(Move move) override {
         m_Eval->undoMove();
     }
 

@@ -1,9 +1,7 @@
 #include "classicevaluator.h"
 
 #include "../../strutils.h"
-#include "../../posutils.h"
-
-#include "aibitboards.h"
+#include "../../staticanalysis.h"
 
 #include <fstream>
 
@@ -13,7 +11,7 @@ static int adjustScores(int mg, int eg, int gpf) {
     return (mg * gpf) / 100 + (eg * (100 - gpf)) / 100;
 }
 
-int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
+int HandCraftedEvaluator<>::getGamePhaseFactor(const Position& pos) const {
     constexpr int KNIGHT_VAL = 3;
     constexpr int BISHOP_VAL = 3;
     constexpr int ROOK_VAL   = 5;
@@ -39,7 +37,7 @@ int ClassicEvaluator::getGamePhaseFactor(const Position& pos) const {
     return ret;
 }
 
-int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) const {
+int HandCraftedEvaluator<>::evaluateMaterial(const Position& pos, Color c, int gpf) const {
     if constexpr (!DO_MATERIAL) {
         return 0;
     }
@@ -59,7 +57,7 @@ int ClassicEvaluator::evaluateMaterial(const Position& pos, Color c, int gpf) co
     return total;
 }
 
-int ClassicEvaluator::evaluatePawnComplex(const Position& pos, Color color, int gpf) const {
+int HandCraftedEvaluator<>::evaluatePawnComplex(const Position& pos, Color color, int gpf) const {
     if constexpr (!DO_PAWN_COMPLEX) {
         return 0;
     }
@@ -93,7 +91,7 @@ int ClassicEvaluator::evaluatePawnComplex(const Position& pos, Color color, int 
     return pawns.count() * individualScore;
 }
 
-int ClassicEvaluator::evaluateOutposts(const Position& pos, Color color, int gpf) const {
+int HandCraftedEvaluator<>::evaluateOutposts(const Position& pos, Color color, int gpf) const {
     if constexpr (!DO_OUTPOST) {
         return 0;
     }
@@ -116,7 +114,7 @@ int ClassicEvaluator::evaluateOutposts(const Position& pos, Color color, int gpf
     return total;
 }
 
-int ClassicEvaluator::evaluateBishopPair(const Position& pos, Color color, int gpf) const {
+int HandCraftedEvaluator<>::evaluateBishopPair(const Position& pos, Color color, int gpf) const {
     if constexpr (!DO_BISHOP_PAIR) {
         return 0;
     }
@@ -137,7 +135,7 @@ int ClassicEvaluator::evaluateBishopPair(const Position& pos, Color color, int g
     return std::min(lightSquaredBishops.count(), darkSquaredBishops.count()) * individualScore;
 }
 
-int ClassicEvaluator::evaluateAttacks(const Position& pos, Color c, int gpf) const {
+int HandCraftedEvaluator<>::evaluateAttacks(const Position& pos, Color c, int gpf) const {
     if constexpr (!DO_MOBILITY && !DO_NEAR_KING_ATK) {
         return 0;
     }
@@ -180,7 +178,7 @@ int ClassicEvaluator::evaluateAttacks(const Position& pos, Color c, int gpf) con
     return total;
 }
 
-int ClassicEvaluator::evaluateHotmaps(const Position& pos, Color c, int gpf) const {
+int HandCraftedEvaluator<>::evaluateHotmaps(const Position& pos, Color c, int gpf) const {
     if constexpr (!DO_PSQT && !DO_PAWN_CHAINS &&
                   !DO_PASSERS && !DO_CONN_PASSERS) {
         return 0;
@@ -239,7 +237,7 @@ int ClassicEvaluator::evaluateHotmaps(const Position& pos, Color c, int gpf) con
     return total;
 }
 
-Bitboard ClassicEvaluator::getPassedPawns(const Position& pos, Color c) {
+Bitboard HandCraftedEvaluator<>::getPassedPawns(const Position& pos, Color c) {
     Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
     Bitboard theirPawns = pos.getBitboard(Piece(getOppositeColor(c), PT_PAWN));
     Bitboard bb = 0;
@@ -258,7 +256,7 @@ Bitboard ClassicEvaluator::getPassedPawns(const Position& pos, Color c) {
     return bb;
 }
 
-Bitboard ClassicEvaluator::getChainPawns(const Position& pos, Color c) {
+Bitboard HandCraftedEvaluator<>::getChainPawns(const Position& pos, Color c) {
     Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
     Bitboard bb = 0;
 
@@ -280,7 +278,7 @@ Bitboard ClassicEvaluator::getChainPawns(const Position& pos, Color c) {
     return bb;
 }
 
-int ClassicEvaluator::evaluateKingExposure(const Position& pos, Color c, int gpf) const {
+int HandCraftedEvaluator<>::evaluateKingExposure(const Position& pos, Color c, int gpf) const {
     if constexpr (!DO_KING_EXPOSURE) {
         return 0;
     }
@@ -337,7 +335,7 @@ int ClassicEvaluator::evaluateKingExposure(const Position& pos, Color c, int gpf
     return total;
 }
 
-int ClassicEvaluator::evaluateBlockingPawns(const Position &pos, Color c, int gpf) const {
+int HandCraftedEvaluator<>::evaluateBlockingPawns(const Position &pos, Color c, int gpf) const {
     if constexpr (!DO_BLOCKING_PAWN) {
         return 0;
     }
@@ -358,11 +356,11 @@ int ClassicEvaluator::evaluateBlockingPawns(const Position &pos, Color c, int gp
     return total;
 }
 
-int ClassicEvaluator::getDrawScore() const {
+int HandCraftedEvaluator<>::getDrawScore() const {
     return 0;
 }
 
-int ClassicEvaluator::evaluate() const {
+int HandCraftedEvaluator<>::evaluate() const {
     const Position& pos = getPosition();
 
     // First, check if we are facing a known endgame
@@ -390,7 +388,7 @@ int ClassicEvaluator::evaluate() const {
     return -evaluateEndgame(pos, eg);
 }
 
-int ClassicEvaluator::evaluateClassic(const Position& pos) const {
+int HandCraftedEvaluator<>::evaluateClassic(const Position& pos) const {
     Color us = pos.getColorToMove();
     Color them = getOppositeColor(us);
 
@@ -415,7 +413,7 @@ int ClassicEvaluator::evaluateClassic(const Position& pos) const {
     return total;
 }
 
-int ClassicEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) const {
+int HandCraftedEvaluator<>::evaluateEndgame(const Position& pos, EndgameData egData) const {
     switch (egData.type) {
         // Drawn endgames
         case EG_KR_KN:
@@ -440,7 +438,7 @@ int ClassicEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) c
 
 }
 
-int ClassicEvaluator::evaluateCornerMateEndgame(const Position& pos, EndgameData eg) const {
+int HandCraftedEvaluator<>::evaluateCornerMateEndgame(const Position& pos, EndgameData eg) const {
     int materialScore;
     switch (eg.type) {
         case EG_KQ_K:
@@ -485,7 +483,7 @@ int ClassicEvaluator::evaluateCornerMateEndgame(const Position& pos, EndgameData
     return materialScore + kingDistanceScore + losingKingCornerScore + BASE_BONUS;
 }
 
-int ClassicEvaluator::evaluateKPK(const Position &pos, Color lhs) const {
+int HandCraftedEvaluator<>::evaluateKPK(const Position &pos, Color lhs) const {
     int queenValue = m_EgScores.materialScore[PT_QUEEN];
 
     Color rhs = getOppositeColor(lhs);
@@ -503,7 +501,7 @@ int ClassicEvaluator::evaluateKPK(const Position &pos, Color lhs) const {
     return evaluateClassic(pos);
 }
 
-int ClassicEvaluator::evaluateKBNK(const Position &pos, Color lhs) const {
+int HandCraftedEvaluator<>::evaluateKBNK(const Position &pos, Color lhs) const {
     constexpr int LONE_KING_BONUS_DS[] {
         0, 1, 2, 3, 4, 5, 6, 7,
         1, 2, 3, 4, 5, 6, 7, 6,
@@ -543,7 +541,7 @@ int ClassicEvaluator::evaluateKBNK(const Position &pos, Color lhs) const {
     return base - theirKingBonus * 50;
 }
 
-ClassicEvaluator::ClassicEvaluator() {
+HandCraftedEvaluator<>::HandCraftedEvaluator<>() {
     m_MgScores = ScoreTable::getDefaultMiddlegameTable();
     m_EgScores = ScoreTable::getDefaultEndgameTable();
 }

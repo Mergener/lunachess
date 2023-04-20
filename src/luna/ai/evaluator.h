@@ -12,6 +12,7 @@ public:
      * for the current evaluation position.
      */
     virtual int evaluate() const = 0;
+    virtual int getDrawScore() const = 0;
 
     inline const Position& getPosition() const { return m_Pos; }
 
@@ -35,8 +36,9 @@ public:
      * Undoes a move on the evaluation position.
      */
     inline void undoMove() {
+        auto move = m_Pos.getLastMove();
         m_Pos.undoMove();
-        onUndoMove();
+        onUndoMove(move);
     }
 
     /**
@@ -54,14 +56,12 @@ public:
         m_Pos.undoNullMove();
         onUndoNullMove();
     }
-
-    virtual int getDrawScore() const = 0;
     virtual ~Evaluator() = default;
 
 protected:
     inline virtual void onSetPosition(const Position& pos) {}
     inline virtual void onMakeMove(Move move) {}
-    inline virtual void onUndoMove() {}
+    inline virtual void onUndoMove(Move move) {}
     inline virtual void onMakeNullMove() {}
     inline virtual void onUndoNullMove() {}
 

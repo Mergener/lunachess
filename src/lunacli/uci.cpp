@@ -554,7 +554,7 @@ static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
         }
     }
 
-    ai::Hotmap hotmap;
+    ai::PieceSquareTable hotmap;
     Position& pos = ctx.pos;
     Bitboard pieces = pos.getCompositeBitboard();
 

@@ -36,15 +36,13 @@ add_library(luna STATIC
         src/luna/perft.cpp
         src/luna/lunachess.cpp
         src/luna/debug.cpp
-        src/luna/posutils.cpp
+        src/luna/staticanalysis.cpp
         src/luna/strutils.cpp
         src/luna/ai/classiceval/evalscores.cpp
         src/luna/ai/timemanager.cpp
-        src/luna/ai/classiceval/classicevaluator.cpp
         src/luna/ai/search.cpp
         src/luna/ai/transpositiontable.cpp
         src/luna/ai/aimovefactory.cpp
-        src/luna/ai/classiceval/aibitboards.cpp
         src/luna/ai/quiescevaluator.cpp
         src/luna/utils.cpp
         src/luna/endgame.cpp

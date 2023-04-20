@@ -5,6 +5,7 @@
 #include <cstring>
 #include <array>
 #include <initializer_list>
+#include <iomanip>
 
 #include <nlohmann/json.hpp>
 
@@ -13,6 +14,7 @@
 namespace lunachess::ai {
 
 class KingSquareHotmapGroup;
+
 
 class Hotmap {
 public:
@@ -31,7 +33,7 @@ public:
     }
 
     inline Hotmap(const std::array<short, SQ_COUNT>& values)
-        : m_Values(values) {
+            : m_Values(values) {
     }
 
     inline Hotmap(const std::initializer_list<short>& values) {
@@ -61,7 +63,7 @@ private:
     }
 };
 
-std::ostream& operator<<(std::ostream& stream, const Hotmap& hotmap);
+//std::ostream& operator<<(std::ostream& stream, const Hotmap& hotmap);
 
 struct ScoreTable {
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ScoreTable, materialScore,
@@ -118,14 +120,14 @@ struct ScoreTable {
     Hotmap pawnsHotmap;
 
     /**
-     * Hotmap for support pawn scores.
+     * PieceSquareTable for support pawn scores.
      * A pawn is a support pawn if it has pawns of the
      * same color in adjacent files.
      */
     Hotmap chainedPawnsHotmap;
 
     /**
-     * Hotmap for passed pawn scores.
+     * PieceSquareTable for passed pawn scores.
      * A pawn is passed (aka a passer) when no opposing pawn can either
      * block it or capture it further down its file.
      */

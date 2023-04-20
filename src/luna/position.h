@@ -94,6 +94,8 @@ public:
     // Position status
     //
 
+    inline Move getLastMove() const { return m_Status.lastMove; }
+
     inline bool is50MoveRuleDraw() const { return m_Status.fiftyMoveCounter >= 100; }
 
     inline bool isDraw(int maxRepetitions = 2) const {

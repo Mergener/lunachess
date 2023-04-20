@@ -1,6 +1,6 @@
 #include "position.h"
 
-#include "posutils.h"
+#include "staticanalysis.h"
 #include "movegen.h"
 
 #include <sstream>
@@ -403,32 +403,32 @@ bool Position::colorHasSufficientMaterial(Color c) const {
 }
 
 Square Position::getSmallestAttackerSquare(Square s, Color c) const {
-    Bitboard pawns = posutils::getPawnAttackers(*this, s, c);
+    Bitboard pawns = staticanalysis::getPawnAttackers(*this, s, c);
     if (pawns != 0) {
         return *pawns.begin();
     }
 
-    Bitboard knights = posutils::getKnightAttackers(*this, s, c);
+    Bitboard knights = staticanalysis::getKnightAttackers(*this, s, c);
     if (knights != 0) {
         return *knights.begin();
     }
 
-    Bitboard bishops = posutils::getBishopAttackers(*this, s, c);
+    Bitboard bishops = staticanalysis::getBishopAttackers(*this, s, c);
     if (bishops != 0) {
         return *bishops.begin();
     }
 
-    Bitboard rooks = posutils::getRookAttackers(*this, s, c);
+    Bitboard rooks = staticanalysis::getRookAttackers(*this, s, c);
     if (rooks != 0) {
         return *rooks.begin();
     }
 
-    Bitboard queens = posutils::getQueenAttackers(*this, s, c);
+    Bitboard queens = staticanalysis::getQueenAttackers(*this, s, c);
     if (queens != 0) {
         return *queens.begin();
     }
 
-    Bitboard kings = posutils::getKingAttackers(*this, s, c);
+    Bitboard kings = staticanalysis::getKingAttackers(*this, s, c);
     if (kings != 0) {
         return *kings.begin();
     }

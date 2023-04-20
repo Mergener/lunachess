@@ -149,7 +149,7 @@ int AIMoveFactory::scoreQuietMove(const Position& pos, Move move) const {
         total -= m_Scores.squareGuardedByPawnPenalty;
     }
 
-    //int guardValue = posutils::guardValue(pos, move.getDest(), pos.getColorToMove()) * m_Scores.guardValueMultiplier;
+    //int guardValue = staticanalysis::guardValue(pos, move.getDest(), pos.getColorToMove()) * m_Scores.guardValueMultiplier;
     //total += guardValue;
 
     return total;
@@ -177,7 +177,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     // Compute the SEE for each simple capture
     bool seeTable[SQ_COUNT][SQ_COUNT];
     for (auto m: simpleCaptures) {
-        seeTable[m.getSource()][m.getDest()] = posutils::hasGoodSEE(pos, m);
+        seeTable[m.getSource()][m.getDest()] = staticanalysis::hasGoodSEE(pos, m);
     }
 
     // Sort the captures in see > mvv-lva order

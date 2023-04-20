@@ -2,14 +2,14 @@
 
 namespace lunachess::tests {
 
-static ai::ClassicEvaluator& getKingExposureEvaluator() {
-    static ai::ClassicEvaluator* eval = nullptr;
+static ai::HandCraftedEvaluator<>& getKingExposureEvaluator() {
+    static ai::HandCraftedEvaluator<>* eval = nullptr;
     if (eval == nullptr) {
         ai::ScoreTable scores;
         scores.kingExposureScores[PT_BISHOP] = 1;
         scores.kingExposureScores[PT_ROOK] = 10;
         scores.kingExposureScores[PT_QUEEN] = 100;
-        eval = new ai::ClassicEvaluator(scores, scores);
+        eval = new ai::HandCraftedEvaluator<>(scores, scores);
     }
     return *eval;
 }
