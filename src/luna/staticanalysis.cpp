@@ -6,7 +6,6 @@
 
 namespace lunachess::staticanalysis {
 
-
 static Bitboard getAllAttackersSEE(const Position& pos, Square s) {
     Bitboard atks = 0;
     Bitboard newAtks = 0;
@@ -164,6 +163,107 @@ Bitboard getPassedPawns(const Position& pos, Color c) {
             // Pawn is a passer!
             bb.add(s);
         }
+    }
+
+    return bb;
+}
+
+Bitboard getPieceOutposts(const Position& pos, Piece p) {
+    Bitboard pieceBB = pos.getBitboard(p);
+    Bitboard bb = 0;
+    Color us = p.getColor();
+    Bitboard theirPawns = pos.getBitboard(Piece(getOppositeColor(us), PT_PAWN));
+
+    for (auto s: pieceBB) {
+        Bitboard constestantsBB = bbs::getFileContestantsBitboard(s, us);
+        if ((constestantsBB & theirPawns) == 0) {
+            bb.add(s);
+        }
+    }
+
+    return bb;
+}
+
+template <bool PASSERS>
+static Bitboard getConnectedPawnsOrPassers(const Position& pos, Color us) {
+    Bitboard pawns;
+    if constexpr (PASSERS) {
+        pawns = getPassedPawns(pos, us);
+    }
+    else {
+        pawns = pos.getBitboard(Piece(us, PT_PAWN));
+    }
+
+    Bitboard lastFilePawns = bbs::getFileBitboard(FL_A) & pawns;
+    Bitboard bb = 0;
+    for (BoardFile f = FL_B; f < FL_COUNT; ++f) {
+        Bitboard thisFilePawns = bbs::getFileBitboard(f) & pawns;
+        if (lastFilePawns) {
+            bb |= thisFilePawns;
+        }
+        lastFilePawns = thisFilePawns;
+    }
+    return bb;
+}
+
+Bitboard getConnectedPawns(const Position& pos, Color us) {
+    return getConnectedPawnsOrPassers<false>(pos, us);
+}
+
+Bitboard getConnectedPassers(const Position& pos, Color us) {
+    return getConnectedPawnsOrPassers<true>(pos, us);
+}
+
+Bitboard getBlockingPawns(const Position& pos, Color c) {
+    Bitboard bb = 0;
+    Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
+
+    // Evaluate blocking pawns
+    for (BoardFile f = FL_A; f < FL_COUNT; ++f) {
+        Bitboard filePawns = bbs::getFileBitboard(f) & pawns;
+
+        // The pawn at the bottom of the stack is not a blocker.
+        // Remove it.
+        if (c == CL_WHITE) {
+            filePawns.remove(*filePawns.begin());
+        }
+        else {
+            filePawns.remove(*filePawns.rbegin());
+        }
+
+        bb |= filePawns;
+    }
+
+    return bb;
+}
+
+Bitboard getBackwardPawns(const Position& pos, Color us) {
+    Color them = getOppositeColor(us);
+    Bitboard ourPawns = pos.getBitboard(Piece(us, PT_PAWN));
+    Bitboard bb = 0;
+    Direction pawnStepDir = getPawnStepDir(us);
+
+    for (auto s: ourPawns) {
+        Square nextSquare = s + pawnStepDir;
+
+        if (!pos.getAttacks(them, PT_PAWN).contains(nextSquare)) {
+            // Opponent is not attacking the square in front of the pawn with their pawns
+            continue;
+        }
+
+        Bitboard supportingPawns = ourPawns & bbs::getFileContestantsBitboard(s, them);
+        if (supportingPawns != 0) {
+            // We have a pawn behind this pawn that is already supporting this pawn or can be pushed
+            // to do it.
+            continue;
+        }
+
+        if (pos.getPieceAt(nextSquare).getType() == PT_PAWN) {
+            // Square above is occupied by a pawn (from either side)
+            continue;
+        }
+
+        bb.add(s);
     }
 
     return bb;

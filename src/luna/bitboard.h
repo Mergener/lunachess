@@ -150,6 +150,9 @@ public:
 
     class Iterator {
     public:
+        inline Iterator(Bitboard board, Square sq)
+            : m_BB(board), m_Sq(sq) {}
+
         inline Iterator(Bitboard board)
             : m_BB(board), m_Sq(bits::bitScanF(m_BB)) {}
 
@@ -185,8 +188,11 @@ public:
 
     inline Iterator cbegin() const { return Iterator(*this); }
     inline Iterator cend() const { return Iterator(0); }
+    inline Iterator crbegin() const { return Iterator(*this, bits::bitScanR(m_BB)); }
+
     inline Iterator begin() { return cbegin(); }
     inline Iterator end() { return cend(); }
+    inline Iterator rbegin() { return crbegin(); }
 
 private:
     ui64 m_BB;

@@ -30,7 +30,7 @@ bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
 int guardValue(const Position& pos, Square s, Color pov);
 
 /**
- * Returns the bitboard that are currently placed in outposts.
+ * Returns the bitboard for all pieces of the specified type that are currently placed in outposts.
  * For this, we consider an 'outpost' to be every square that cannot be contested
  * by an enemy pawn.
  */
@@ -47,6 +47,12 @@ Bitboard getPassedPawns(const Position& pos, Color c);
  * on neighboring files.
  */
 Bitboard getConnectedPawns(const Position& pos, Color c);
+
+/**
+ * Returns the bitboard for all passed pawns of the specified color that have other passed
+ * pawns on neighboring files.
+ */
+Bitboard getConnectedPassers(const Position& pos, Color c);
 
 /**
  * Returns the bitboard for all pawns of the specified color that are blocking another
