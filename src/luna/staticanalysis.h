@@ -32,7 +32,7 @@ int guardValue(const Position& pos, Square s, Color pov);
 /**
  * Returns the bitboard for all pieces of the specified type that are currently placed in outposts.
  * For this, we consider an 'outpost' to be every square that cannot be contested
- * by an enemy pawn.
+ * by an enemy pawn and is defended by at least one allied pawn.
  */
 Bitboard getPieceOutposts(const Position& pos, Piece p);
 

@@ -38,7 +38,6 @@ add_library(luna STATIC
         src/luna/debug.cpp
         src/luna/staticanalysis.cpp
         src/luna/strutils.cpp
-        src/luna/ai/classiceval/evalscores.cpp
         src/luna/ai/timemanager.cpp
         src/luna/ai/search.cpp
         src/luna/ai/transpositiontable.cpp
@@ -47,7 +46,7 @@ add_library(luna STATIC
         src/luna/utils.cpp
         src/luna/endgame.cpp
         src/luna/endgame.h src/luna/openingbook.cpp
-        src/luna/openingbook.h)
+        src/luna/openingbook.h src/luna/pst.cpp src/luna/pst.h src/luna/ai/classiceval/classicevaluator.cpp)
 
 add_executable(lunacli
         src/lunacli/main.cpp
@@ -77,7 +76,7 @@ add_subdirectory("ext")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC requires some flags in order for threads and <filesystem> to work.
-    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc")
+    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc --static")
     target_link_libraries(luna PUBLIC stdc++fs
             PUBLIC nlohmann_json)
 else()

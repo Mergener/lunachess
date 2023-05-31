@@ -14,7 +14,7 @@ public:
     inline int getDrawScore() const override { return 0; }
 
     inline QuiesceEvaluator()
-        : m_Eval(std::make_shared<HandCraftedEvaluator<>>()) {
+        : m_Eval(std::make_shared<HandCraftedEvaluator>()) {
     }
 
     inline QuiesceEvaluator(std::shared_ptr<Evaluator> eval)

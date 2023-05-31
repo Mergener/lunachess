@@ -3,11 +3,11 @@
 #include <algorithm>
 
 #include "../movegen.h"
-#include "classiceval/evalscores.h"
+#include "../pst.h"
 
 namespace lunachess::ai {
 
-static Hotmap s_MvOrderHotmaps[PT_COUNT] = {
+static PieceSquareTable s_MvOrderHotmaps[PT_COUNT] = {
     { // PT_NONE
         0,    0,   0,   0,   0,   0,   0,   0,
         0,    0,   0,   0,   0,   0,   0,   0,
@@ -84,7 +84,7 @@ int AIMoveFactory::getHotmapDelta(Move move) {
     Piece srcPiece = move.getSourcePiece();
     Color us = srcPiece.getColor();
 
-    const Hotmap& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
+    const PieceSquareTable& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
 
     int dstVal = hotmap.valueAt(move.getDest(), us);
     int srcVal = hotmap.valueAt(move.getSource(), us);

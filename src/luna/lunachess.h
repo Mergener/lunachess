@@ -13,6 +13,7 @@
 #include "perft.h"
 #include "piece.h"
 #include "position.h"
+#include "pst.h"
 #include "staticanalysis.h"
 #include "staticlist.h"
 #include "strutils.h"
@@ -27,7 +28,7 @@
 #include "ai/timemanager.h"
 #include "ai/transpositiontable.h"
 #include "ai/classiceval/classicevaluator.h"
-#include "ai/classiceval/evalscores.h"
+
 
 namespace lunachess {
 

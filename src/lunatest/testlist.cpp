@@ -7,6 +7,9 @@
 #include "tests/endgame.cpp"
 #include "tests/staticanalysis/outposts.cpp"
 #include "tests/staticanalysis/backwardpawns.cpp"
+#include "tests/staticanalysis/blockingpawns.cpp"
+#include "tests/staticanalysis/connectedpawns.cpp"
+#include "tests/staticanalysis/passedpawns.cpp"
 
 namespace lunachess::tests {
 
@@ -14,11 +17,12 @@ std::unordered_map<std::string, std::vector<TestCase>> testGroups;
 
 void createTests() {
     testGroups = {
-        //{ "passers", passerAndChainTests },
-        //{ "color-complex", colorComplexTests },
         { "perft",   perftTests },
         {"outposts", outpostTests },
         {"backwardPawns", backwardPawnsTests },
+        {"blockingPawns", blockingPawnsTests },
+        {"connectedPawns", connectedPawnsTests },
+        {"passedPawns", passedPawnsTests },
         { "endgame", endgameTests },
     };
 }

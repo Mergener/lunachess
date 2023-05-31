@@ -147,7 +147,7 @@ public:
     }
 
     inline AlphaBetaSearcher()
-        : m_Eval(new HandCraftedEvaluator<>()) {
+        : m_Eval(new HandCraftedEvaluator()) {
     }
 
     /**

@@ -173,10 +173,11 @@ Bitboard getPieceOutposts(const Position& pos, Piece p) {
     Bitboard bb = 0;
     Color us = p.getColor();
     Bitboard theirPawns = pos.getBitboard(Piece(getOppositeColor(us), PT_PAWN));
+    Bitboard ourPawnAttacks = pos.getAttacks(us, PT_PAWN);
 
     for (auto s: pieceBB) {
         Bitboard constestantsBB = bbs::getFileContestantsBitboard(s, us);
-        if ((constestantsBB & theirPawns) == 0) {
+        if ((constestantsBB & theirPawns) == 0 && ourPawnAttacks.contains(s)) {
             bb.add(s);
         }
     }
@@ -200,6 +201,7 @@ static Bitboard getConnectedPawnsOrPassers(const Position& pos, Color us) {
         Bitboard thisFilePawns = bbs::getFileBitboard(f) & pawns;
         if (lastFilePawns) {
             bb |= thisFilePawns;
+            bb |= lastFilePawns;
         }
         lastFilePawns = thisFilePawns;
     }
