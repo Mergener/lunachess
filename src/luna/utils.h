@@ -5,6 +5,8 @@
 #include <sstream>
 #include <functional>
 #include <vector>
+#include <filesystem>
+#include <fstream>
 
 #include "types.h"
 
@@ -40,6 +42,19 @@ inline bool randomChance(float chancePct) {
 
     return rnd <= chancePct;
 }
+
+inline void writeToFile(std::filesystem::path path, std::string data) {
+    std::ofstream stream(path);
+    stream.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
+    stream << data;
+    stream.close();
+}
+
+template <typename T> int sign(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+std::string randomUUID();
 
 } // lunachess::utils
 

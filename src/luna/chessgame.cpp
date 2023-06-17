@@ -79,6 +79,7 @@ std::string ChessGame::toPgn(ToPgnArgs args) const {
 
     // By the end, write the result
     auto result = getResultForWhite();
+    ss << ' ';
     if (result == RES_UNFINISHED) {
         ss << '*';
     }

@@ -63,6 +63,8 @@ public:
 
     std::string toPgn(ToPgnArgs args = ToPgnArgs()) const;
 
+    static std::optional<ChessGame> fromPGN(std::string_view pgn);
+
     ChessGame() = default;
 
     template <typename TIter>
@@ -88,8 +90,6 @@ void playGame(ChessGame& game,
               PlayerFunc playerBlack,
               PlayGameArgs args = PlayGameArgs(),
               std::function<bool(const Position&)> stopCondition = [](const auto& p) { return false; });
-
-
 
 } // lunachess
 

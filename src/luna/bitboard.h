@@ -150,6 +150,9 @@ public:
 
     class Iterator {
     public:
+        inline Iterator(Bitboard board, Square sq)
+            : m_BB(board), m_Sq(sq) {}
+
         inline Iterator(Bitboard board)
             : m_BB(board), m_Sq(bits::bitScanF(m_BB)) {}
 
@@ -185,8 +188,11 @@ public:
 
     inline Iterator cbegin() const { return Iterator(*this); }
     inline Iterator cend() const { return Iterator(0); }
+    inline Iterator crbegin() const { return Iterator(*this, bits::bitScanR(m_BB)); }
+
     inline Iterator begin() { return cbegin(); }
     inline Iterator end() { return cend(); }
+    inline Iterator rbegin() { return crbegin(); }
 
 private:
     ui64 m_BB;
@@ -465,6 +471,42 @@ inline constexpr Bitboard getKingCastlePath(Color color, Side side) {
     };
 
     return KING_CASTLE_PATHS[color][side];
+}
+
+/**
+ * Returns a bitboard of all the squares that can contain an opposing pawn
+ * which could be pushed to attack the square 's'.
+ */
+inline Bitboard getFileContestantsBitboard(Square s, Color c) {
+    extern Bitboard g_FileContestantsBBs[64][CL_COUNT];
+    return g_FileContestantsBBs[s][c];
+}
+
+inline Bitboard getPawnShieldBitboard(Square s, Color c) {
+    extern Bitboard g_PawnShields[64][CL_COUNT];
+    return g_PawnShields[s][c];
+}
+
+inline Bitboard getPasserBlockerBitboard(Square s, Color c) {
+    extern Bitboard g_PasserBlockers[64][2];
+    return g_PasserBlockers[s][c];
+}
+
+inline Bitboard getNearKingSquares(Square s) {
+    extern Bitboard g_NearKingSquares[64];
+    return g_NearKingSquares[s];
+}
+
+inline Bitboard getCentralSquares() {
+    constexpr Bitboard centralSquares = 0x1818000000;
+    return centralSquares;
+}
+
+inline Bitboard getBoardHalf(Color c) {
+    constexpr Bitboard halves[] {
+    0xffffffff, 0xffffffff00000000
+    };
+    return halves[c];
 }
 
 void initialize();

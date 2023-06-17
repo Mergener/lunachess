@@ -11,6 +11,13 @@
 
 namespace lunachess::strutils {
 
+/**
+ * Removes redundant whitespace in-place for a given string.
+ * Ex:
+ * "The          quick         brown    fox jumps    over  the lazy     dog."
+ * becomes
+ * "The quick brown fox jumps over the lazy dog."
+ */
 void reduceWhitespace(std::string& s);
 void split(std::string_view s, std::vector<std::string_view>& tokens, std::string_view delim);
 

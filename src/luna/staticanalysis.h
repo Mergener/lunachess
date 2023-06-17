@@ -17,7 +17,58 @@ enum FileState {
     FS_SEMIOPEN
 };
 
-namespace posutils {
+namespace staticanalysis {
+
+/**
+ * Returns true if a given move in a position yields a static exchange
+ * evaluation value higher than the specified threshold.
+ *
+ * For more information: https://www.chessprogramming.org/Static_Exchange_Evaluation
+ */
+bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
+
+int guardValue(const Position& pos, Square s, Color pov);
+
+/**
+ * Returns the bitboard for all pieces of the specified type that are currently placed in outposts.
+ * For this, we consider an 'outpost' to be every square that cannot be contested
+ * by an enemy pawn and is defended by at least one allied pawn.
+ */
+Bitboard getPieceOutposts(const Position& pos, Piece p);
+
+/**
+ * Returns the bitboard for all passed pawns of the specified color.
+ * Passed pawns are pawns that have no opposing pawns on their file or adjacent files.
+ */
+Bitboard getPassedPawns(const Position& pos, Color c);
+
+/**
+ * Returns the bitboard for all pawns of the specified color that have other pawns
+ * on neighboring files.
+ */
+Bitboard getConnectedPawns(const Position& pos, Color c);
+
+/**
+ * Returns the bitboard for all passed pawns of the specified color that have other passed
+ * pawns on neighboring files.
+ */
+Bitboard getConnectedPassers(const Position& pos, Color c);
+
+/**
+ * Returns the bitboard for all pawns of the specified color that are blocking another
+ * pawn of the same color in their file (aka "doubled/tripled/..." pawns)
+ */
+Bitboard getBlockingPawns(const Position& pos, Color c);
+
+/**
+ * Returns the bitboard for all backward pawns of the specified color.
+ */
+Bitboard getBackwardPawns(const Position& pos, Color c);
+
+//
+// The following getXXAttackers functions return the bitboard of all pieces that
+// are currently attacking a specific square in a given position.
+//
 
 inline Bitboard getPawnAttackers(const Position &pos, Square s, Color c) {
     Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
@@ -97,19 +148,7 @@ inline FileState getFileState(const Position& pos, BoardFile f) {
     return FS_SEMIOPEN;
 }
 
-bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
-
-int guardValue(const Position& pos, Square s, Color pov);
-
-namespace specialpos {
-
-inline Position getKiwipete() {
-    return Position::fromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -").value();
-}
-
-} // specialpos
-
-} // posutils
+} // staticanalysis
 
 } // lunachess
 

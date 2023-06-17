@@ -10,22 +10,38 @@ namespace lunachess::ai {
 
 class QuiesceEvaluator : public Evaluator {
 public:
-    int evaluate(const Position& pos) const override;
+    int evaluate() const;
     inline int getDrawScore() const override { return 0; }
 
-    inline QuiesceEvaluator()
-        : m_Eval(std::make_shared<ClassicEvaluator>()){
-
-    }
-
-    inline QuiesceEvaluator(std::shared_ptr<Evaluator> eval)
+    inline QuiesceEvaluator(Evaluator* eval)
         : m_Eval(eval) {}
 
+protected:
+    inline void onSetPosition(const Position& pos) override {
+        m_Eval->setPosition(pos);
+    }
+
+    inline void onMakeMove(Move move) override {
+        m_Eval->makeMove(move);
+    }
+
+    inline void onUndoMove(Move move) override {
+        m_Eval->undoMove();
+    }
+
+    inline void onMakeNullMove() override {
+        m_Eval->makeNullMove();
+    }
+
+    inline void onUndoNullMove() override {
+        m_Eval->undoNullMove();
+    }
+
 private:
-    std::shared_ptr<Evaluator> m_Eval;
+    Evaluator* m_Eval;
     AIMoveFactory m_MvFactory;
 
-    int quiesce(Position& pos, int depth, int alpha, int beta) const;
+    int quiesce(int depth, int alpha, int beta) const;
 };
 
 }

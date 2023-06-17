@@ -3,11 +3,11 @@
 #include <algorithm>
 
 #include "../movegen.h"
-#include "classiceval/hotmap.h"
+#include "../pst.h"
 
 namespace lunachess::ai {
 
-static Hotmap s_MvOrderHotmaps[PT_COUNT] = {
+static PieceSquareTable s_MvOrderHotmaps[PT_COUNT] = {
     { // PT_NONE
         0,    0,   0,   0,   0,   0,   0,   0,
         0,    0,   0,   0,   0,   0,   0,   0,
@@ -84,10 +84,10 @@ int AIMoveFactory::getHotmapDelta(Move move) {
     Piece srcPiece = move.getSourcePiece();
     Color us = srcPiece.getColor();
 
-    const Hotmap& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
+    const PieceSquareTable& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
 
-    int dstVal = hotmap.getValue(move.getDest(), us);
-    int srcVal = hotmap.getValue(move.getSource(), us);
+    int dstVal = hotmap.valueAt(move.getDest(), us);
+    int srcVal = hotmap.valueAt(move.getSource(), us);
 
     int ret = dstVal - srcVal;
 
@@ -145,7 +145,11 @@ int AIMoveFactory::scoreQuietMove(const Position& pos, Move move) const {
 
     total += getHotmapDelta(move) * m_Scores.placementDeltaMultiplier;
 
-    //int guardValue = posutils::guardValue(pos, move.getDest(), pos.getColorToMove()) * m_Scores.guardValueMultiplier;
+    if (pos.getAttacks(getOppositeColor(pos.getColorToMove()), PT_PAWN).contains(move.getDest())) {
+        total -= m_Scores.squareGuardedByPawnPenalty;
+    }
+
+    //int guardValue = staticanalysis::guardValue(pos, move.getDest(), pos.getColorToMove()) * m_Scores.guardValueMultiplier;
     //total += guardValue;
 
     return total;
@@ -173,7 +177,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     // Compute the SEE for each simple capture
     bool seeTable[SQ_COUNT][SQ_COUNT];
     for (auto m: simpleCaptures) {
-        seeTable[m.getSource()][m.getDest()] = posutils::hasGoodSEE(pos, m);
+        seeTable[m.getSource()][m.getDest()] = staticanalysis::hasGoodSEE(pos, m);
     }
 
     // Sort the captures in see > mvv-lva order

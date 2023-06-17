@@ -4,13 +4,13 @@
 
 namespace lunachess::ai {
 
-int QuiesceEvaluator::evaluate(const Position &pos) const {
-    Position repl = pos;
-    return quiesce(repl, 5, -HIGH_BETA, HIGH_BETA);
+int QuiesceEvaluator::evaluate() const {
+    return quiesce(5, -HIGH_BETA, HIGH_BETA);
 }
 
-int QuiesceEvaluator::quiesce(Position &pos, int depth, int alpha, int beta) const {
-    int standPat = m_Eval->evaluate(pos);
+int QuiesceEvaluator::quiesce(int depth, int alpha, int beta) const {
+    const Position& pos = m_Eval->getPosition();
+    int standPat = m_Eval->evaluate();
 
     if (depth <= 0) {
         return standPat;
@@ -32,15 +32,15 @@ int QuiesceEvaluator::quiesce(Position &pos, int depth, int alpha, int beta) con
     for (int i = 0; i < moveCount; ++i) {
         Move move = moves[i];
         if (move.getType() == MT_SIMPLE_CAPTURE &&
-            !posutils::hasGoodSEE(pos, move)) {
+            !staticanalysis::hasGoodSEE(pos, move)) {
             // The result of the exchange series will always result in
             // material loss after this capture, prune it.
             continue;
         }
 
-        pos.makeMove(move);
-        int score = -quiesce(pos, depth - 1, -beta, -alpha);
-        pos.undoMove();
+        m_Eval->makeMove(move);
+        int score = -quiesce(depth - 1, -beta, -alpha);
+        m_Eval->undoMove();
 
         if (score >= beta) {
             // Fail high

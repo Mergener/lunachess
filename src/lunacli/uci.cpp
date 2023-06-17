@@ -1,9 +1,10 @@
 #include "uci.h"
 
 #include <cstdlib>
-#include <fstream>
+#include <filesystem>
 #include <future>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <queue>
 #include <string>
@@ -62,6 +63,69 @@ static void errorWrongArg(std::string_view cmdName, std::string_view wrongArg) {
     std::cerr << "Unexpected argument '" << wrongArg << "' for command '" << cmdName << "'." << std::endl;
 }
 
+/**
+ * Defines HCE parameters that can be toggled on/off using setoption.
+ * Toggling these parameters will affect how the HCE evaluates positions.
+ */
+struct HCEParameterUCI {
+    ai::HCEParameter param;
+    std::string optionName;
+    bool defaultValue;
+};
+
+static std::initializer_list<HCEParameterUCI> s_HCEParams = {
+    { ai::HCEP_MATERIAL, "HCE_Material", true },
+    { ai::HCEP_MOBILITY, "HCE_Mobility", true },
+    { ai::HCEP_BACKWARD_PAWNS, "HCE_BackwardPawns", true },
+    { ai::HCEP_PASSED_PAWNS, "HCE_PassedPawns", true },
+    { ai::HCEP_PLACEMENT, "HCE_Placement", true },
+    { ai::HCEP_KNIGHT_OUTPOSTS, "HCE_Knight_Outposts", false },
+    { ai::HCEP_BLOCKING_PAWNS, "HCE_Blocking_Pawns", true },
+    { ai::HCEP_ISOLATED_PAWNS, "HCE_Isolated_Pawns", true },
+    { ai::HCEP_ENDGAME_THEORY, "HCE_Endgame_Theory", true },
+    { ai::HCEP_KING_EXPOSURE, "HCE_King_Exposure", true },
+    { ai::HCEP_KING_PAWN_DISTANCE, "HCE_King_Pawn_Distance", true },
+    { ai::HCEP_PAWN_SHIELD, "HCE_Pawn_Shield", true },
+};
+
+static void setupHCEParameters(UCIContext& ctx) {
+    auto& eval = ctx.searcher.getEvaluator();
+    auto* hce = dynamic_cast<ai::HandCraftedEvaluator*>(&eval);
+    if (hce == nullptr) {
+        return;
+    }
+
+    for (auto& param: s_HCEParams) {
+        hce->toggleParameter(param.param, param.defaultValue);
+    }
+}
+
+static bool processHCEOption(UCIContext& ctx, std::string_view option, std::string_view value) {
+    auto& eval = ctx.searcher.getEvaluator();
+    auto* hce = dynamic_cast<ai::HandCraftedEvaluator*>(&eval);
+    if (hce == nullptr) {
+        return false;
+    }
+    ai::HCEParameter param;
+    bool isHCEOption = false;
+
+    for (const auto& p: s_HCEParams) {
+        if (option == p.optionName) {
+            param = p.param;
+            isHCEOption = true;
+            break;
+        }
+    }
+
+    if (!isHCEOption) {
+        return false;
+    }
+
+    hce->toggleParameter(param, value == "true");
+
+    return true;
+}
+
 //
 // UCI Commands:
 //
@@ -84,12 +148,21 @@ static void displayOption(UCIContext& ctx, std::string_view optName,
     std::cout << std::endl;
 }
 
+static void displayHCEOptions(UCIContext& ctx) {
+    for (const auto& p: s_HCEParams) {
+        displayOption(ctx, p.optionName, "check", p.defaultValue ? "true" : "false");
+    }
+}
+
 static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "id name LunaChess" << std::endl;
     std::cout << "id author Thomas Mergener" << std::endl;
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
     displayOption(ctx, "Hash", "spin", strutils::toString(ai::TranspositionTable::DEFAULT_SIZE_MB), "1", "1048576");
     displayOption(ctx, "UseOwnBook", "check", "false");
+
+    displayHCEOptions(ctx);
+
     std::cout << "uciok" << std::endl;
 }
 
@@ -137,6 +210,9 @@ static void processOption(UCIContext& ctx, std::string_view option, std::string_
         else {
             std::cerr << "Invalid value '" << value << "'. Expected 'true' or 'false'." << std::endl;
         }
+    }
+    else if (processHCEOption(ctx, option, value)) {
+        // Done in function
     }
 }
 
@@ -254,7 +330,6 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
 
     // FEN string successfully interpreted, set the position accordingly
     ctx.pos = *posOpt;
-    std::cout << ctx.pos << std::endl;
 
     if (movesArgsIdx == -1) {
         return;
@@ -480,7 +555,6 @@ static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
 
         ctx.pos.makeMove(move);
     }
-    std::cout << ctx.pos << std::endl;
 }
 
 static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
@@ -520,6 +594,107 @@ static void cmdGetpos(UCIContext& ctx, const CommandArgs& args) {
 
 static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos.toFen() << std::endl;
+}
+
+static int doEval(UCIContext& ctx, int depth) {
+    int eval = 0;
+    if (depth == 0) {
+        ctx.searcher.getEvaluator().setPosition(ctx.pos);
+        eval = ctx.searcher.getEvaluator().evaluate();
+    }
+    else {
+        ai::SearchSettings settings;
+        settings.maxDepth = depth;
+        settings.ourTimeControl.mode = TC_INFINITE;
+        settings.theirTimeControl.mode = TC_INFINITE;
+        eval = ctx.searcher.search(ctx.pos, settings).bestScore;
+    }
+
+    if (ctx.pos.getColorToMove() == CL_BLACK) {
+        eval *= -1;
+    }
+    return eval;
+}
+
+static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
+    if (args.size() > 2) {
+        std::cerr << "Too many arguments for eval." << std::endl;
+        return;
+    }
+    int depth = 0;
+    if (args.size() == 1) {
+        if (!strutils::tryParseInteger(args[0], depth)) {
+            errorWrongArg("eval", args[0]);
+            return;
+        }
+    }
+
+    PieceSquareTable pst;
+    Position& pos = ctx.pos;
+    Bitboard pieces = pos.getCompositeBitboard();
+
+    int currentEval = doEval(ctx, depth);
+
+    for (Square s: pieces) {
+        Piece p = pos.getPieceAt(s);
+        if (p.getType() == PT_KING) {
+            continue;
+        }
+
+        pos.setPieceAt(s, PIECE_NONE);
+        int evalWithoutPiece = doEval(ctx, depth);
+        pos.setPieceAt(s, p);
+
+        int delta = currentEval - evalWithoutPiece;
+
+        pst.valueAt(s, CL_WHITE) = delta;
+    }
+
+    std::cout << pst << std::endl;
+    std::cout << "Total evaluation: "
+        << std::setprecision(2)
+        << double(currentEval) / 1000
+        << std::endl;
+}
+
+static void cmdTune(UCIContext& ctx, const CommandArgs& args) {
+    namespace fs = std::filesystem;
+
+    fs::path positionsPath = "positions.csv";
+
+    for (int i = 0; i < args.size(); ++i) {
+        const auto arg = args[i];
+
+        if (arg == "file") {
+            i++;
+            if (i >= args.size()) {
+                std::cerr << "Expected a path." << std::endl;
+                return;
+            }
+            positionsPath = args[i];
+        }
+    }
+
+    std::vector<ai::TuningSamplePosition> samplePositions;
+    try {
+        std::ifstream ifstream(positionsPath);
+        ifstream.exceptions(std::ios_base::badbit | std::ios_base::failbit);
+        samplePositions = ai::fetchSamplePositionsFromCSV(ifstream);
+
+        ifstream.close();
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error when reading sample positions: " << e.what() << std::endl;
+        return;
+    }
+
+    auto eval = dynamic_cast<ai::HandCraftedEvaluator&>(ctx.searcher.getEvaluator());
+    auto& tbl = eval.getWeights();
+
+    ai::TuningSettings settings;
+    settings.parametersMask = eval.getParameterMask();
+
+    ai::tune(tbl, samplePositions, settings);
 }
 
 #ifndef NDEBUG
@@ -612,6 +787,8 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["getpos"] = Command(cmdGetpos, 0);
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["takeback"] = Command(cmdTakeback, 0, false);
+    cmds["eval"] = Command(cmdEval, 0, false);
+    cmds["tune"] = Command(cmdTune, 0, false);
 
 #ifndef NDEBUG
     // Debug commands
@@ -680,6 +857,8 @@ static void inputThreadMain(UCIContext& ctx) {
 
 int uciMain() {
     std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
+
+    setupHCEParameters(*ctx);
 
     inputThreadMain(*ctx);
 

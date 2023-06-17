@@ -48,6 +48,9 @@ const char* getPieceTypeName(PieceType pt) {
         case PT_KING:
             return "King";
 
+        case PT_NONE:
+            return "No piece";
+
         default:
             return "Unknown Piece Type";
     }
@@ -86,25 +89,6 @@ const char* getDirectionName(Direction d) {
 
 int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
 int g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
-
-static void initializeManhattanDistances() {
-    for (Square a = 0; a < SQ_COUNT; ++a) {
-        for (Square b = 0; b < SQ_COUNT; ++b) {
-            int fileDist = std::abs(getFile(a) - getFile(b));
-            int rankDist = std::abs(getRank(a) - getRank(b));
-            g_ManhattanDistances[a][b] = fileDist + rankDist;
-        }
-    }
-}
-static void initializeChebyshevDistances() {
-    for (Square a = 0; a < SQ_COUNT; ++a) {
-        for (Square b = 0; b < SQ_COUNT; ++b) {
-            int fileDist = std::abs(getFile(a) - getFile(b));
-            int rankDist = std::abs(getRank(a) - getRank(b));
-            g_ChebyshevDistances[a][b] = std::max(fileDist, rankDist);
-        }
-    }
-}
 
 void initializeDistances() {
     for (Square a = 0; a < SQ_COUNT; ++a) {

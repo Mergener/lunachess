@@ -6,7 +6,7 @@
 
 #include "../position.h"
 #include "../movegen.h"
-#include "../posutils.h"
+#include "../staticanalysis.h"
 
 namespace lunachess::ai {
 
@@ -19,6 +19,8 @@ struct MoveOrderingScores {
     // by individual moves
     int placementDeltaMultiplier = 4;
     int guardValueMultiplier = 6;
+
+    int squareGuardedByPawnPenalty = 50;
 
     int mvvLva[PT_COUNT][PT_COUNT] = {
         /*         x-    xP    xN    xB    xR    xQ    xK  */

@@ -5,15 +5,15 @@ project(luna)
 # Luna version numbers
 ##
 set(LUNA_VERSION_MAJOR "0")
-set(LUNA_VERSION_MINOR "2")
-set(LUNA_VERSION_PATCH "1")
+set(LUNA_VERSION_MINOR "3")
+set(LUNA_VERSION_PATCH "0")
 
 message("Luna version is set to ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH}")
 
 ##
 # Executable name
 ##
-set(LUNA_OUT_NAME "luna_${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH}")
+set(LUNA_OUT_NAME "luna_${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH}_snapshot")
 
 ##
 # Project settings
@@ -36,20 +36,47 @@ add_library(luna STATIC
         src/luna/perft.cpp
         src/luna/lunachess.cpp
         src/luna/debug.cpp
-        src/luna/posutils.cpp
+        src/luna/staticanalysis.cpp
         src/luna/strutils.cpp
-        src/luna/ai/classiceval/hotmap.cpp
         src/luna/ai/timemanager.cpp
-        src/luna/ai/classiceval/classicevaluator.cpp
         src/luna/ai/search.cpp
         src/luna/ai/transpositiontable.cpp
         src/luna/ai/aimovefactory.cpp
-        src/luna/ai/classiceval/aibitboards.cpp
         src/luna/ai/quiescevaluator.cpp
         src/luna/utils.cpp
         src/luna/endgame.cpp
         src/luna/endgame.h src/luna/openingbook.cpp
-        src/luna/openingbook.h)
+        src/luna/openingbook.h src/luna/pst.cpp
+        src/luna/pst.h
+        src/luna/ai/classiceval/classicevaluator.cpp
+        src/luna/ai/classiceval/classicevaluator.h
+        src/luna/ai/aimovefactory.h
+        src/luna/ai/evaluator.h
+        src/luna/ai/quiescevaluator.h
+        src/luna/ai/search.h
+        src/luna/ai/timemanager.h
+        src/luna/ai/transpositiontable.h
+        src/luna/bitboard.h
+        src/luna/bits.h
+        src/luna/chessgame.h
+        src/luna/clock.h
+        src/luna/debug.h
+        src/luna/endgame.h
+        src/luna/lunachess.h
+        src/luna/move.h
+        src/luna/movegen.h
+        src/luna/openingbook.h
+        src/luna/perft.h
+        src/luna/piece.h
+        src/luna/position.h
+        src/luna/pst.h
+        src/luna/staticanalysis.h
+        src/luna/staticlist.h
+        src/luna/strutils.h
+        src/luna/types.h
+        src/luna/utils.h
+        src/luna/zobrist.h
+        src/luna/ai/classiceval/tuning.h src/luna/ai/classiceval/tuning.cpp src/luna/ai/classiceval/tuning.h src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h)
 
 add_executable(lunacli
         src/lunacli/main.cpp
@@ -79,7 +106,7 @@ add_subdirectory("ext")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC requires some flags in order for threads and <filesystem> to work.
-    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc")
+    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc --static")
     target_link_libraries(luna PUBLIC stdc++fs
             PUBLIC nlohmann_json)
 else()

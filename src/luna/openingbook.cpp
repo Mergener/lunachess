@@ -110,6 +110,8 @@ static OpeningBook generateDefaultOpBook() {
                 builder.pop();
 
                 builder.add("e7e6");
+
+                builder.add("b8c6");
             }
             builder.pop();
         }
@@ -201,6 +203,20 @@ static OpeningBook generateDefaultOpBook() {
             builder.add("g1f3");
         }
         builder.pop();
+
+        // Modern
+        builder.pushAndAdd("g7g6");
+        {
+            builder.add("d2d4");
+        }
+        builder.pop();
+
+        // 2.. b6
+        builder.pushAndAdd("b7b6");
+        {
+            builder.add("d2d4");
+        }
+        builder.pop();
     }
     builder.pop();
 
@@ -264,7 +280,22 @@ static OpeningBook generateDefaultOpBook() {
             builder.pop();
         }
         builder.pop();
+
+        // 2.. b6
+        builder.pushAndAdd("b7b6");
+        {
+            builder.add("e2e4");
+        }
+        builder.pop();
     }
+    builder.pop();
+
+    // English Opening
+    builder.pushAndAdd("c2c4");
+    builder.pop();
+
+    // Reti Opening
+    builder.pushAndAdd("g1f3");
     builder.pop();
 
     return builder.get();
