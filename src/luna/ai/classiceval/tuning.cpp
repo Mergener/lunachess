@@ -22,16 +22,14 @@ static double sigmoid(double x, double k) {
 
 static double averageEvaluationError(Evaluator& eval,
                                      const std::vector<TuningSamplePosition>& posData,
-                                     int kCp) {
+                                     int kMp) {
     double resSum = 0;
     for (auto& d: posData) {
         eval.setPosition(d.position);
-        int qScoreCp = eval.evaluate();
-        resSum += isWin(d.finalResult) ? 1.0      // White won
-                    : isDraw(d.finalResult) ? 0.5 // Black won
-                    : 0;                            // Draw
+        int qScoreMp = eval.evaluate();
+        resSum += d.expectedScoreMP / 1000.0;
 
-        resSum -= sigmoid(qScoreCp / 100.0, kCp / 100.0);
+        resSum -= sigmoid(qScoreMp / 1000.0, kMp / 1000.0);
     }
 
     return resSum / posData.size();
