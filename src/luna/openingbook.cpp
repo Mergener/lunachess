@@ -210,13 +210,6 @@ static OpeningBook generateDefaultOpBook() {
             builder.add("d2d4");
         }
         builder.pop();
-
-        // 2.. b6
-        builder.pushAndAdd("b7b6");
-        {
-            builder.add("d2d4");
-        }
-        builder.pop();
     }
     builder.pop();
 
@@ -278,13 +271,6 @@ static OpeningBook generateDefaultOpBook() {
                 builder.pop();
             }
             builder.pop();
-        }
-        builder.pop();
-
-        // 2.. b6
-        builder.pushAndAdd("b7b6");
-        {
-            builder.add("e2e4");
         }
         builder.pop();
     }
