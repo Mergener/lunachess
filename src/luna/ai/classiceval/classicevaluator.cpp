@@ -134,6 +134,12 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     if (m_ParamMask & BIT(HCEP_TROPISM)) {
         total += getTropismScore(gpf, us) - getTropismScore(gpf, them);
     }
+    if (m_ParamMask & BIT(HCEP_BISHOP_PAIR)) {
+        total += getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
+    }
+    if (m_ParamMask & BIT(HCEP_KING_ATTACK)) {
+        total += getKingAttackScore(gpf, us) - getKingAttackScore(gpf, them);
+    }
 
     return total;
 }
@@ -216,7 +222,7 @@ int HandCraftedEvaluator::getMobilityScore(int gpf, Color us) const {
         total += m_Weights.rookVerticalMobilityScore[verticalScoreIdx].get(gpf);
     }
 
-    return total / 3;
+    return total / 2;
 }
 
 int HandCraftedEvaluator::getKnightOutpostScore(int gpf, Color c) const {
@@ -368,6 +374,40 @@ int HandCraftedEvaluator::getTropismScore(int gpf, Color us) const {
     }
 
     return total;
+}
+
+int HandCraftedEvaluator::getBishopPairScore(int gpf, Color c) const {
+    const auto& pos = getPosition();
+
+    Bitboard ourBishops = pos.getBitboard(Piece(c, PT_BISHOP));
+    Bitboard lsBishops = ourBishops & bbs::LIGHT_SQUARES;
+    Bitboard dsBishops = ourBishops & bbs::DARK_SQUARES;
+
+    return m_Weights.bishopPairScore.get(gpf) * std::min(lsBishops.count(), dsBishops.count());
+}
+
+int HandCraftedEvaluator::getKingAttackScore(int gpf, Color c) const {
+    const auto& pos = getPosition();
+
+    constexpr int PIECE_ATK_POWER[] {
+        0, 1, 3, 3, 6, 12, 1
+    };
+
+    int totalAttackPower = 0;
+    Square theirKingSquare = pos.getKingSquare(getOppositeColor(c));
+    Bitboard nearKingSquares = bbs::getNearKingSquares(theirKingSquare);
+    Bitboard ourPieces = pos.getBitboard(Piece(c, PT_NONE));
+    Bitboard occ = pos.getCompositeBitboard();
+
+    for (Square s: ourPieces) {
+        Piece p = pos.getPieceAt(s);
+        Bitboard atks = bbs::getPieceAttacks(s, occ, p);
+        if ((atks & nearKingSquares) != 0) {
+            totalAttackPower += PIECE_ATK_POWER[p.getType()];
+        }
+    }
+
+    return m_Weights.kingAttackScore[std::min(size_t(totalAttackPower), m_Weights.kingAttackScore.size() - 1)];
 }
 
 int HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) const {

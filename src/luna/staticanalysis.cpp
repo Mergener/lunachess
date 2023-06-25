@@ -194,17 +194,25 @@ static Bitboard getConnectedPawnsOrPassers(const Position& pos, Color us) {
     else {
         pawns = pos.getBitboard(Piece(us, PT_PAWN));
     }
-
-    Bitboard lastFilePawns = bbs::getFileBitboard(FL_A) & pawns;
     Bitboard bb = 0;
-    for (BoardFile f = FL_B; f < FL_COUNT; ++f) {
-        Bitboard thisFilePawns = bbs::getFileBitboard(f) & pawns;
-        if (lastFilePawns) {
-            bb |= thisFilePawns;
-            bb |= lastFilePawns;
-        }
-        lastFilePawns = thisFilePawns;
+    if (bbs::getFileBitboard(FL_B) & pawns) {
+        bb |= bbs::getFileBitboard(FL_A) & pawns;
     }
+
+    for (BoardFile f = FL_B; f < FL_COUNT - 1; ++f) {
+        Bitboard thisFilePawns = bbs::getFileBitboard(f) & pawns;
+
+        Bitboard lastFilePawns = bbs::getFileBitboard(f - 1) & pawns;
+        Bitboard nextFilePawns = bbs::getFileBitboard(f + 1) & pawns;
+        if (nextFilePawns || lastFilePawns) {
+            bb |= thisFilePawns;
+        }
+    }
+
+    if (bbs::getFileBitboard(FL_G) & pawns) {
+        bb |= bbs::getFileBitboard(FL_H) & pawns;
+    }
+
     return bb;
 }
 

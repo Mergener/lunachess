@@ -7,6 +7,8 @@
 #include <vector>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <type_traits>
 
 #include "types.h"
 
@@ -43,11 +45,18 @@ inline bool randomChance(float chancePct) {
     return rnd <= chancePct;
 }
 
-inline void writeToFile(std::filesystem::path path, std::string data) {
+inline void writeToFile(std::filesystem::path path, std::string_view data) {
     std::ofstream stream(path);
     stream.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
     stream << data;
-    stream.close();
+}
+
+inline std::string readFromFile(std::filesystem::path path) {
+    std::ifstream stream(path);
+    stream.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
+    std::stringstream buffer;
+    buffer << stream.rdbuf();
+    return buffer.str();
 }
 
 template <typename T> int sign(T val) {
@@ -55,6 +64,25 @@ template <typename T> int sign(T val) {
 }
 
 std::string randomUUID();
+
+template <typename TIter, typename TCompar>
+void insertionSort(TIter begin, TIter end, TCompar comp) {
+    if (begin == end) {
+        return;
+    }
+
+    for (TIter i = begin + 1; i != end; ++i) {
+        typename std::iterator_traits<TIter>::value_type key = *i;
+        TIter j = i - 1;
+
+        while (j >= begin && comp(key, *j)) {
+            *(j + 1) = std::move(*j);
+            --j;
+        }
+
+        *(j + 1) = std::move(key);
+    }
+}
 
 } // lunachess::utils
 

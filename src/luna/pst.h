@@ -29,7 +29,7 @@ public:
             : m_Values(values) {
     }
 
-    inline PieceSquareTable(const std::initializer_list<short>& values) {
+    inline PieceSquareTable(const std::initializer_list<int>& values) {
         size_t i;
         auto it = values.begin();
         for (i = 0; i < values.size() && i < SQ_COUNT; ++i) {
@@ -39,6 +39,20 @@ public:
 
         std::fill(m_Values.begin() + i, m_Values.end(), 0);
     }
+
+    inline PieceSquareTable& operator=(const std::initializer_list<int>& values) {
+        size_t i;
+        auto it = values.begin();
+        for (i = 0; i < values.size() && i < SQ_COUNT; ++i) {
+            m_Values[i] = *it;
+            ++it;
+        }
+
+        std::fill(m_Values.begin() + i, m_Values.end(), 0);
+
+        return *this;
+    }
+
 
     using Iterator = int*;
     using ConstIterator = const int*;

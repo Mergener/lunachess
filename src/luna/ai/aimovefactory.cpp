@@ -4,6 +4,7 @@
 
 #include "../movegen.h"
 #include "../pst.h"
+#include "../utils.h"
 
 namespace lunachess::ai {
 
@@ -160,7 +161,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
 
     // Now, generate all promotion captures and order them by MVV-LVA
     movegen::generate<BIT(MT_PROMOTION_CAPTURE)>(pos, ml);
-    std::sort(ml.begin(), ml.end(), [this](Move a, Move b) {
+    utils::insertionSort(ml.begin(), ml.end(), [this](Move a, Move b) {
         return compareMvvLva(m_Scores, a, b);
     });
 
@@ -181,7 +182,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     }
 
     // Sort the captures in see > mvv-lva order
-    std::sort(simpleCaptures.begin(), simpleCaptures.end(), [this, &seeTable](Move a, Move b) {
+    utils::insertionSort(simpleCaptures.begin(), simpleCaptures.end(), [this, &seeTable](Move a, Move b) {
         bool aHasGoodSEE = seeTable[a.getSource()][a.getDest()];
         bool bHasGoodSEE = seeTable[b.getSource()][b.getDest()];
         if (aHasGoodSEE && !bHasGoodSEE) {
@@ -214,7 +215,7 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
     // Generate quiet moves and sort them
     auto quietBegin = ml.end();
     movegen::generate<MTM_QUIET>(pos, ml);
-    std::sort(quietBegin, ml.end(), [this, pos, currPly](Move a, Move b) {
+    utils::insertionSort(quietBegin, ml.end(), [this, pos, currPly](Move a, Move b) {
         // Killer move heuristic
         bool aIsKiller = isKillerMove(a, currPly);
         bool bIsKiller = isKillerMove(b, currPly);

@@ -79,14 +79,53 @@ static std::initializer_list<HCEParameterUCI> s_HCEParams = {
     { ai::HCEP_BACKWARD_PAWNS, "HCE_BackwardPawns", true },
     { ai::HCEP_PASSED_PAWNS, "HCE_PassedPawns", true },
     { ai::HCEP_PLACEMENT, "HCE_Placement", true },
-    { ai::HCEP_KNIGHT_OUTPOSTS, "HCE_Knight_Outposts", false },
+    { ai::HCEP_KNIGHT_OUTPOSTS, "HCE_Knight_Outposts", true },
     { ai::HCEP_BLOCKING_PAWNS, "HCE_Blocking_Pawns", true },
     { ai::HCEP_ISOLATED_PAWNS, "HCE_Isolated_Pawns", true },
     { ai::HCEP_ENDGAME_THEORY, "HCE_Endgame_Theory", true },
-    { ai::HCEP_KING_EXPOSURE, "HCE_King_Exposure", true },
+    { ai::HCEP_KING_EXPOSURE, "HCE_King_Exposure", false },
     { ai::HCEP_KING_PAWN_DISTANCE, "HCE_King_Pawn_Distance", true },
     { ai::HCEP_PAWN_SHIELD, "HCE_Pawn_Shield", true },
+    { ai::HCEP_TROPISM, "HCE_Tropism", false },
+    { ai::HCEP_TROPISM, "HCE_BishopPair", true },
+    { ai::HCEP_KING_ATTACK, "HCE_KingAttack", true },
 };
+
+static void loadHCEWeights(UCIContext& ctx) {
+    static constexpr const char* WEIGHTS_DEFAULT_PATH = "weights.json";
+
+    auto& eval = ctx.searcher.getEvaluator();
+    auto* hce = dynamic_cast<ai::HandCraftedEvaluator*>(&eval);
+    if (hce == nullptr) {
+        return;
+    }
+
+    namespace fs = std::filesystem;
+    fs::path path = WEIGHTS_DEFAULT_PATH;
+
+    try {
+        std::string str = utils::readFromFile(path);
+        nlohmann::json j = nlohmann::json::parse(str);
+        ai::HCEWeightTable weights = j;
+        hce->setWeights(weights);
+        std::cout << "Successfully loaded evaluation weights from " << path << std::endl;
+    }
+    catch (std::exception& e) {
+        std::cout << "Failed to load weights from file " << fs::absolute(path) << std::endl;
+        std::cout << "Initializing default weights." << std::endl;
+
+        try {
+            nlohmann::json j = hce->getWeights();
+            std::stringstream ss;
+            ss << std::setw(2) << j << std::endl;
+            utils::writeToFile(path, ss.str());
+        }
+        catch (std::exception&) {
+            std::cout << "Failed to save weights to " << fs::absolute(path) << std::endl;
+        }
+    }
+
+}
 
 static void setupHCEParameters(UCIContext& ctx) {
     auto& eval = ctx.searcher.getEvaluator();
@@ -858,6 +897,7 @@ static void inputThreadMain(UCIContext& ctx) {
 int uciMain() {
     std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
 
+    loadHCEWeights(*ctx);
     setupHCEParameters(*ctx);
 
     inputThreadMain(*ctx);

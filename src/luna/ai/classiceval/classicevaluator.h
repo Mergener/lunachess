@@ -33,6 +33,8 @@ enum HCEParameter {
     HCEP_KING_PAWN_DISTANCE,
     HCEP_PAWN_SHIELD,
     HCEP_TROPISM,
+    HCEP_BISHOP_PAIR,
+    HCEP_KING_ATTACK,
 
     HCEP_PARAM_COUNT,
 };
@@ -58,6 +60,7 @@ inline constexpr int OPENING_GPF =
         GPF_PIECE_VALUE_TABLE[PT_QUEEN] * 1 * 2;
 
 struct HCEWeight {
+
     /** The middlegame weight. */
     int mg;
 
@@ -71,7 +74,10 @@ struct HCEWeight {
 
     inline HCEWeight(int mg, int eg)
         : mg(mg), eg(eg) {}
+
+    HCEWeight() = default;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeight, mg, eg);
 
 extern PieceSquareTable g_DEFAULT_PAWN_PST_MG;
 extern PieceSquareTable g_DEFAULT_PAWN_PST_EG;
@@ -79,11 +85,15 @@ extern PieceSquareTable g_DEFAULT_PAWN_PST_EG;
 extern PieceSquareTable g_DEFAULT_KING_PST_MG;
 extern PieceSquareTable g_DEFAULT_KING_PST_EG;
 
+
 /**
  * Weight table used by the HCE to define position scores.
  * Initialized to Luna's default values.
  */
 struct HCEWeightTable {
+
+    HCEWeightTable() = default;
+
     std::array<HCEWeight, PT_COUNT> material = {
         HCEWeight(0, 0),        // PT_NONE
         HCEWeight(1000, 1600),  // PT_PAWN
@@ -124,41 +134,42 @@ struct HCEWeightTable {
     };
 
     std::array<HCEWeight, 7> rookHorizontalMobilityScore = {
-            HCEWeight(0, 0),
-            HCEWeight(0, 0),
-            HCEWeight(40, 0),
-            HCEWeight(100, 100),
-            HCEWeight(100, 100),
-            HCEWeight(100, 100),
-            HCEWeight(100, 100),
+        HCEWeight(0, 0),
+        HCEWeight(0, 0),
+        HCEWeight(40, 0),
+        HCEWeight(100, 100),
+        HCEWeight(100, 100),
+        HCEWeight(100, 100),
+        HCEWeight(100, 100),
     };
 
     std::array<HCEWeight, 7> rookVerticalMobilityScore = {
-            HCEWeight(-100, -200),
-            HCEWeight(-50, -100),
-            HCEWeight(0, 0),
-            HCEWeight(200, 250),
-            HCEWeight(300, 400),
-            HCEWeight(400, 500),
-            HCEWeight(500, 600),
+        HCEWeight(-100, -200),
+        HCEWeight(-50, -100),
+        HCEWeight(0, 0),
+        HCEWeight(200, 250),
+        HCEWeight(300, 400),
+        HCEWeight(400, 500),
+        HCEWeight(500, 600),
     };
 
-    PieceSquareTable mgPSTs[PT_COUNT] = {
-        {},
+    std::array<PieceSquareTable, PT_COUNT> mgPSTs = {
+        PieceSquareTable {},
         g_DEFAULT_PAWN_PST_MG,
-        {},
-        {},
-        {},
-        {},
+        PieceSquareTable {},
+        PieceSquareTable {},
+        PieceSquareTable {},
+        PieceSquareTable {},
         g_DEFAULT_KING_PST_MG,
     };
-    PieceSquareTable egPSTs[PT_COUNT] = {
-        {},
+
+    std::array<PieceSquareTable, PT_COUNT> egPSTs = {
+        PieceSquareTable {},
         g_DEFAULT_PAWN_PST_EG,
-        {},
-        {},
-        {},
-        {},
+        PieceSquareTable {},
+        PieceSquareTable {},
+        PieceSquareTable {},
+        PieceSquareTable {},
         g_DEFAULT_KING_PST_EG,
     };
 
@@ -177,7 +188,7 @@ struct HCEWeightTable {
     HCEWeight rookExposureScore = { -200, 0 };
     HCEWeight knightExposureScore = { -60, 0 };
 
-    HCEWeight kingPawnDistanceScore = { 0, -150 };
+    HCEWeight kingPawnDistanceScore = { 0, -70 };
 
     std::array<HCEWeight, 4> pawnShieldScore = {
         HCEWeight(-120, 0),
@@ -187,13 +198,13 @@ struct HCEWeightTable {
     };
 
     std::array<HCEWeight, 8> knightTropismScore = {
-        HCEWeight(275, 180),
-        HCEWeight(275, 180),
-        HCEWeight(275, 180),
-        HCEWeight(240, 150),
-        HCEWeight(220, 120),
-        HCEWeight(150, 80),
-        HCEWeight(60, 20),
+        HCEWeight(175, 90),
+        HCEWeight(150, 75),
+        HCEWeight(125, 60),
+        HCEWeight(100, 45),
+        HCEWeight(75, 30),
+        HCEWeight(50, 15),
+        HCEWeight(25, 0),
         HCEWeight(0, 0),
     };
 
@@ -209,17 +220,6 @@ struct HCEWeightTable {
     };
 
     std::array<HCEWeight, 8> rookTropismScore = {
-            HCEWeight(175, 90),
-            HCEWeight(150, 75),
-            HCEWeight(125, 60),
-            HCEWeight(100, 45),
-            HCEWeight(75, 30),
-            HCEWeight(50, 15),
-            HCEWeight(25, 0),
-            HCEWeight(0, 0),
-    };
-
-    std::array<HCEWeight, 8> queenTropismScore = {
         HCEWeight(175, 90),
         HCEWeight(150, 75),
         HCEWeight(125, 60),
@@ -229,8 +229,100 @@ struct HCEWeightTable {
         HCEWeight(25, 0),
         HCEWeight(0, 0),
     };
-};
 
+    std::array<HCEWeight, 8> queenTropismScore = {
+        HCEWeight(275, 180),
+        HCEWeight(275, 180),
+        HCEWeight(275, 180),
+        HCEWeight(240, 150),
+        HCEWeight(220, 120),
+        HCEWeight(150, 80),
+        HCEWeight(60, 20),
+        HCEWeight(0, 0),
+    };
+
+    HCEWeight bishopPairScore = { 150, 260 };
+
+    /**
+     * Attack powers:
+     * p: 1
+     * n: 3
+     * b: 3
+     * r: 6
+     * q: 12
+     */
+    std::array<int, 60> kingAttackScore = {
+        10,
+        20,
+        32,
+        44,
+        58,
+        70,
+        84,
+        100,
+        120,
+        150,
+        190,
+        230,
+        270,
+        320,
+        370,
+        420,
+        480,
+        540,
+        610,
+        700,
+        800,
+        900,
+        1050,
+        1200,
+        1400,
+        1600,
+        1900,
+        2400,
+        3000,
+        3300,
+        3500,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+    };
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore,
+                                   bishopMobilityScore, rookHorizontalMobilityScore,
+                                   rookVerticalMobilityScore, mgPSTs, egPSTs,
+                                   knightOutpostScore, blockingPawnsScore,
+                                   backwardPawnScore, passedPawnScore, queenExposureScore,
+                                   bishopExposureScore, rookExposureScore, knightExposureScore,
+                                   kingPawnDistanceScore, pawnShieldScore, knightTropismScore,
+                                   bishopTropismScore, rookTropismScore, queenTropismScore,
+                                   bishopPairScore, kingAttackScore, isolatedPawnScore);
 /**
  * A hand-crafted evaluator that uses human domain knowledge to evaluate positions.
  *
@@ -278,6 +370,8 @@ private:
     int getKingPawnDistanceScore(int gpf, Color c) const;
     int getPawnShieldScore(int gpf, Color c) const;
     int getTropismScore(int gpf, Color c) const;
+    int getBishopPairScore(int gpf, Color c) const;
+    int getKingAttackScore(int gpf, Color c) const;
 
 public:
     inline const HCEWeightTable& getWeights() const {
