@@ -98,8 +98,8 @@ public:
 
     inline bool is50MoveRuleDraw() const { return m_Status.fiftyMoveCounter >= 100; }
 
-    inline bool isDraw(int maxRepetitions = 2) const {
-        return is50MoveRuleDraw() || isRepetitionDraw(maxRepetitions) || isInsufficientMaterialDraw();
+    inline bool isDraw(int maxPositionAppearances = 3) const {
+        return is50MoveRuleDraw() || isRepetitionDraw(maxPositionAppearances) || isInsufficientMaterialDraw();
     }
 
     bool colorHasSufficientMaterial(Color c) const;
@@ -112,7 +112,7 @@ public:
     /**
      *  Returns true if the position is a draw by repetition.
      */
-    bool isRepetitionDraw(int maxRepetitions = 3) const;
+    bool isRepetitionDraw(int maxAppearances = 3) const;
 
     /**
      * Returns true if the position is legal. A position is legal

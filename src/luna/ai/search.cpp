@@ -379,6 +379,9 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
         // Notify the time manager that we're starting a search
         m_TimeManager.start(settings.ourTimeControl);
 
+        // Clear transposition table for new use
+        m_TT.clear();
+
         // Perform iterative deepening, starting at depth 1
         for (int depth = 1; depth <= maxDepth; depth++) {
             if (m_TimeManager.timeIsUp() || m_ShouldStop) {

@@ -366,16 +366,16 @@ bool Position::legal() const {
     return !isSquareAttacked(getKingSquare(getOppositeColor(getColorToMove())), getColorToMove());
 }
 
-bool Position::isRepetitionDraw(int maxRepetitions) const {
-    int rep = 0;
+bool Position::isRepetitionDraw(int maxAppearances) const {
+    int appearances = 1;
 
     for (auto it = m_PrevStatuses.crbegin(); it != m_PrevStatuses.crend(); ++it) {
-        if (rep == maxRepetitions) {
-            return true;
-        }
         const auto& status = *it;
         if (status.zobrist == m_Status.zobrist) {
-            rep++;
+            appearances++;
+            if (appearances == maxAppearances) {
+                return true;
+            }
         }
     }
 
