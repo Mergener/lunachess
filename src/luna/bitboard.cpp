@@ -302,13 +302,7 @@ static void generateNearKingSquares() {
     std::memset(g_NearKingSquares, 0, sizeof(g_NearKingSquares));
 
     for (Square s = 0; s < SQ_COUNT; ++s) {
-        Bitboard innerRing = bbs::getKingAttacks(s);
-        Bitboard fullRing = 0;
-        for (auto is: innerRing) {
-            fullRing |= bbs::getKingAttacks(is);
-        }
-
-        g_NearKingSquares[s] = fullRing;
+        g_NearKingSquares[s] = bbs::getKingAttacks(s) | bbs::getKnightAttacks(s);
     }
 }
 
