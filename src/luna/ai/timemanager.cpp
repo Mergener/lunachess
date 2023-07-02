@@ -29,7 +29,7 @@ void TimeManager::onNewDepth(const SearchResults& res) {
         return;
     }
 
-    if (res.bestScore >= FORCED_MATE_THRESHOLD && res.bestMove != MOVE_INVALID) {
+    if (std::abs(res.bestScore) >= FORCED_MATE_THRESHOLD && res.bestMove != MOVE_INVALID) {
         // We found a mate, stop searching.
         m_TargetTime = 0;
     }
