@@ -88,7 +88,11 @@ static std::vector<TuningParameter> selectParameters(HCEWeightTable& tbl, HCEPar
     }
 
     if (mask & BIT(HCEP_PASSED_PAWNS)) {
-        addParameter(ret, "PassedPawn", tbl.passedPawnScore);
+        int i = 0;
+        for (auto& passerScore: tbl.passedPawnScore) {
+            addParameter(ret, "PassedPawn" + utils::toString(i), passerScore);
+            i++;
+        }
     }
 
     if (mask & BIT(HCEP_KING_EXPOSURE)) {

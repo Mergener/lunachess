@@ -17,7 +17,7 @@ PieceSquareTable g_DEFAULT_PAWN_PST_MG = {
 
 PieceSquareTable g_DEFAULT_PAWN_PST_EG = {
     0,    0,    0,    0,    0,    0,    0,    0,
-    700,  700,  700,  700,  700,  700,  700,  700,
+    650,  650,  650,  650,  650,  650,  650,  650,
     400,   400,  400,  400,  400,  400,  400,   400,
     350,    350,    350,  350,  350,    350,    350,    350,
     100,   100,  100,  100,  100,  100,   100,   100,
@@ -38,14 +38,14 @@ PieceSquareTable g_DEFAULT_KING_PST_MG = {
 };
 
 PieceSquareTable g_DEFAULT_KING_PST_EG = {
-    0,  100,  200,  300,  300,  200,   100,     0,
-    100,  200,  300,  400,  400,  300,   200,   100,
-    200,  300,  400,  500,  500,  400,   300,   200,
-    300,  400,  500,  600,  600,  500,   400,   300,
-    300,  400,  500,  600,  600,  500,   400,   300,
-    200,  300,  400,  500,  500,  400,   300,   200,
-    100,  200,  300,  400,  400,  300,   200,   100,
-    0,  100,  200,  300,  300,  200,   100,     0,
+    0,  0,  0,  0,  0,  0,   0,     0,
+    0,  50,  50,  50,  50,  50,   50,   0,
+    0,  50,  100,  100,  100,  100,   50,   0,
+    0,  50,  100,  150,  150,  100,   50,   0,
+    0,  50,  100,  150,  150,  100,   50,   0,
+    0,  50,  100,  100,  100,  100,   50,   0,
+    0,  50,  50,  50,  50,  50,   50,   0,
+    0,  0,  0,  0,  0,  0,   0,     0,
 };
 
 int HandCraftedEvaluator::getGamePhaseFactor() const {
@@ -99,7 +99,14 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     int gpf = getGamePhaseFactor();
 
     if (m_ParamMask & BIT(HCEP_MATERIAL)) {
-        total += getMaterialScore(gpf, us) - getMaterialScore(gpf, them);
+        int material = getMaterialScore(gpf, us) - getMaterialScore(gpf, them);
+
+        if (m_ParamMask & BIT(HCEP_DIMINISHING_MATERIAL_GAINS)) {
+            double materialThousandth = material / 1000.0;
+            material = int(materialThousandth * std::pow(0.97, materialThousandth) * 1.05) * 1000;
+        }
+
+        total += material;
     }
     if (m_ParamMask & BIT(HCEP_MOBILITY)) {
         total += getMobilityScore(gpf, us) - getMobilityScore(gpf, them);
@@ -107,14 +114,20 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     if (m_ParamMask & BIT(HCEP_PLACEMENT)) {
         total += getPlacementScore(gpf, us) - getPlacementScore(gpf, them);
     }
+    if (m_ParamMask & BIT(HCEP_KING_ATTACK)) {
+        total += getKingAttackScore(gpf, us) - getKingAttackScore(gpf, them);
+    }
+    if (m_ParamMask & BIT(HCEP_PAWN_SHIELD)) {
+        total += getPawnShieldScore(gpf, us) - getPawnShieldScore(gpf, them);
+    }
+    if (m_ParamMask & BIT(HCEP_ISOLATED_PAWNS)) {
+        total += getIsolatedPawnsScore(gpf, us) - getIsolatedPawnsScore(gpf, them);
+    }
     if (m_ParamMask & BIT(HCEP_KNIGHT_OUTPOSTS)) {
         total += getKnightOutpostScore(gpf, us) - getKnightOutpostScore(gpf, them);
     }
     if (m_ParamMask & BIT(HCEP_BLOCKING_PAWNS)) {
         total += getBlockingPawnsScore(gpf, us) - getBlockingPawnsScore(gpf, them);
-    }
-    if (m_ParamMask & BIT(HCEP_ISOLATED_PAWNS)) {
-        total += getIsolatedPawnsScore(gpf, us) - getIsolatedPawnsScore(gpf, them);
     }
     if (m_ParamMask & BIT(HCEP_PASSED_PAWNS)) {
         total += getPassedPawnsScore(gpf, us) - getPassedPawnsScore(gpf, them);
@@ -122,23 +135,17 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     if (m_ParamMask & BIT(HCEP_BACKWARD_PAWNS)) {
         total += getBackwardPawnsScore(gpf, us) - getBackwardPawnsScore(gpf, them);
     }
+    if (m_ParamMask & BIT(HCEP_BISHOP_PAIR)) {
+        total += getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
+    }
     if (m_ParamMask & BIT(HCEP_KING_EXPOSURE)) {
         total += getKingExposureScore(gpf, us) - getKingExposureScore(gpf, them);
     }
     if (m_ParamMask & BIT(HCEP_KING_PAWN_DISTANCE)) {
         total += getKingPawnDistanceScore(gpf, us) - getKingPawnDistanceScore(gpf, them);
     }
-    if (m_ParamMask & BIT(HCEP_PAWN_SHIELD)) {
-        total += getPawnShieldScore(gpf, us) - getPawnShieldScore(gpf, them);
-    }
     if (m_ParamMask & BIT(HCEP_TROPISM)) {
         total += getTropismScore(gpf, us) - getTropismScore(gpf, them);
-    }
-    if (m_ParamMask & BIT(HCEP_BISHOP_PAIR)) {
-        total += getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
-    }
-    if (m_ParamMask & BIT(HCEP_KING_ATTACK)) {
-        total += getKingAttackScore(gpf, us) - getKingAttackScore(gpf, them);
     }
 
     return total;
@@ -222,7 +229,7 @@ int HandCraftedEvaluator::getMobilityScore(int gpf, Color us) const {
         total += m_Weights.rookVerticalMobilityScore[verticalScoreIdx].get(gpf);
     }
 
-    return total / 2;
+    return total / 3;
 }
 
 int HandCraftedEvaluator::getKnightOutpostScore(int gpf, Color c) const {
@@ -256,9 +263,17 @@ int HandCraftedEvaluator::getIsolatedPawnsScore(int gpf, Color c) const {
 int HandCraftedEvaluator::getPassedPawnsScore(int gpf, Color c) const {
     const auto& pos = getPosition();
 
+    int total = 0;
     Bitboard passedPawns = staticanalysis::getPassedPawns(pos, c);
+    for (Square s: passedPawns) {
+        int steps = stepsFromPromotion(s, c);
+        int idx = std::min(size_t(steps), m_Weights.passedPawnScore.size()) - 1;
+        total += m_Weights
+                    .passedPawnScore[idx]
+                    .get(gpf);
+    }
 
-    return passedPawns.count() * m_Weights.passedPawnScore.get(gpf);
+    return total;
 }
 
 int HandCraftedEvaluator::getBackwardPawnsScore(int gpf, Color c) const {
@@ -390,7 +405,7 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color c) const {
     const auto& pos = getPosition();
 
     constexpr int PIECE_ATK_POWER[] {
-        0, 1, 3, 3, 6, 12, 1
+            0, 1, 4, 4, 7, 11, 1
     };
 
     int totalAttackPower = 0;
@@ -403,6 +418,9 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color c) const {
         Piece p = pos.getPieceAt(s);
         Bitboard atks = bbs::getPieceAttacks(s, occ, p);
         if ((atks & nearKingSquares) != 0) {
+            totalAttackPower += PIECE_ATK_POWER[p.getType()];
+        }
+        if (nearKingSquares.contains(s)) {
             totalAttackPower += PIECE_ATK_POWER[p.getType()];
         }
     }
@@ -487,5 +505,7 @@ int HandCraftedEvaluator::evaluateKBNK(const Position &pos, Color lhs) const {
 
     return base - theirKingBonus * 50;
 }
+
+
 
 }

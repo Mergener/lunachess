@@ -36,6 +36,7 @@ struct UCIContext {
     // Search settings
     ai::AlphaBetaSearcher searcher;
     bool useOpBook = false;
+    std::shared_ptr<ai::HandCraftedEvaluator> hce = std::make_shared<ai::HandCraftedEvaluator>();
 };
 
 using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
@@ -89,62 +90,16 @@ static std::initializer_list<HCEParameterUCI> s_HCEParams = {
     { ai::HCEP_TROPISM, "HCE_Tropism", false },
     { ai::HCEP_TROPISM, "HCE_BishopPair", true },
     { ai::HCEP_KING_ATTACK, "HCE_KingAttack", true },
+    { ai::HCEP_DIMINISHING_MATERIAL_GAINS, "HCE_DiminishingMaterialGains", false },
 };
 
-static void loadHCEWeights(UCIContext& ctx) {
-    static constexpr const char* WEIGHTS_DEFAULT_PATH = "weights.json";
-
-    auto& eval = ctx.searcher.getEvaluator();
-    auto* hce = dynamic_cast<ai::HandCraftedEvaluator*>(&eval);
-    if (hce == nullptr) {
-        return;
-    }
-
-    namespace fs = std::filesystem;
-    fs::path path = WEIGHTS_DEFAULT_PATH;
-
-    try {
-        std::string str = utils::readFromFile(path);
-        nlohmann::json j = nlohmann::json::parse(str);
-        ai::HCEWeightTable weights = j;
-        hce->setWeights(weights);
-        std::cout << "Successfully loaded evaluation weights from " << path << std::endl;
-    }
-    catch (std::exception& e) {
-        std::cout << "Failed to load weights from file " << fs::absolute(path) << std::endl;
-        std::cout << "Initializing default weights." << std::endl;
-
-        try {
-            nlohmann::json j = hce->getWeights();
-            std::stringstream ss;
-            ss << std::setw(2) << j << std::endl;
-            utils::writeToFile(path, ss.str());
-        }
-        catch (std::exception&) {
-            std::cout << "Failed to save weights to " << fs::absolute(path) << std::endl;
-        }
-    }
-
-}
-
 static void setupHCEParameters(UCIContext& ctx) {
-    auto& eval = ctx.searcher.getEvaluator();
-    auto* hce = dynamic_cast<ai::HandCraftedEvaluator*>(&eval);
-    if (hce == nullptr) {
-        return;
-    }
-
     for (auto& param: s_HCEParams) {
-        hce->toggleParameter(param.param, param.defaultValue);
+        ctx.hce->toggleParameter(param.param, param.defaultValue);
     }
 }
 
 static bool processHCEOption(UCIContext& ctx, std::string_view option, std::string_view value) {
-    auto& eval = ctx.searcher.getEvaluator();
-    auto* hce = dynamic_cast<ai::HandCraftedEvaluator*>(&eval);
-    if (hce == nullptr) {
-        return false;
-    }
     ai::HCEParameter param;
     bool isHCEOption = false;
 
@@ -160,7 +115,7 @@ static bool processHCEOption(UCIContext& ctx, std::string_view option, std::stri
         return false;
     }
 
-    hce->toggleParameter(param, value == "true");
+    ctx.hce->toggleParameter(param, value == "true");
 
     return true;
 }
@@ -400,6 +355,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
             return;
         }
     }
+    ctx.searcher = ai::AlphaBetaSearcher(ctx.hce);
 
     TimePoint startTime = Clock::now();
     searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
@@ -638,8 +594,9 @@ static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
 static int doEval(UCIContext& ctx, int depth) {
     int eval = 0;
     if (depth == 0) {
-        ctx.searcher.getEvaluator().setPosition(ctx.pos);
-        eval = ctx.searcher.getEvaluator().evaluate();
+        auto& evaluator = ctx.searcher.getEvaluator();
+        evaluator.setPosition(ctx.pos);
+        eval = evaluator.evaluate();
     }
     else {
         ai::SearchSettings settings;
@@ -727,13 +684,42 @@ static void cmdTune(UCIContext& ctx, const CommandArgs& args) {
         return;
     }
 
-    auto eval = dynamic_cast<ai::HandCraftedEvaluator&>(ctx.searcher.getEvaluator());
-    auto& tbl = eval.getWeights();
+    auto eval = ctx.hce;
+    auto& tbl = eval->getWeights();
 
     ai::TuningSettings settings;
-    settings.parametersMask = eval.getParameterMask();
+    settings.parametersMask = eval->getParameterMask();
 
     ai::tune(tbl, samplePositions, settings);
+}
+
+static void cmdLoadweights(UCIContext& ctx, const CommandArgs& args) {
+    namespace fs = std::filesystem;
+
+    fs::path path = args[0];
+    try {
+        nlohmann::json weightsJson = nlohmann::json::parse(utils::readFromFile(path));
+        ai::HCEWeightTable weights = weightsJson;
+        ctx.hce->setWeights(weights);
+        std::cout << "Succesfully loaded weights from " << fs::absolute(path) << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Failed to load weights from " << fs::absolute(path) << ":\n" << e.what() << std::endl;
+    }
+}
+
+static void cmdSaveweights(UCIContext& ctx, const CommandArgs& args) {
+    namespace fs = std::filesystem;
+
+    fs::path path = args[0];
+    try {
+        nlohmann::json weightsJson = ctx.hce->getWeights();
+        utils::writeToFile(path, weightsJson.dump(2));
+        std::cout << "Succesfully saved weights to " << fs::absolute(path) << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Failed to saved weights to " << fs::absolute(path) << ":\n" << e.what() << std::endl;
+    }
 }
 
 #ifndef NDEBUG
@@ -828,6 +814,8 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["takeback"] = Command(cmdTakeback, 0, false);
     cmds["eval"] = Command(cmdEval, 0, false);
     cmds["tune"] = Command(cmdTune, 0, false);
+    cmds["saveweights"] = Command(cmdSaveweights, 1);
+    cmds["loadweights"] = Command(cmdLoadweights, 1);
 
 #ifndef NDEBUG
     // Debug commands
@@ -897,7 +885,6 @@ static void inputThreadMain(UCIContext& ctx) {
 int uciMain() {
     std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
 
-    loadHCEWeights(*ctx);
     setupHCEParameters(*ctx);
 
     inputThreadMain(*ctx);

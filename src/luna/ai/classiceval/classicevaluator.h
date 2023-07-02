@@ -35,6 +35,7 @@ enum HCEParameter {
     HCEP_TROPISM,
     HCEP_BISHOP_PAIR,
     HCEP_KING_ATTACK,
+    HCEP_DIMINISHING_MATERIAL_GAINS,
 
     HCEP_PARAM_COUNT,
 };
@@ -47,7 +48,7 @@ static constexpr HCEParameterMask HCEPM_ALL = ~0;
  * Defines the value of each piece for determining the GPF of a position.
  */
 inline constexpr int GPF_PIECE_VALUE_TABLE[] = {
-        0, 1, 3, 3, 7, 14, 0
+        0, 1, 3, 3, 6, 12, 0
 };
 
 /**
@@ -96,11 +97,11 @@ struct HCEWeightTable {
 
     std::array<HCEWeight, PT_COUNT> material = {
         HCEWeight(0, 0),        // PT_NONE
-        HCEWeight(1000, 1600),  // PT_PAWN
-        HCEWeight(3200, 3800),  // PT_KNIGHT
-        HCEWeight(3600, 4200),  // PT_BISHOP
-        HCEWeight(5100, 6100),  // PT_ROOK
-        HCEWeight(9100, 12000), // PT_QUEEN
+        HCEWeight(1000, 1000),  // PT_PAWN
+        HCEWeight(3200, 3600),  // PT_KNIGHT
+        HCEWeight(3500, 4000),  // PT_BISHOP
+        HCEWeight(5100, 5600),  // PT_ROOK
+        HCEWeight(9100, 9600), // PT_QUEEN
         HCEWeight(0, 0),        // PT_KING
     };
 
@@ -160,6 +161,7 @@ struct HCEWeightTable {
         PieceSquareTable {},
         PieceSquareTable {},
         PieceSquareTable {},
+//        PieceSquareTable {},
         g_DEFAULT_KING_PST_MG,
     };
 
@@ -170,18 +172,31 @@ struct HCEWeightTable {
         PieceSquareTable {},
         PieceSquareTable {},
         PieceSquareTable {},
+        //PieceSquareTable {},
         g_DEFAULT_KING_PST_EG,
     };
 
-    HCEWeight knightOutpostScore = { 150, 100 };
+    HCEWeight knightOutpostScore = { 300, 200 };
 
-    HCEWeight blockingPawnsScore = { -250, -350 };
+    HCEWeight blockingPawnsScore = { -50, -120 };
 
     HCEWeight backwardPawnScore = { -75, -150 };
 
-    HCEWeight isolatedPawnScore = { -200, -300 };
+    HCEWeight isolatedPawnScore = { -50, -120 };
 
-    HCEWeight passedPawnScore = { 100, 500 };
+    /**
+     * Score for passed pawns. Indexes are the number of steps the pawn is away
+     * from promotion minus 1.
+     * Ex: a white pawn on b4 is 4 steps away from promotion (b4->b5->b6->b7->b8=?),
+     * so the passer bonus for the pawn is passedPawnScore[3].
+     */
+    std::array<HCEWeight, 5> passedPawnScore = {
+        HCEWeight(100, 500),
+        HCEWeight(100, 500),
+        HCEWeight(100, 500),
+        HCEWeight(100, 500),
+        HCEWeight(100, 500),
+    };
 
     HCEWeight queenExposureScore = { -360, -180 };
     HCEWeight bishopExposureScore = { -220, 0 };

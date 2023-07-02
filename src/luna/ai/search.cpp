@@ -9,18 +9,18 @@
 namespace lunachess::ai {
 
 /**
- * Pseudo-exception to be thrown when the search time is up.
+ * Pseudo-exception to be thrown when the search must be interrupted.
  */
-class TimeUp {
+class SearchInterrupt {
 };
 
 constexpr int CHECK_TIME_NODE_INTERVAL = 1024;
 
-void AlphaBetaSearcher::checkIfSearchIsOver() {
+void AlphaBetaSearcher::interruptSearchIfNecessary() {
     if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
         (m_TimeManager.timeIsUp()
          || m_ShouldStop)) {
-        throw TimeUp();
+        throw SearchInterrupt();
     }
 }
 
@@ -28,7 +28,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     const Position& pos = m_Eval->getPosition();
     m_LastResults.visitedNodes++;
 
-    checkIfSearchIsOver();
+    interruptSearchIfNecessary();
 
     int standPat = m_Eval->evaluate();
 
@@ -98,12 +98,12 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                                  MoveList *searchMoves) {
     const Position& pos = m_Eval->getPosition();
     bool isRoot = ply == 0;
-    if (pos.isDraw(1) && !isRoot) {
-        // Position is a draw (or has repeated already), return draw score.
+    if (pos.isDraw() && !isRoot) {
+        // Position is a draw, return draw score.
         return m_Eval->getDrawScore();
     }
 
-    checkIfSearchIsOver();
+    interruptSearchIfNecessary();
 
     // Setup some important variables
     int staticEval; // Used for some pruning/reduction techniques
@@ -144,6 +144,11 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
                         // includes the move found in the TT.
                         m_LastResults.visitedNodes++;
                         return ttEntry.score;
+                    }
+                    else {
+                        // This search uses an incompatible searchMoves list with the
+                        // TT entry. Remove the entry.
+                        m_TT.remove(posKey);
                     }
                 }
                 else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
@@ -453,7 +458,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
                         settings.onPvFinish(m_LastResults, multipv);
                     }
                 }
-                catch (const TimeUp &) {
+                catch (const SearchInterrupt &) {
                     // Time over
                     break;
                 }

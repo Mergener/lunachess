@@ -105,8 +105,8 @@ struct SearchSettings {
     int maxDepth = MAX_SEARCH_DEPTH;
 
     /**
-     * Predicate that should return true only to moves that should be searched in the root node.
-     * If moveFilter == nullptr, then the search will not filter out any moves.
+     * Predicate that must return true only to moves that should be searched in the root node.
+     * If moveFilter == nullptr, the search will not filter out any moves.
      */
     std::function<bool(Move)> moveFilter = nullptr;
 
@@ -132,7 +132,7 @@ public:
     SearchResults search(const Position& pos, SearchSettings settings = SearchSettings());
 
     /**
-     * Performs a quiescence search. The quiescence search only searches for 'noisy' moves.
+     * Performs a quiescence search. The quiescence search searches for 'noisy' moves only.
      * For Luna, noisy moves consist of captures and promotions.
      *
      * @param pos The position to search.
@@ -154,7 +154,12 @@ public:
      * Constructs a move searcher with an externally created evaluator.
      */
     inline explicit AlphaBetaSearcher(std::shared_ptr<Evaluator> eval)
-        : m_Eval(std::move(eval)) {
+        : m_Eval(eval) {
+    }
+
+    inline AlphaBetaSearcher& operator=(const AlphaBetaSearcher& other) {
+        m_Eval = other.m_Eval;
+        return *this;
     }
 
     inline const TranspositionTable& getTT() const { return m_TT; }
@@ -180,9 +185,9 @@ private:
     /**
      * Checks whether the current search should stop, either if its time
      * is over or it was requested to stop.
-     * If it should, stops it by throwing 'TimeUp'.
+     * If it should, stops it by throwing 'SearchInterrupt'.
      */
-    void checkIfSearchIsOver();
+    void interruptSearchIfNecessary();
 };
 
 }
