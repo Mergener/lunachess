@@ -134,7 +134,7 @@ void playGame(ChessGame& game,
         if (tcs[color].mode != TC_INFINITE && elapsed > tcs[color].time) {
             flagged = true;
         }
-        else if (tcs[color].mode == TC_FISCHER) {
+        else if (tcs[color].mode == TC_TOURNAMENT) {
             tcs[color].time += tcs[color].increment - elapsed;
         }
 

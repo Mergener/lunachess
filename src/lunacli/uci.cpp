@@ -459,22 +459,22 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
         else if (arg == "wtime") {
             // Defines white color base time
             readTime(args[++i], timeControl[CL_WHITE].time);
-            timeControl[CL_WHITE].mode = TC_FISCHER;
+            timeControl[CL_WHITE].mode = TC_TOURNAMENT;
         }
         else if (arg == "winc") {
             // Defines white color time increment
             readTime(args[++i], timeControl[CL_WHITE].increment);
-            timeControl[CL_WHITE].mode = TC_FISCHER;
+            timeControl[CL_WHITE].mode = TC_TOURNAMENT;
         }
         else if (arg == "btime") {
             // Defines black color base time
             readTime(args[++i], timeControl[CL_BLACK].time);
-            timeControl[CL_BLACK].mode = TC_FISCHER;
+            timeControl[CL_BLACK].mode = TC_TOURNAMENT;
         }
         else if (arg == "binc") {
             // Defines black color time increment
             readTime(args[++i], timeControl[CL_BLACK].increment);
-            timeControl[CL_BLACK].mode = TC_FISCHER;
+            timeControl[CL_BLACK].mode = TC_TOURNAMENT;
         }
         else if (arg == "movetime") {
             // Defines the move time, a time in milliseconds for each move.

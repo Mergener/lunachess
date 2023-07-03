@@ -82,7 +82,7 @@ private:
 using PlayerFunc = std::function<Move(const Position& pos, TimeControl ourTC, TimeControl theirTC)>;
 struct PlayGameArgs {
     Position startingPosition = Position::getInitialPosition();
-    TimeControl timeControl[CL_COUNT] = { TimeControl(180000, 2000, TC_FISCHER), TimeControl(180000, 2000, TC_FISCHER) };
+    TimeControl timeControl[CL_COUNT] = {TimeControl(180000, 2000, TC_TOURNAMENT), TimeControl(180000, 2000, TC_TOURNAMENT) };
 };
 
 void playGame(ChessGame& game,

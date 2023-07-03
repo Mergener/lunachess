@@ -416,7 +416,7 @@ const char* getSquareName(Square s);
 
 enum TimeControlMode {
     TC_INFINITE,
-    TC_FISCHER,
+    TC_TOURNAMENT,
     TC_MOVETIME
 };
 

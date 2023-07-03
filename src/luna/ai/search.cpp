@@ -92,10 +92,10 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
-int AlphaBetaSearcher::alphaBeta(int depth, int ply,
-                                 int alpha, int beta,
-                                 bool nullMoveAllowed,
-                                 MoveList *searchMoves) {
+int AlphaBetaSearcher::negamax(int depth, int ply,
+                               int alpha, int beta,
+                               bool nullMoveAllowed,
+                               MoveList *searchMoves) {
     const Position& pos = m_Eval->getPosition();
     bool isRoot = ply == 0;
     if (pos.isDraw() && !isRoot) {
@@ -195,12 +195,12 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
 
     if (nullMoveAllowed && !isCheck &&
         depth >= NULL_SEARCH_MIN_DEPTH &&
-            pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
+        pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
 
         // Null move pruning allowed
         m_Eval->makeNullMove();
 
-        int score = -alphaBeta(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
+        int score = -negamax(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
             m_Eval->undoNullMove();
             return beta; // Prune
@@ -253,7 +253,7 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
         int score;
         if (searchPv) {
             // Perform PVS. First move of the list is always PVS.
-            score = -alphaBeta(d, ply + 1, -beta, -alpha);
+            score = -negamax(d, ply + 1, -beta, -alpha);
         }
         else {
             // #----------------------------------------
@@ -271,9 +271,9 @@ int AlphaBetaSearcher::alphaBeta(int depth, int ply,
             // Perform a ZWS. Searches after the first move are performed
             // with a null window. If the search fails high, do a re-search
             // with the full window.
-            score = -alphaBeta(d, ply + 1, -alpha - 1, -alpha);
+            score = -negamax(d, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
-                score = -alphaBeta(depth, ply + 1, -beta, -alpha);
+                score = -negamax(depth, ply + 1, -beta, -alpha);
             }
         }
 
@@ -375,7 +375,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
         m_LastResults.visitedNodes = 1;
         m_LastResults.searchStart = Clock::now();
 
-        // Last lastSearchResults could have been filled with a previous search
+        // Last search results could have been filled with a previous search
         m_LastResults.searchedVariations.clear();
 
         m_LastResults.bestMove = moves[0];
@@ -407,7 +407,51 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
                 try {
                     TranspositionTable::Entry ttEntry;
 
-                    int score = alphaBeta(depth, 0, -HIGH_BETA, HIGH_BETA, false, &moves);
+                    constexpr int ASPIRATION_WINDOWS_MIN_DEPTH = 3;
+                    constexpr int MAX_ASPIRATION_ITERATIONS = 4;
+
+                    int alpha;
+                    double alphaDelta = 1;
+                    int beta;
+                    double betaDelta = 1;
+
+                    int score;
+                    int lastScore = m_LastResults.bestScore;
+                    if (depth < ASPIRATION_WINDOWS_MIN_DEPTH) {
+                        // By default, perform a full window search
+                        alpha = -HIGH_BETA;
+                        beta = HIGH_BETA;
+                    }
+                    else {
+                        // From depth ASPIRATION_WINDOWS_MIN_DEPTH onwards, try to use aspiration windows based
+                        // on the last search.
+                        alpha = lastScore - 500;
+                        beta = lastScore + 500;
+                    }
+
+                    for (int aspirationIt = 0; aspirationIt <= MAX_ASPIRATION_ITERATIONS; ++aspirationIt) {
+                        if (aspirationIt == MAX_ASPIRATION_ITERATIONS) {
+                            // We tried many aspiration windows that didn't work, let's go with
+                            // the full window.
+                            alpha = -HIGH_BETA;
+                            beta = HIGH_BETA;
+                        }
+
+                        score = negamax(depth, 0, alpha, beta, false, &moves);
+                        if (score <= alpha) {
+                            // Fail low, widen lower bound.
+                            alpha -= static_cast<int>(alphaDelta * 1000);
+                            alphaDelta -= std::pow(alphaDelta + 0.6, alphaDelta);
+                        }
+                        else if (score >= beta) {
+                            // Fail high, increase lower bound
+                            beta += static_cast<int>(betaDelta * 1000);
+                            betaDelta += std::pow(betaDelta + 0.6, betaDelta);
+                        }
+                        else {
+                            break;
+                        }
+                    }
 
                     m_TT.probe(pos, ttEntry);
 

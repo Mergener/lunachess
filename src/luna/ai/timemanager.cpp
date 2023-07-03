@@ -14,7 +14,7 @@ void TimeManager::start(const TimeControl& tc) {
             m_TargetTime = tc.time - 50;
             break;
 
-        case TC_FISCHER:
+        case TC_TOURNAMENT:
             m_TargetTime = std::min(tc.time - 50, tc.time / 20 + tc.increment * 2);
             break;
 
@@ -24,7 +24,7 @@ void TimeManager::start(const TimeControl& tc) {
 }
 
 void TimeManager::onNewDepth(const SearchResults& res) {
-    if (m_Tc.mode != TC_FISCHER) {
+    if (m_Tc.mode != TC_TOURNAMENT) {
         // Nothing to do
         return;
     }
@@ -43,7 +43,7 @@ void TimeManager::onNewDepth(const SearchResults& res) {
     // In 'movetime' modes, we want to use it as much as possible,
     // since for every move we will have the same time to
     // spend again.
-    // In Fischer time controls, however, if we think we are not going
+    // In Tournament time controls, however, if we think we are not going
     // to finish the search in our speculated target time, it is better
     // to not go further onto the search.
 

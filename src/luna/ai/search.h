@@ -178,7 +178,7 @@ private:
     bool m_ShouldStop = false;
     bool m_Searching = false;
 
-    int alphaBeta(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
+    int negamax(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
 
     int quiesce(int ply, int alpha, int beta);
 
