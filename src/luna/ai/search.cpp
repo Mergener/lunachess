@@ -1,10 +1,7 @@
 #include "search.h"
 
-#include <stdexcept>
 #include <algorithm>
 #include <thread>
-
-#include "../movegen.h"
 
 namespace lunachess::ai {
 
@@ -408,7 +405,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
                     TranspositionTable::Entry ttEntry;
 
                     constexpr int ASPIRATION_WINDOWS_MIN_DEPTH = 3;
-                    constexpr int MAX_ASPIRATION_ITERATIONS = 4;
+                    constexpr int MAX_ASPIRATION_ITERATIONS = 0;
 
                     int alpha;
                     double alphaDelta = 1;
@@ -441,12 +438,12 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
                         if (score <= alpha) {
                             // Fail low, widen lower bound.
                             alpha -= static_cast<int>(alphaDelta * 1000);
-                            alphaDelta -= std::pow(alphaDelta + 0.6, alphaDelta);
+                            alphaDelta += std::pow(alphaDelta + 0.6, alphaDelta + 0.3);
                         }
                         else if (score >= beta) {
                             // Fail high, increase lower bound
                             beta += static_cast<int>(betaDelta * 1000);
-                            betaDelta += std::pow(betaDelta + 0.6, betaDelta);
+                            betaDelta += std::pow(betaDelta + 0.6, betaDelta + 0.3);
                         }
                         else {
                             break;
