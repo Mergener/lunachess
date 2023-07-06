@@ -86,6 +86,9 @@ extern PieceSquareTable g_DEFAULT_PAWN_PST_EG;
 extern PieceSquareTable g_DEFAULT_KING_PST_MG;
 extern PieceSquareTable g_DEFAULT_KING_PST_EG;
 
+extern PieceSquareTable g_DEFAULT_QUEEN_PST_MG;
+extern PieceSquareTable g_DEFAULT_QUEEN_PST_EG;
+
 
 /**
  * Weight table used by the HCE to define position scores.
@@ -98,10 +101,10 @@ struct HCEWeightTable {
     std::array<HCEWeight, PT_COUNT> material = {
         HCEWeight(0, 0),        // PT_NONE
         HCEWeight(1000, 1000),  // PT_PAWN
-        HCEWeight(3200, 3600),  // PT_KNIGHT
-        HCEWeight(3500, 4000),  // PT_BISHOP
-        HCEWeight(5100, 5600),  // PT_ROOK
-        HCEWeight(9100, 9600), // PT_QUEEN
+        HCEWeight(3200, 3800),  // PT_KNIGHT
+        HCEWeight(3600, 4200),  // PT_BISHOP
+        HCEWeight(5100, 6100),  // PT_ROOK
+        HCEWeight(9100, 12000), // PT_QUEEN
         HCEWeight(0, 0),        // PT_KING
     };
 
@@ -160,7 +163,7 @@ struct HCEWeightTable {
         PieceSquareTable {},
         PieceSquareTable {},
         PieceSquareTable {},
-        PieceSquareTable {},
+        g_DEFAULT_QUEEN_PST_MG,
 //        PieceSquareTable {},
         g_DEFAULT_KING_PST_MG,
     };
@@ -171,7 +174,7 @@ struct HCEWeightTable {
         PieceSquareTable {},
         PieceSquareTable {},
         PieceSquareTable {},
-        PieceSquareTable {},
+        g_DEFAULT_QUEEN_PST_EG,
         //PieceSquareTable {},
         g_DEFAULT_KING_PST_EG,
     };
@@ -266,68 +269,69 @@ struct HCEWeightTable {
      * r: 6
      * q: 12
      */
-    std::array<int, 60> kingAttackScore = {
-        10,
-        20,
-        32,
-        44,
-        58,
-        70,
-        84,
-        100,
-        120,
-        150,
-        190,
-        230,
-        270,
-        320,
-        370,
-        420,
-        480,
-        540,
-        610,
-        700,
-        800,
-        900,
-        1050,
-        1200,
-        1400,
-        1600,
-        1900,
-        2400,
-        3000,
-        3300,
-        3500,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-        3600,
-    };
+    std::array<int, 60> kingAttackScore =
+            {
+                    0,
+                    10,
+                    19,
+                    28,
+                    38,
+                    47,
+                    57,
+                    67,
+                    78,
+                    88,
+                    99,
+                    111,
+                    122,
+                    134,
+                    147,
+                    160,
+                    174,
+                    189,
+                    204,
+                    220,
+                    238,
+                    256,
+                    276,
+                    297,
+                    319,
+                    343,
+                    370,
+                    398,
+                    429,
+                    462,
+                    499,
+                    539,
+                    583,
+                    631,
+                    684,
+                    743,
+                    807,
+                    879,
+                    958,
+                    1045,
+                    1142,
+                    1250,
+                    1370,
+                    1503,
+                    1651,
+                    1816,
+                    1999,
+                    2204,
+                    2433,
+                    2687,
+                    2972,
+                    3290,
+                    3644,
+                    4041,
+                    4484,
+                    4500,
+                    4500,
+                    4500,
+                    4500,
+                    4500,
+            };
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore,
                                    bishopMobilityScore, rookHorizontalMobilityScore,
@@ -386,7 +390,7 @@ private:
     int getPawnShieldScore(int gpf, Color c) const;
     int getTropismScore(int gpf, Color c) const;
     int getBishopPairScore(int gpf, Color c) const;
-    int getKingAttackScore(int gpf, Color c) const;
+    int getKingAttackScore(int gpf, Color us) const;
 
 public:
     inline const HCEWeightTable& getWeights() const {

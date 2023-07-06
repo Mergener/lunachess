@@ -8,10 +8,10 @@ PieceSquareTable g_DEFAULT_PAWN_PST_MG = {
     0,    0,    0,    0,    0,    0,    0,    0,
     300,  300,  300,  500,  500,  300,  300,  300,
     300,   300,  300,  500,  500,  300,  300,   300,
-    0,    0,    0,  500,  500,    0,    0,    0,
-    50,   50,  200,  500,  500,  20,   0,   0,
-    0,   25,  80,  100,  100,  0,   0,   0,
-    0,    0,    -150,    -200,    -200,    0,    0,    0,
+    0,    0,    0,  375,  375,    0,    0,    0,
+    0,   0,  100,  375,  375,  20,   0,   0,
+    0,   0,  80,  150,  150,  0,   0,   0,
+    0,    0,    -50,   -100,    -100,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,
 };
 
@@ -46,6 +46,28 @@ PieceSquareTable g_DEFAULT_KING_PST_EG = {
     0,  50,  100,  100,  100,  100,   50,   0,
     0,  50,  50,  50,  50,  50,   50,   0,
     0,  0,  0,  0,  0,  0,   0,     0,
+};
+
+PieceSquareTable g_DEFAULT_QUEEN_PST_MG = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, -450, -450, -450, -450, -450, -450, 0,
+    0, -450, -450, -450, -450, -450, -450, 0,
+    0, -450, -450, -450, -450, -450, -450, 0,
+    0, -450, -450, -450, -450, -450, -450, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+PieceSquareTable g_DEFAULT_QUEEN_PST_EG = {
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
 };
 
 int HandCraftedEvaluator::getGamePhaseFactor() const {
@@ -166,7 +188,7 @@ int HandCraftedEvaluator::getPlacementScore(int gpf, Color c) const {
     const auto& pos = getPosition();
     int total = 0;
 
-    for (auto pt: { PT_PAWN, PT_KING }) {
+    for (auto pt: { PT_PAWN, PT_QUEEN, PT_KING }) {
         auto bb = pos.getBitboard(Piece(c, pt));
 
         const auto& mgPST = m_Weights.mgPSTs[pt];
@@ -190,6 +212,7 @@ int HandCraftedEvaluator::getMobilityScore(int gpf, Color us) const {
     auto theirPawnAttacks = pos.getAttacks(them, PT_PAWN);
     auto theirValuablePieces = pos.getBitboard(Piece(them, PT_NONE)) & ~pos.getBitboard(Piece(them, PT_PAWN));
     auto ourValuablePieces = pos.getBitboard(Piece(us, PT_NONE)) & ~pos.getBitboard(Piece(us, PT_PAWN));
+//    auto occ = pos.getCompositeBitboard();
     auto occ = pos.getCompositeBitboard() & ~ourValuablePieces;
 
     // 'Target' squares are the squares that would "make sense" to jump to with our pieces.
@@ -229,7 +252,7 @@ int HandCraftedEvaluator::getMobilityScore(int gpf, Color us) const {
         total += m_Weights.rookVerticalMobilityScore[verticalScoreIdx].get(gpf);
     }
 
-    return total / 3;
+    return total / 2;
 }
 
 int HandCraftedEvaluator::getKnightOutpostScore(int gpf, Color c) const {
@@ -401,19 +424,22 @@ int HandCraftedEvaluator::getBishopPairScore(int gpf, Color c) const {
     return m_Weights.bishopPairScore.get(gpf) * std::min(lsBishops.count(), dsBishops.count());
 }
 
-int HandCraftedEvaluator::getKingAttackScore(int gpf, Color c) const {
+int HandCraftedEvaluator::getKingAttackScore(int gpf, Color us) const {
     const auto& pos = getPosition();
-
-    constexpr int PIECE_ATK_POWER[] {
-            0, 1, 4, 4, 7, 11, 1
-    };
+    Color them = getOppositeColor(us);
 
     int totalAttackPower = 0;
-    Square theirKingSquare = pos.getKingSquare(getOppositeColor(c));
-    Bitboard nearKingSquares = bbs::getNearKingSquares(theirKingSquare);
-    Bitboard ourPieces = pos.getBitboard(Piece(c, PT_NONE));
+    Square theirKingSquare = pos.getKingSquare(getOppositeColor(us));
     Bitboard occ = pos.getCompositeBitboard();
+    Bitboard theirPieces = pos.getBitboard(Piece(them, PT_NONE));
 
+    // Add attack power for each piece of ours that can attack a square near
+    // the opponent's king.
+    constexpr int PIECE_ATK_POWER[] {
+    0, 1, 2, 2, 3, 4, 1
+    };
+    Bitboard ourPieces = pos.getBitboard(Piece(us, PT_NONE));
+    Bitboard nearKingSquares = bbs::getNearKingSquares(theirKingSquare);
     for (Square s: ourPieces) {
         Piece p = pos.getPieceAt(s);
         Bitboard atks = bbs::getPieceAttacks(s, occ, p);
@@ -423,6 +449,34 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color c) const {
         if (nearKingSquares.contains(s)) {
             totalAttackPower += PIECE_ATK_POWER[p.getType()];
         }
+    }
+
+    // Add attack power if our pieces can check the opponent's king
+    constexpr int PIECE_CHK_POWER[] {
+            0, 1, 4, 4, 5, 5, 1
+    };
+    for (PieceType pt: { PT_PAWN, PT_KNIGHT, PT_BISHOP, PT_ROOK, PT_QUEEN }) {
+        Piece p = Piece(us, pt);
+        Bitboard atksFromKing = bbs::getPieceAttacks(theirKingSquare, occ, p);
+        Bitboard ourAtks = pos.getAttacks(us, pt);
+        Bitboard checkableSquares = (atksFromKing & ourAtks) & (~theirPieces);
+
+        if (checkableSquares) {
+            totalAttackPower += PIECE_CHK_POWER[pt] * pos.getBitboard(p).count();
+        }
+    }
+
+    // Add attack power if our queen can "touch" the opponent's
+    // king without being captured
+    constexpr int QUEENS_TOUCH_POWER = 15;
+    Bitboard theirKingAtks = bbs::getKingAttacks(theirKingSquare);
+    Bitboard ourQueensAttacks = pos.getAttacks(us, PT_QUEEN);
+    Bitboard ourOpponentAttacks = staticanalysis::getDefendedSquares(pos, them, PT_QUEEN);
+    Bitboard queenTouchSquares = theirKingAtks & ourQueensAttacks & (~ourOpponentAttacks) &
+            staticanalysis::getDefendedSquares(pos, us, PT_ROOK);
+
+    if (queenTouchSquares != 0) {
+        totalAttackPower += QUEENS_TOUCH_POWER;
     }
 
     return m_Weights.kingAttackScore[std::min(size_t(totalAttackPower), m_Weights.kingAttackScore.size() - 1)];

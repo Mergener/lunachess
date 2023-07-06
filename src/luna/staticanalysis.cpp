@@ -279,4 +279,19 @@ Bitboard getBackwardPawns(const Position& pos, Color us) {
     return bb;
 }
 
+Bitboard getDefendedSquares(const Position& pos, Color c, PieceType highestValueDefenderType) {
+    Bitboard bb = 0;
+    switch (highestValueDefenderType) {
+        default: return pos.getAttacks(c, PT_NONE);
+
+        case PT_KING:   bb |= pos.getAttacks(c, PT_KING);
+        case PT_QUEEN:  bb |= pos.getAttacks(c, PT_QUEEN);
+        case PT_ROOK:   bb |= pos.getAttacks(c, PT_ROOK);
+        case PT_KNIGHT: bb |= pos.getAttacks(c, PT_KNIGHT);
+        case PT_BISHOP: bb |= pos.getAttacks(c, PT_BISHOP);
+        case PT_PAWN:   bb |= pos.getAttacks(c, PT_PAWN);
+    }
+    return bb;
+}
+
 } // lunachess::staticanalysis

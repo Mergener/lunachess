@@ -65,6 +65,13 @@ Bitboard getBlockingPawns(const Position& pos, Color c);
  */
 Bitboard getBackwardPawns(const Position& pos, Color c);
 
+/**
+ * Returns all squares in the position that are defended by a piece of the specified color.
+ * A 'highestValueDefenderType' can be passed to stop considering stronger pieces as defenders.
+ * Eg: highestValueDefenderType == PT_ROOK will not return squares that are defended by queens or kings.
+ */
+Bitboard getDefendedSquares(const Position& pos, Color c, PieceType highestValueDefenderType = PT_KING);
+
 //
 // The following getXXAttackers functions return the bitboard of all pieces that
 // are currently attacking a specific square in a given position.
