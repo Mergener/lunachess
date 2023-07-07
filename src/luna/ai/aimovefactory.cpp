@@ -105,7 +105,7 @@ int AIMoveFactory::generateNoisyMoves(MoveList &ml, const Position &pos, int cur
     movegen::generate<MTM_NOISY>(pos, ml);
 
     // Moves generated, look for pv move
-    std::sort(ml.begin(), ml.end(), [this](Move a, Move b) {
+    utils::insertionSort(ml.begin(), ml.end(), [this](Move a, Move b) {
         bool aIsPromCapture = a.getType() == MT_PROMOTION_CAPTURE;
         bool bIsPromCapture = b.getType() == MT_PROMOTION_CAPTURE;
         if (aIsPromCapture && !bIsPromCapture) {

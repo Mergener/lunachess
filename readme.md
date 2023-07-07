@@ -11,19 +11,34 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 ## Features
 
 - Move generation
-    - Magic bitboards based move-generation
+  - Magic bitboards based move-generation
 
 - Search features
-     - Killer move heuristic
-     - History heuristic
-     - Quiescence search
-     - Iterative deepening with Transposition Tables
-     - Principal Variation Search
-     - Late Move Reductions
-     - SEE + MVV-LVA ordering for captures
-     - Null move pruning
-     - Futility pruning
-     - Delta pruning
+  - Principal Variation Search
+  - Iterative deepening with Transposition Tables
+  - Quiescence search
+  - SEE + MVV-LVA ordering for captures
+  - Killer move heuristic
+  - Late Move Reductions
+  - History heuristic
+  - Null move pruning
+  - Futility pruning
+  - Delta pruning
+  - Aspiration Windows
+  - Check extension
+  
+- Evaluation features
+  - Tapered eval 
+  - Material
+  - Mobility
+  - Pawn/King/Queen PSTs
+  - King safety
+  - Passed pawns
+  - Isolated pawns
+  - Doubled pawns
+  - Bishop pair
+  - Knight outposts
+  - Endgame specific evaluations (ex: KBN vs K)
 
 ## Building
 

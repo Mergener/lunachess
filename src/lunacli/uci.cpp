@@ -813,7 +813,7 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["takeback"] = Command(cmdTakeback, 0, false);
     cmds["eval"] = Command(cmdEval, 0, false);
-    cmds["tune"] = Command(cmdTune, 0, false);
+//    cmds["tune"] = Command(cmdTune, 0, false);
     cmds["saveweights"] = Command(cmdSaveweights, 1);
     cmds["loadweights"] = Command(cmdLoadweights, 1);
 

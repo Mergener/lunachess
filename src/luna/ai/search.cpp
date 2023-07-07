@@ -199,9 +199,9 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
 
         int score = -negamax(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
-            depth -= NULL_SEARCH_DEPTH_RED;
-//            m_Eval->undoNullMove();
-//            return beta; // Prune
+            //depth -= NULL_SEARCH_DEPTH_RED;
+            m_Eval->undoNullMove();
+            return beta; // Prune
         }
 
         m_Eval->undoNullMove();
@@ -228,7 +228,8 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
     for (int i = 0; i < searchMoves->size(); ++i) {
         Move move = (*searchMoves)[i];
 
-        int d = depth;
+        int reductions = 0;
+        int extensions = 0;
 
         // #----------------------------------------
         // # FUTILITY PRUNING
@@ -236,11 +237,11 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
         constexpr int FUTILITY_MARGIN = 2500;
         if (!isCheck && !isRoot && move.is<MTM_QUIET>()) {
-            if (d == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
+            if (depth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
                 // Prune
                 continue;
             }
-            if (d == 2 && (staticEval + FUTILITY_MARGIN * 2) < alpha) {
+            if (depth == 2 && (staticEval + FUTILITY_MARGIN * 2) < alpha) {
                 // Prune
                 continue;
             }
@@ -248,30 +249,47 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         // #----------------------------------------
         m_Eval->makeMove(move);
 
+        bool isClosePasserMove = false;
+//        Piece movePiece = move.getSourcePiece();
+//        if (movePiece.getType() == PT_PAWN &&
+//            stepsFromPromotion(move.getDest(), movePiece.getColor()) <= 2) {
+//            Bitboard passedPawns = staticanalysis::getPassedPawns(pos, movePiece.getColor());
+//            if (passedPawns.contains(move.getDest())) {
+//                // Extend passed pawn pushes that are close to promotion
+//                extensions++;
+//                isClosePasserMove = true;
+//            }
+//        }
+
+        int finalDepth;
         int score;
         if (searchPv) {
             // Perform PVS. First move of the list is always PVS.
-            score = -negamax(d, ply + 1, -beta, -alpha);
+            finalDepth = depth + extensions;
+            score = -negamax(finalDepth, ply + 1, -beta, -alpha);
         }
         else {
             // #----------------------------------------
             // # LATE MOVE REDUCTIONS
             // #----------------------------------------
             constexpr int LMR_START_IDX = 2;
-            if (d >= 2 &&
+            if (depth >= 2 &&
                 !isCheck &&
                 i >= LMR_START_IDX &&
-                move.is<MTM_QUIET>()) {
-                d -= 2;
+                move.is<MTM_QUIET>() &&
+                !isClosePasserMove) {
+                reductions += 2;
             }
             // #----------------------------------------
 
             // Perform a ZWS. Searches after the first move are performed
             // with a null window. If the search fails high, do a re-search
             // with the full window.
-            score = -negamax(d, ply + 1, -alpha - 1, -alpha);
+            finalDepth = depth + extensions - reductions;
+            score = -negamax(finalDepth, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
-                score = -negamax(depth, ply + 1, -beta, -alpha);
+                finalDepth = depth + extensions;
+                score = -negamax(finalDepth, ply + 1, -beta, -alpha);
             }
         }
 
@@ -284,7 +302,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
             bestMoveIdx = i;
 
             if (move.is<MTM_QUIET>()) {
-                m_MvFactory.storeHistory(move, d);
+                m_MvFactory.storeHistory(move, finalDepth);
                 m_MvFactory.storeKillerMove(move, ply);
             }
             break;
