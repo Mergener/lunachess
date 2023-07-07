@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "../movegen.h"
 #include "../pst.h"
 #include "../utils.h"
 
@@ -209,40 +208,48 @@ int AIMoveFactory::generateMoves(MoveList &ml, const Position &pos, int currPly,
         ml.add(m);
     }
 
-    // Generate en passant captures
+    // Generate en passant captures here, since we can always consider them
+    // 'neutral' captures (pawn for pawn)
     movegen::generate<BIT(MT_EN_PASSANT_CAPTURE), BIT(PT_PAWN)>(pos, ml);
 
     // Generate quiet moves and sort them
-    auto quietBegin = ml.end();
-    movegen::generate<MTM_QUIET>(pos, ml);
-    utils::insertionSort(quietBegin, ml.end(), [this, pos, currPly](Move a, Move b) {
-        // Killer move heuristic
-        bool aIsKiller = isKillerMove(a, currPly);
-        bool bIsKiller = isKillerMove(b, currPly);
-        if (aIsKiller && !bIsKiller) {
-            return true;
+    int quietBegin = ml.size();
+    int nQuiet = movegen::generate<MTM_QUIET>(pos, ml);
+
+    // Place killer moves at the start of the quiet moves list and don't include them
+    // in the sorting process
+    if (nQuiet > 0) {
+        int k1Idx = ml.indexOf(m_Killers[currPly][0]);
+        if (k1Idx != -1 && k1Idx > quietBegin) {
+            std::swap(ml[k1Idx], ml[quietBegin]);
+            quietBegin++;
         }
-        if (!aIsKiller && bIsKiller) {
-            return false;
+        int k2Idx = ml.indexOf(m_Killers[currPly][1]);
+        if (k2Idx != -1 && k2Idx > quietBegin) {
+            std::swap(ml[k2Idx], ml[quietBegin]);
+            quietBegin++;
         }
 
-        // History heuristic
-        int aHist = getMoveHistory(a);
-        int bHist = getMoveHistory(b);
-        if (aHist > bHist) {
-            return true;
-        }
-        if (aHist < bHist) {
-            return false;
-        }
+        utils::insertionSort(ml.begin() + quietBegin, ml.end(), [this, pos](Move a, Move b) {
+            // History heuristic
+            int aHist = getMoveHistory(a);
+            int bHist = getMoveHistory(b);
+            if (aHist > bHist) {
+                return true;
+            }
+            if (aHist < bHist) {
+                return false;
+            }
 
-        return scoreQuietMove(pos, a) > scoreQuietMove(pos, b);
-    });
+            return scoreQuietMove(pos, a) > scoreQuietMove(pos, b);
+        });
+    }
 
-    // Transfer bad captures to the main list. Note that they are
-    // already sorted by mvv-lva
+    // Bad captures come before uninteresting quiet moves
+    int badCapturesIdx = quietBegin;
     for (auto captIt = badCapturesBegin; captIt != simpleCaptures.end(); ++captIt) {
-        ml.add(*captIt);
+        ml.insert(*captIt, badCapturesIdx);
+        badCapturesIdx++;
     }
 
     // Prepend pv move if exists

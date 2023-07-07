@@ -31,6 +31,11 @@ public:
         m_Size++;
     }
 
+    inline void insert(const TVal& val, Iterator it) {
+        int index = it - begin();
+        insert(val, index);
+    }
+
     inline void add(const TVal& val) {
         LUNA_ASSERT(m_Size < capacity(), "Cannot add beyond capacity.");
 

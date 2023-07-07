@@ -67,7 +67,7 @@ std::string randomUUID();
 
 template <typename TIter, typename TCompar>
 void insertionSort(TIter begin, TIter end, TCompar comp) {
-    if (begin == end) {
+    if (begin >= end) {
         return;
     }
 

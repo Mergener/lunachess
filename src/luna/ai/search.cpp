@@ -103,7 +103,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
     interruptSearchIfNecessary();
 
     // Setup some important variables
-    int staticEval; // Used for some pruning/reduction techniques
+    int staticEval = 0; // Used for some pruning/reduction techniques
     const int originalDepth = depth;
     const int originalAlpha = alpha;
 
@@ -162,10 +162,6 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
             }
         }
     }
-    else {
-        // No TT entry found, we need to compute the static eval here.
-        staticEval = m_Eval->evaluate();
-    }
     // #----------------------------------------
 
     if (depth <= 0) {
@@ -177,8 +173,12 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
     if (!isCheck) {
         // Only decrease depth if we're not currently in check
         depth--;
+
+        if (!foundInTT) {
+            // No TT entry found and we're not in check, we need to compute the static eval here.
+            staticEval = m_Eval->evaluate();
+        }
     }
-    // #----------------------------------------
 
     int drawScore = m_Eval->getDrawScore();
 
@@ -199,8 +199,9 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
 
         int score = -negamax(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
         if (score >= beta) {
-            m_Eval->undoNullMove();
-            return beta; // Prune
+            depth -= NULL_SEARCH_DEPTH_RED;
+//            m_Eval->undoNullMove();
+//            return beta; // Prune
         }
 
         m_Eval->undoNullMove();
