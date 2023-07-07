@@ -17,7 +17,7 @@ Reference:
 
 ## Usage
 
-Open sprt-config.json and adjust the base settings, especially path to engines.
+Open `sprt-config.json` and adjust the base settings, especially path to engines.
 After doing initial adjustments, you can customize more settings as you wish.
 
 When your settings are all properly configured, imply execute `sprt.py` with your Python interpreter of choice.
