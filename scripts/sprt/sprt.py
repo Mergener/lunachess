@@ -4,25 +4,28 @@ import time
 import json
 from time import gmtime, strftime
 
+def coalesce(*arg): return next((a for a in arg if a is not None), None)
+
 # Load settings
+
 with open('sprt-config.json', 'r') as f:
     settings = json.load(f)
 
-cutechess_path  = settings.get('cutechessPath') or 'cutechess-cli'
-tc              = settings.get('timeControl') or '8+0.08'
-interval        = settings.get('ratingDisplayInterval') or 10
-threads         = settings.get('concurrency') or 1
+cutechess_path  = coalesce(settings.get('cutechessPath'), 'cutechess-cli')
+tc              = coalesce(settings.get('timeControl'), '8+0.08')
+interval        = coalesce(settings.get('ratingDisplayInterval'), 10)
+threads         = coalesce(settings.get('concurrency'), 1)
+filter          = coalesce(settings.get('filter'), False)
+debug           = coalesce(settings.get('debug'), False)
+regression      = coalesce(settings.get('regression'), False)
+engines         = coalesce(settings.get('engines'), [])
+game_out_folder = coalesce(settings.get('gameOutputFolder'),)
+sprt_alpha      = coalesce(settings.get('sprtAlpha'), 0.05)
+sprt_beta       = coalesce(settings.get('sprtBeta'), 0.05)
+elo0            = coalesce(settings.get('elo0'), 0)
+elo1            = coalesce(settings.get('elo1'), 10)
 games           = settings.get('games')
-filter          = settings.get('filter') or True
-debug           = settings.get('debug') or False
-regression      = settings.get('regression') or False
-engines         = settings.get('engines') or []
 openings_path   = settings.get('openings')
-game_out_folder = settings.get('gameOutputFolder')
-sprt_alpha      = settings.get('sprtAlpha') or 0.05
-sprt_beta       = settings.get('sprtBeta') or 0.05
-elo0            = settings.get('elo0') or 0
-elo1            = settings.get('elo1') or 10
 
 if games != None and regression:
     print('SPRT Regression test requested -- specified number of games will be ignored.')
@@ -39,6 +42,7 @@ if openings_path:
     openings_path = os.path.abspath(openings_path)
 
 # Prepare command
+
 command = cutechess_path
 
 if len(engines) < 2:
@@ -91,6 +95,8 @@ command += f' -each tc={tc}'
 command += f' option.Hash=8'
 
 # Finally, execute the command
+
+print("Running command", command)
 
 t0 = None
 games_finished = 0
