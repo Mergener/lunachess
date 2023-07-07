@@ -209,10 +209,10 @@ struct HCEWeightTable {
     HCEWeight kingPawnDistanceScore = { 0, -70 };
 
     std::array<HCEWeight, 4> pawnShieldScore = {
-        HCEWeight(-120, 0),
+        HCEWeight(-140, 0),
         HCEWeight(0, 0),
         HCEWeight(150, 0),
-        HCEWeight(220, 0),
+        HCEWeight(260, 0),
     };
 
     std::array<HCEWeight, 8> knightTropismScore = {

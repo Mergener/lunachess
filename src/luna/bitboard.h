@@ -482,9 +482,14 @@ inline Bitboard getFileContestantsBitboard(Square s, Color c) {
     return g_FileContestantsBBs[s][c];
 }
 
-inline Bitboard getPawnShieldBitboard(Square s, Color c) {
-    extern Bitboard g_PawnShields[64][CL_COUNT];
-    return g_PawnShields[s][c];
+inline Bitboard getDiagonalPawnShieldBitboard(Square s, Color c) {
+    extern Bitboard g_DiagPawnShields[64][CL_COUNT];
+    return g_DiagPawnShields[s][c];
+}
+
+inline Bitboard getVerticalPawnShieldBitboard(Square s, Color c) {
+    extern Bitboard g_VertPawnShields[64][CL_COUNT];
+    return g_VertPawnShields[s][c];
 }
 
 inline Bitboard getPasserBlockerBitboard(Square s, Color c) {

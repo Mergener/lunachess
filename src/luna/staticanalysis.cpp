@@ -53,6 +53,11 @@ static Square getLeastValueAttacker(const Position& pos, Bitboard atks, Bitboard
 }
 
 bool hasGoodSEE(const Position& pos, Move move, int threshold) {
+    if (move.getDestPiece().getType() != PT_NONE &&
+        getPiecePointValue(move.getDestPiece().getType()) > getPiecePointValue(move.getSourcePiece().getType())) {
+        return true;
+    }
+
     Bitboard occ = pos.getCompositeBitboard();
     Square targetSqr = move.getDest();
     Bitboard atks = getAllAttackersSEE(pos, targetSqr);

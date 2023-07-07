@@ -10,7 +10,7 @@ PieceSquareTable g_DEFAULT_PAWN_PST_MG = {
     300,   300,  300,  500,  500,  300,  300,   300,
     0,    0,    0,  375,  375,    0,    0,    0,
     0,   0,  100,  375,  375,  20,   0,   0,
-    0,   0,  80,  150,  150,  0,   0,   0,
+    0,   0,  80,  250,  250,  0,   0,   0,
     0,    0,    -50,   -100,    -100,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,
 };
@@ -51,10 +51,10 @@ PieceSquareTable g_DEFAULT_KING_PST_EG = {
 PieceSquareTable g_DEFAULT_QUEEN_PST_MG = {
     0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    0, -450, -450, -450, -450, -450, -450, 0,
-    0, -450, -450, -450, -450, -450, -450, 0,
-    0, -450, -450, -450, -450, -450, -450, 0,
-    0, -450, -450, -450, -450, -450, -450, 0,
+    0, -100, -100, -100, -100, -100, -100, 0,
+    0, -100, -300, -300, -300, -300, -100, 0,
+    0, -100, -300, -300, -300, -300, -100, 0,
+    0, -100, -100, -250, -250, 0, -100, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
 };
@@ -366,12 +366,18 @@ int HandCraftedEvaluator::getKingPawnDistanceScore(int gpf, Color c) const {
 int HandCraftedEvaluator::getPawnShieldScore(int gpf, Color c) const {
     const auto& pos = getPosition();
 
-    Bitboard ourKingSquare = pos.getKingSquare(c);
+    Square ourKingSquare = pos.getKingSquare(c);
     Bitboard ourPawns = pos.getBitboard(Piece(c, PT_PAWN));
-    Bitboard pawnShieldBB = bbs::getPawnShieldBitboard(ourKingSquare, c);
-    Bitboard ourPawnShield = pawnShieldBB & ourPawns;
 
-    int scoreIdx = std::min(bits::popcount(ourPawnShield), m_Weights.pawnShieldScore.size() - 1);
+    Bitboard vertPawnShieldBB = bbs::getVerticalPawnShieldBitboard(ourKingSquare, c);
+    Bitboard diagPawnShieldBB = bbs::getDiagonalPawnShieldBitboard(ourKingSquare, c);
+
+    Bitboard ourVertPawnShield = vertPawnShieldBB & ourPawns;
+    Bitboard ourDiagPawnShield = diagPawnShieldBB & ourPawns;
+
+    int nShieldPawns = std::min(1, ourVertPawnShield.count()) + std::min(2, ourDiagPawnShield.count());
+
+    int scoreIdx = std::min(size_t(nShieldPawns), m_Weights.pawnShieldScore.size() - 1);
     return m_Weights.pawnShieldScore[scoreIdx].get(gpf);
 }
 

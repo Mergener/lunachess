@@ -221,7 +221,6 @@ static void generateSliderBitboards() {
 }
 
 Bitboard g_FileContestantsBBs[64][CL_COUNT];
-Bitboard g_PawnShields[64][CL_COUNT];
 Bitboard g_PasserBlockers[64][2];
 Bitboard g_NearKingSquares[64];
 
@@ -252,19 +251,26 @@ static void generateFileContestantsBitboard() {
     }
 }
 
+
+Bitboard g_VertPawnShields[64][CL_COUNT];
+Bitboard g_DiagPawnShields[64][CL_COUNT];
+
 static void initializePawnShields() {
     for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
         for (Square s = 0; s < 64; s++) {
-            Bitboard bb = 0;
             Bitboard squareBB = BIT(s);
 
-            bb = squareBB.shifted(getPawnLeftCaptureDir(c))
-                 | squareBB.shifted(getPawnStepDir(c))
+            Bitboard vert = 0;
+            Bitboard diag = 0;
+
+            vert =  squareBB.shifted(getPawnStepDir(c)) |
+                    squareBB.shifted(getPawnStepDir(c)).shifted(getPawnStepDir(c));
+
+            diag = squareBB.shifted(getPawnLeftCaptureDir(c))
                  | squareBB.shifted(getPawnRightCaptureDir(c));
 
-            bb |= bb.shifted(getPawnStepDir(c));
-
-            g_PawnShields[s][c] = bb;
+            g_VertPawnShields[s][c] = vert;
+            g_DiagPawnShields[s][c] = diag;
         }
     }
 }
