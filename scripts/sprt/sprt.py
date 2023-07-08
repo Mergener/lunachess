@@ -17,24 +17,25 @@ interval        = coalesce(settings.get('ratingDisplayInterval'), 10)
 threads         = coalesce(settings.get('concurrency'), 1)
 filter          = coalesce(settings.get('filter'), False)
 debug           = coalesce(settings.get('debug'), False)
-regression      = coalesce(settings.get('regression'), False)
 engines         = coalesce(settings.get('engines'), [])
 game_out_folder = coalesce(settings.get('gameOutputFolder'),)
 sprt_alpha      = coalesce(settings.get('sprtAlpha'), 0.05)
 sprt_beta       = coalesce(settings.get('sprtBeta'), 0.05)
 elo0            = coalesce(settings.get('elo0'), 0)
 elo1            = coalesce(settings.get('elo1'), 10)
-games           = settings.get('games')
+improvement     = coalesce(settings.get('improvement'), True)
+regression      = coalesce(settings.get('regression'), False)
+games           = coalesce(settings.get('games'), 10000)
 openings_path   = settings.get('openings')
 
-if games != None and regression:
-    print('SPRT Regression test requested -- specified number of games will be ignored.')
+if improvement and regression:
+    print('Cannot test for improvement and regression simultaneously. Choose only one or none.')
+    exit(1)
 
-improvement = not regression and games == None
 if improvement:
-    print('Testing mode is set to SPRT - improvement.')
+    print(f'Testing mode is set to SPRT - improvement. (elo0: {elo0}, elo1: {elo1}, alpha: {sprt_alpha}, beta: {sprt_beta})')
 elif regression:
-    print('Testing mode is set to SPRT - regression.')
+    print(f'Testing mode is set to SPRT - regression. (elo0: {elo0}, elo1: {elo1}, alpha: {sprt_alpha}, beta: {sprt_beta})')
 else:
     print(f'Testing mode is set to number of games ({games})')
 
@@ -73,8 +74,7 @@ if openings_path:
 
 command += f' -concurrency {threads}'
 command += f' -ratinginterval {interval}'
-if games:
-    command += f' -games {games}'
+command += f' -games {games}'
 
 if game_out_folder:
     if not os.path.exists(game_out_folder):
@@ -83,13 +83,13 @@ if game_out_folder:
     name = strftime('%Y-%m-%d_%H-%M-%S', gmtime())
     command += f' -pgnout {os.path.join(game_out_folder, f"{name}.pgn")}'
 
-command += ' -repeat'
-if debug:
-    command += ' -debug'
-
 is_sprt = improvement or regression
 if is_sprt:
     command += f' -sprt elo0={elo0} elo1={elo1} alpha={sprt_alpha} beta={sprt_beta}'
+
+command += ' -repeat'
+if debug:
+    command += ' -debug'
 
 command += f' -each tc={tc}'
 command += f' option.Hash=8'
