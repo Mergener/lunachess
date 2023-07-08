@@ -224,85 +224,87 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
 
     // Finally, do the search
     int bestMoveIdx = 0;
-    bool searchPv = true;
+    bool pvSearch = true;
+
     for (int i = 0; i < searchMoves->size(); ++i) {
         Move move = (*searchMoves)[i];
+        m_Eval->makeMove(move);
 
-        int reductions = 0;
-        int extensions = 0;
+        // The highest depth we're going to search during this iteration.
+        // Used in PV nodes or researches after fail highs.
+        int fullIterationDepth = depth;
 
         // #----------------------------------------
         // # FUTILITY PRUNING
         // #----------------------------------------
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
         constexpr int FUTILITY_MARGIN = 2500;
-        if (!isCheck && !isRoot && move.is<MTM_QUIET>()) {
-            if (depth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
+        if (!pos.isCheck() && !isRoot && move.is<MTM_QUIET>()) {
+            if (fullIterationDepth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
                 // Prune
+                m_Eval->undoMove();
                 continue;
             }
-            if (depth == 2 && (staticEval + FUTILITY_MARGIN * 2) < alpha) {
+            if (fullIterationDepth == 2 && (staticEval + FUTILITY_MARGIN * 2) < alpha) {
                 // Prune
+                m_Eval->undoMove();
                 continue;
             }
         }
         // #----------------------------------------
-        m_Eval->makeMove(move);
 
-        bool isClosePasserMove = false;
 //        Piece movePiece = move.getSourcePiece();
 //        if (movePiece.getType() == PT_PAWN &&
 //            stepsFromPromotion(move.getDest(), movePiece.getColor()) <= 2) {
 //            Bitboard passedPawns = staticanalysis::getPassedPawns(pos, movePiece.getColor());
 //            if (passedPawns.contains(move.getDest())) {
 //                // Extend passed pawn pushes that are close to promotion
-//                extensions++;
-//                isClosePasserMove = true;
+//                fullIterationDepth++;
 //            }
 //        }
 
-        int finalDepth;
+        int iterationDepth = fullIterationDepth;
+
+        // #----------------------------------------
+        // # LATE MOVE REDUCTIONS
+        // #----------------------------------------
+        if (!pvSearch) {
+            if (depth >= 2 &&
+                !pos.isCheck() &&
+                i >= 2 &&
+                move.is<MTM_QUIET>()) {
+                iterationDepth -= 2;
+            }
+        }
+        // #----------------------------------------
+
         int score;
-        if (searchPv) {
+        if (pvSearch) {
             // Perform PVS. First move of the list is always PVS.
-            finalDepth = depth + extensions;
-            score = -negamax(finalDepth, ply + 1, -beta, -alpha);
+            score = -negamax(iterationDepth, ply + 1, -beta, -alpha);
         }
         else {
-            // #----------------------------------------
-            // # LATE MOVE REDUCTIONS
-            // #----------------------------------------
-            constexpr int LMR_START_IDX = 2;
-            if (depth >= 2 &&
-                !isCheck &&
-                i >= LMR_START_IDX &&
-                move.is<MTM_QUIET>() &&
-                !isClosePasserMove) {
-                reductions += 2;
-            }
-            // #----------------------------------------
 
             // Perform a ZWS. Searches after the first move are performed
             // with a null window. If the search fails high, do a re-search
             // with the full window.
-            finalDepth = depth + extensions - reductions;
-            score = -negamax(finalDepth, ply + 1, -alpha - 1, -alpha);
+            score = -negamax(iterationDepth, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
-                finalDepth = depth + extensions;
-                score = -negamax(finalDepth, ply + 1, -beta, -alpha);
+                iterationDepth = fullIterationDepth;
+                score = -negamax(iterationDepth, ply + 1, -beta, -alpha);
             }
         }
 
         m_Eval->undoMove();
 
         if (score >= beta) {
-            // Beta cutoff
+            // Beta cutoff, fail high
             alpha = beta;
 
             bestMoveIdx = i;
 
             if (move.is<MTM_QUIET>()) {
-                m_MvFactory.storeHistory(move, finalDepth);
+                m_MvFactory.storeHistory(move, iterationDepth);
                 m_MvFactory.storeKillerMove(move, ply);
             }
             break;
@@ -311,7 +313,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
             alpha = score;
             bestMoveIdx = i;
         }
-        searchPv = false;
+        pvSearch = false;
     }
 
     // Store search data in transposition table
