@@ -2,7 +2,7 @@
 
 ## About
 
-Test framework for executing SPRT (Sequential probability ratio test).
+Test framework for executing SPRT (Sequential probability ratio test) with cutechess-cli.
 Changes to the engine that can affect its strength can be tested here against other versions to see whether the changes contributed for gains in ELO.
 
 Reference:
