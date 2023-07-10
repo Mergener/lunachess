@@ -105,7 +105,7 @@ struct HCEWeightTable {
         HCEWeight(3200, 3800),  // PT_KNIGHT
         HCEWeight(3600, 4200),  // PT_BISHOP
         HCEWeight(5100, 6100),  // PT_ROOK
-        HCEWeight(9100, 12000), // PT_QUEEN
+        HCEWeight(10000, 12000), // PT_QUEEN
         HCEWeight(0, 0),        // PT_KING
     };
 
@@ -189,10 +189,10 @@ struct HCEWeightTable {
      * so the passer bonus for the pawn is passedPawnScore[3].
      */
     std::array<HCEWeight, 5> passedPawnScore = {
-        HCEWeight(100, 500),
-        HCEWeight(100, 500),
-        HCEWeight(100, 500),
-        HCEWeight(100, 500),
+        HCEWeight(100, 1200),
+        HCEWeight(100, 900),
+        HCEWeight(100, 750),
+        HCEWeight(100, 600),
         HCEWeight(100, 500),
     };
 
