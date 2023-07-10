@@ -10,6 +10,8 @@ namespace lunachess::ai {
 struct TuningSettings {
     /** The mask of parameters to tune */
     HCEParameterMask parametersMask = HCEPM_ALL;
+
+    int nThreads = 1;
 };
 
 struct TuningSamplePosition {
@@ -28,11 +30,15 @@ struct TuningSamplePosition {
  * of TuningSamplePositions extracted using the stream.
  *
  * The source CSV is expected to have the following format:
- * <Position Fen>,<Expected Evaluation in Millipawns, White POV>
+ * <Position Fen>,<Expected clamped evaluation>
+ *
+ * By expected clamped evaluation, we expect a floating point value between 0 and 1, where
+ * values closer to zero mean win/better for black, values closer to 1 mean win/better for white
+ * and 0.5 balanced and/or drawish.
  *
  * Example:
- * rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1,200
- * rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1,9200
+ * rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1,0.51
+ * rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1,0.96
  */
 std::vector<TuningSamplePosition> fetchSamplePositionsFromCSV(std::istream& stream);
 

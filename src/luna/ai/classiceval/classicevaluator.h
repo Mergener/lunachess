@@ -29,10 +29,7 @@ enum HCEParameter {
     HCEP_BLOCKING_PAWNS,
     HCEP_ISOLATED_PAWNS,
     HCEP_ENDGAME_THEORY,
-    HCEP_KING_EXPOSURE,
     HCEP_KING_PAWN_DISTANCE,
-    HCEP_PAWN_SHIELD,
-    HCEP_TROPISM,
     HCEP_BISHOP_PAIR,
     HCEP_KING_ATTACK,
     HCEP_DIMINISHING_MATERIAL_GAINS,
@@ -199,69 +196,13 @@ struct HCEWeightTable {
         HCEWeight(100, 500),
     };
 
-    HCEWeight queenExposureScore = { -360, -180 };
-    HCEWeight bishopExposureScore = { -220, 0 };
-    HCEWeight rookExposureScore = { -200, 0 };
-    HCEWeight knightExposureScore = { -60, 0 };
-
     HCEWeight kingPawnDistanceScore = { 0, -70 };
-
-    std::array<HCEWeight, 4> pawnShieldScore = {
-        HCEWeight(-140, 0),
-        HCEWeight(0, 0),
-        HCEWeight(150, 0),
-        HCEWeight(260, 0),
-    };
-
-    std::array<HCEWeight, 8> knightTropismScore = {
-        HCEWeight(175, 90),
-        HCEWeight(150, 75),
-        HCEWeight(125, 60),
-        HCEWeight(100, 45),
-        HCEWeight(75, 30),
-        HCEWeight(50, 15),
-        HCEWeight(25, 0),
-        HCEWeight(0, 0),
-    };
-
-    std::array<HCEWeight, 8> bishopTropismScore = {
-        HCEWeight(175, 90),
-        HCEWeight(150, 75),
-        HCEWeight(125, 60),
-        HCEWeight(100, 45),
-        HCEWeight(75, 30),
-        HCEWeight(50, 15),
-        HCEWeight(25, 0),
-        HCEWeight(0, 0),
-    };
-
-    std::array<HCEWeight, 8> rookTropismScore = {
-        HCEWeight(175, 90),
-        HCEWeight(150, 75),
-        HCEWeight(125, 60),
-        HCEWeight(100, 45),
-        HCEWeight(75, 30),
-        HCEWeight(50, 15),
-        HCEWeight(25, 0),
-        HCEWeight(0, 0),
-    };
-
-    std::array<HCEWeight, 8> queenTropismScore = {
-        HCEWeight(275, 180),
-        HCEWeight(275, 180),
-        HCEWeight(275, 180),
-        HCEWeight(240, 150),
-        HCEWeight(220, 120),
-        HCEWeight(150, 80),
-        HCEWeight(60, 20),
-        HCEWeight(0, 0),
-    };
 
     HCEWeight bishopPairScore = { 150, 260 };
 
-    HCEWeight rookOnOpenFile = { 300, 500 };
+    HCEWeight rookOnOpenFile = { 200, 400 };
 
-    HCEWeight rookBehindPasser = { 100, 400 };
+    HCEWeight rookBehindPasser = { 100, 250 };
 
     /**
      * Attack powers:
@@ -340,11 +281,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore
                                    rookVerticalMobilityScore, pawnPstsMg, pawnPstEg,
                                    kingPstMg, kingPstEg, queenPstMg, queenPstEg,
                                    knightOutpostScore, blockingPawnsScore,
-                                   backwardPawnScore, passedPawnScore, queenExposureScore,
-                                   bishopExposureScore, rookExposureScore, knightExposureScore,
-                                   kingPawnDistanceScore, pawnShieldScore, knightTropismScore,
-                                   bishopTropismScore, rookTropismScore, queenTropismScore,
-                                   bishopPairScore, kingAttackScore, isolatedPawnScore);
+                                   backwardPawnScore, passedPawnScore,
+                                   kingPawnDistanceScore, bishopPairScore, kingAttackScore, isolatedPawnScore);
 /**
  * A hand-crafted evaluator that uses human domain knowledge to evaluate positions.
  *
@@ -388,10 +326,7 @@ private:
     int getIsolatedPawnsScore(int gpf, Color c) const;
     int getPassedPawnsScore(int gpf, Color c, Bitboard passers) const;
     int getBackwardPawnsScore(int gpf, Color c) const;
-    int getKingExposureScore(int gpf, Color c) const;
     int getKingPawnDistanceScore(int gpf, Color c) const;
-    int getPawnShieldScore(int gpf, Color c) const;
-    int getTropismScore(int gpf, Color c) const;
     int getBishopPairScore(int gpf, Color c) const;
     int getKingAttackScore(int gpf, Color us) const;
     int getRooksScore(int gpf, Color c, Bitboard passers) const;

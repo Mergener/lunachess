@@ -95,23 +95,8 @@ static std::vector<TuningParameter> selectParameters(HCEWeightTable& tbl, HCEPar
         }
     }
 
-    if (mask & BIT(HCEP_KING_EXPOSURE)) {
-        addParameter(ret, "KnightExposure", tbl.knightExposureScore);
-        addParameter(ret, "BishopExposure", tbl.bishopExposureScore);
-        addParameter(ret, "RookExposure", tbl.rookExposureScore);
-        addParameter(ret, "QueenExposure", tbl.queenExposureScore);
-    }
-
     if (mask & BIT(HCEP_KING_PAWN_DISTANCE)) {
         addParameter(ret, "KingPawnDistance", tbl.kingPawnDistanceScore);
-    }
-
-    if (mask & BIT(HCEP_PAWN_SHIELD)) {
-        int i = 0;
-        for (auto& pawnShieldScore: tbl.pawnShieldScore) {
-            addParameter(ret, "PawnShield" + utils::toString(i), pawnShieldScore);
-            i++;
-        }
     }
 
     return ret;

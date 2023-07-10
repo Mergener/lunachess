@@ -176,9 +176,6 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     if (m_ParamMask & BIT(HCEP_KING_ATTACK)) {
         total += getKingAttackScore(gpf, us) - getKingAttackScore(gpf, them);
     }
-    if (m_ParamMask & BIT(HCEP_PAWN_SHIELD)) {
-        total += getPawnShieldScore(gpf, us) - getPawnShieldScore(gpf, them);
-    }
     if (m_ParamMask & BIT(HCEP_ISOLATED_PAWNS)) {
         total += getIsolatedPawnsScore(gpf, us) - getIsolatedPawnsScore(gpf, them);
     }
@@ -197,14 +194,8 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     if (m_ParamMask & BIT(HCEP_BISHOP_PAIR)) {
         total += getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
     }
-    if (m_ParamMask & BIT(HCEP_KING_EXPOSURE)) {
-        total += getKingExposureScore(gpf, us) - getKingExposureScore(gpf, them);
-    }
     if (m_ParamMask & BIT(HCEP_KING_PAWN_DISTANCE)) {
         total += getKingPawnDistanceScore(gpf, us) - getKingPawnDistanceScore(gpf, them);
-    }
-    if (m_ParamMask & BIT(HCEP_TROPISM)) {
-        total += getTropismScore(gpf, us) - getTropismScore(gpf, them);
     }
     if (m_ParamMask & BIT(HCEP_ROOKS)) {
         total += getRooksScore(gpf, us, ourPassers) - getRooksScore(gpf, them, theirPassers);
@@ -370,46 +361,6 @@ int HandCraftedEvaluator::getBackwardPawnsScore(int gpf, Color c) const {
     return backwardPawns.count() * m_Weights.backwardPawnScore.get(gpf);
 }
 
-int HandCraftedEvaluator::getKingExposureScore(int gpf, Color us) const {
-    const auto& pos = getPosition();
-    int total = 0;
-
-    Color them = getOppositeColor(us);
-    Bitboard occ = pos.getCompositeBitboard();
-    Bitboard ourPawnAttacks = pos.getAttacks(us, PT_PAWN);
-    Bitboard ourKingSquare = pos.getKingSquare(us);
-
-    Bitboard theirKnightAttacks = (pos.getAttacks(them, PT_KNIGHT) & ~ourPawnAttacks);
-    Bitboard theirBishopAttacks = (pos.getAttacks(them, PT_BISHOP) & ~ourPawnAttacks);
-    Bitboard theirRookAttacks = (pos.getAttacks(them, PT_ROOK) & ~ourPawnAttacks);
-    Bitboard theirQueenAttacks = (pos.getAttacks(them, PT_QUEEN) & ~ourPawnAttacks);
-
-    Bitboard theirKnightDominion = pos.getBitboard(Piece(them, PT_KNIGHT)) | theirKnightAttacks;
-    Bitboard theirBishopDominion = pos.getBitboard(Piece(them, PT_BISHOP)) | theirBishopAttacks;
-    Bitboard theirRookDominion = pos.getBitboard(Piece(them, PT_ROOK))   | theirRookAttacks;
-    Bitboard theirQueenDominion = pos.getBitboard(Piece(them, PT_QUEEN))  | theirQueenAttacks;
-
-    Bitboard knightAtksFromKing = bbs::getKnightAttacks(ourKingSquare);
-    Bitboard bishopAtksFromKing = bbs::getBishopAttacks(ourKingSquare, occ);
-    Bitboard rookAtksFromKing = bbs::getRookAttacks(ourKingSquare, occ);
-    Bitboard queenAtksFromKing = bbs::getQueenAttacks(ourKingSquare, occ);
-
-    if ((theirKnightDominion & knightAtksFromKing) != 0) {
-        total += m_Weights.knightExposureScore.get(gpf);
-    }
-    if ((theirBishopDominion & bishopAtksFromKing) != 0) {
-        total += m_Weights.bishopExposureScore.get(gpf);
-    }
-    if ((theirRookDominion & rookAtksFromKing) != 0) {
-        total += m_Weights.rookExposureScore.get(gpf);
-    }
-    if ((theirQueenDominion & queenAtksFromKing) != 0) {
-        total += m_Weights.queenExposureScore.get(gpf);
-    }
-
-    return total;
-}
-
 int HandCraftedEvaluator::getKingPawnDistanceScore(int gpf, Color c) const {
     const auto& pos = getPosition();
     int total = 0;
@@ -421,63 +372,6 @@ int HandCraftedEvaluator::getKingPawnDistanceScore(int gpf, Color c) const {
     for (auto s: pawns) {
         auto distance = getChebyshevDistance(s, ourKingSquare);
         total += distance * individualScore;
-    }
-
-    return total;
-}
-
-int HandCraftedEvaluator::getPawnShieldScore(int gpf, Color c) const {
-    const auto& pos = getPosition();
-
-    Square ourKingSquare = pos.getKingSquare(c);
-    Bitboard ourPawns = pos.getBitboard(Piece(c, PT_PAWN));
-
-    Bitboard vertPawnShieldBB = bbs::getVerticalPawnShieldBitboard(ourKingSquare, c);
-    Bitboard diagPawnShieldBB = bbs::getDiagonalPawnShieldBitboard(ourKingSquare, c);
-
-    Bitboard ourVertPawnShield = vertPawnShieldBB & ourPawns;
-    Bitboard ourDiagPawnShield = diagPawnShieldBB & ourPawns;
-
-    int nShieldPawns = std::min(1, ourVertPawnShield.count()) + std::min(2, ourDiagPawnShield.count());
-
-    int scoreIdx = std::min(size_t(nShieldPawns), m_Weights.pawnShieldScore.size() - 1);
-    return m_Weights.pawnShieldScore[scoreIdx].get(gpf);
-}
-
-int HandCraftedEvaluator::getTropismScore(int gpf, Color us) const {
-    const auto& pos = getPosition();
-    int total = 0;
-
-    Color them = getOppositeColor(us);
-    Square theirKing = pos.getKingSquare(them);
-
-    Bitboard ourKnights = pos.getBitboard(Piece(us, PT_KNIGHT));
-    Bitboard ourBishops = pos.getBitboard(Piece(us, PT_BISHOP));
-    Bitboard ourRooks = pos.getBitboard(Piece(us, PT_ROOK));
-    Bitboard ourQueens = pos.getBitboard(Piece(us, PT_QUEEN));
-
-    for (auto s: ourKnights) {
-        int distance = getChebyshevDistance(s, theirKing);
-        int scoreIdx = std::min(distance, (int)m_Weights.knightTropismScore.size() - 1);
-        total += m_Weights.knightTropismScore[scoreIdx].get(gpf);
-    }
-
-    for (auto s: ourBishops) {
-        int distance = getChebyshevDistance(s, theirKing);
-        int scoreIdx = std::min(distance, (int)m_Weights.bishopTropismScore.size() - 1);
-        total += m_Weights.bishopTropismScore[scoreIdx].get(gpf);
-    }
-
-    for (auto s: ourRooks) {
-        int distance = getManhattanDistance(s, theirKing);
-        int scoreIdx = std::min(distance, (int)m_Weights.rookTropismScore.size() - 1);
-        total += m_Weights.rookTropismScore[scoreIdx].get(gpf);
-    }
-
-    for (auto s: ourQueens) {
-        int distance = getChebyshevDistance(s, theirKing);
-        int scoreIdx = std::min(distance, (int)m_Weights.queenTropismScore.size() - 1);
-        total += m_Weights.queenTropismScore[scoreIdx].get(gpf);
     }
 
     return total;
