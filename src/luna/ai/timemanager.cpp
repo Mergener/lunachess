@@ -47,7 +47,7 @@ void TimeManager::onNewDepth(const SearchResults& res) {
     // to finish the search in our speculated target time, it is better
     // to not go further onto the search.
 
-    constexpr int EXPECTED_BRANCH_FACTOR = 3;
+    constexpr int EXPECTED_BRANCH_FACTOR = 4;
     i64 depthTime = res.getCurrDepthTime();
     i64 totalTime = res.getSearchTime();
 
