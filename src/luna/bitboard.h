@@ -507,11 +507,19 @@ inline Bitboard getCentralSquares() {
     return centralSquares;
 }
 
-inline Bitboard getBoardHalf(Color c) {
-    constexpr Bitboard halves[] {
+inline constexpr Bitboard getBoardHalf(Color c) {
+    constexpr Bitboard HALVES[] {
     0xffffffff, 0xffffffff00000000
     };
-    return halves[c];
+    return HALVES[c];
+}
+
+inline constexpr Bitboard getBoardSide(Side s) {
+    constexpr Bitboard SIDES[] {
+        0xf0f0f0f0f0f0f0f0,
+        0xf0f0f0f0f0f0f0f
+    };
+    return SIDES[s];
 }
 
 void initialize();

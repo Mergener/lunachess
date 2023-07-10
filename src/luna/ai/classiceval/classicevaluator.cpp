@@ -4,22 +4,55 @@
 
 namespace lunachess::ai {
 
-PieceSquareTable g_DEFAULT_PAWN_PST_MG = {
+PieceSquareTable g_DEFAULT_PAWN_PST_MG_KK = {
     0,    0,    0,    0,    0,    0,    0,    0,
     300,  300,  300,  500,  500,  300,  300,  300,
-    300,   300,  300,  500,  500,  300,  300,   300,
-    0,    0,    0,  375,  375,    0,    0,    0,
-    0,   0,  100,  375,  375,  20,   0,   0,
-    0,   0,  80,  250,  250,  0,   0,   0,
-    0,    0,    -50,   -100,    -100,    0,    0,    0,
+    250,   250,  300,  500,  500,  300,  300,   300,
+    125,    125,    0,  410,  410,       0,      0,    150,
+    50,   50,  100,  375,  375, -80,    -160,    -20,
+    25,   25,  80,  250,  250, -100,    80,    90,
+    0,    0,    -50,   -100,    -100,    125,    160,    60,
+    0,    0,    0,    0,    0,    0,     0,    0,
+};
+
+PieceSquareTable g_DEFAULT_PAWN_PST_MG_KQ = {
     0,    0,    0,    0,    0,    0,    0,    0,
+    350,   350,  300,  500,  500,  300,  300,  300,
+    0,   0,  300,  500,  500,  300,  300,   300,
+    -100,   -100,    200,  410,  410, 0, 0, 0,
+    -100,   -100,  0,  375,  375,      -80, 100,    100,
+    -150,   -150,     80,  250,  250,      50,    150,    100,
+    -200,    -200,    -150,   -100,    -100, 150,    260,    250,
+    0,    0,    0,    0,    0,    0,    0,    0,
+};
+
+PieceSquareTable g_DEFAULT_PAWN_PST_MG_QQ = {
+        0,    0,    0,    0,    0,    0,    0,    0,
+        300,  300,  300,  500,  500,  300,  300,  300,
+        300,  300,  300,  500,  500,  300,  250,  250,
+        150,  0,    0,    410,  410,  0,    125,  125,
+        -20,  -160, -80,  375,  375,  100,  50,   50,
+        90,   80,   -100, 250,  250,  80,   25,   25,
+        60,   160,  125,  -100, -100, -50,  0,    0,
+        0,    0,    0,    0,    0,    0,    0,    0,
+};
+
+PieceSquareTable g_DEFAULT_PAWN_PST_MG_QK = {
+        0,    0,    0,    0,    0,    0,    0,    0,
+        300,  300,  300,  500,  500,  300,  350,  350,
+        300,  300,  300,  500,  500,  300,  0,    0,
+        0,    0,    0,    410,  410,  200,  -100, -100,
+        100, 100, -80,  375,  375,  0,    -100, -100,
+        100,   150,  50,   250,  250,  80,   -150, -150,
+        250,  260,  150,  -100, -100, -150, -200, -200,
+        0,    0,    0,    0,    0,    0,    0,    0,
 };
 
 PieceSquareTable g_DEFAULT_PAWN_PST_EG = {
     0,    0,    0,    0,    0,    0,    0,    0,
-    650,  650,  650,  650,  650,  650,  650,  650,
-    400,   400,  400,  400,  400,  400,  400,   400,
-    350,    350,    350,  350,  350,    350,    350,    350,
+    550,  550,  550,  550,  550,  550,  550,  550,
+    300,   300,  300,  300,  300,  300,  300,   300,
+    250,    250,    250,  250,  250,    250,    250,    250,
     100,   100,  100,  100,  100,  100,   100,   100,
     0,   0,  0,  0,  0,  0,   0,   0,
     0,    0,    0,    0,    0,    0,    0,    0,
@@ -120,6 +153,10 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
 
     int gpf = getGamePhaseFactor();
 
+    // Some pre-computed values
+    Bitboard ourPassers = staticanalysis::getPassedPawns(pos, us);
+    Bitboard theirPassers = staticanalysis::getPassedPawns(pos, them);
+
     if (m_ParamMask & BIT(HCEP_MATERIAL)) {
         int material = getMaterialScore(gpf, us) - getMaterialScore(gpf, them);
 
@@ -152,7 +189,7 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
         total += getBlockingPawnsScore(gpf, us) - getBlockingPawnsScore(gpf, them);
     }
     if (m_ParamMask & BIT(HCEP_PASSED_PAWNS)) {
-        total += getPassedPawnsScore(gpf, us) - getPassedPawnsScore(gpf, them);
+        total += getPassedPawnsScore(gpf, us, ourPassers) - getPassedPawnsScore(gpf, them, theirPassers);
     }
     if (m_ParamMask & BIT(HCEP_BACKWARD_PAWNS)) {
         total += getBackwardPawnsScore(gpf, us) - getBackwardPawnsScore(gpf, them);
@@ -168,6 +205,9 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     }
     if (m_ParamMask & BIT(HCEP_TROPISM)) {
         total += getTropismScore(gpf, us) - getTropismScore(gpf, them);
+    }
+    if (m_ParamMask & BIT(HCEP_ROOKS)) {
+        total += getRooksScore(gpf, us, ourPassers) - getRooksScore(gpf, them, theirPassers);
     }
 
     return total;
@@ -188,17 +228,41 @@ int HandCraftedEvaluator::getPlacementScore(int gpf, Color c) const {
     const auto& pos = getPosition();
     int total = 0;
 
-    for (auto pt: { PT_PAWN, PT_QUEEN, PT_KING }) {
-        auto bb = pos.getBitboard(Piece(c, pt));
+    // Kings
+    Bitboard kingBB = pos.getBitboard(Piece(c, PT_KING));
 
-        const auto& mgPST = m_Weights.mgPSTs[pt];
-        const auto& egPST = m_Weights.egPSTs[pt];
+    const PieceSquareTable& kingMgPST = m_Weights.kingPstMg;
+    const PieceSquareTable& kingEgPST = m_Weights.kingPstEg;
 
-        for (auto s: bb) {
-            HCEWeight weight(mgPST.valueAt(s, c), egPST.valueAt(s, c));
-            total += weight.get(gpf);
-        }
+    for (auto s: kingBB) {
+        HCEWeight weight(kingMgPST.valueAt(s, c), kingEgPST.valueAt(s, c));
+        total += weight.get(gpf);
     }
+
+    // Queens
+    Bitboard queenBB = pos.getBitboard(Piece(c, PT_KING));
+
+    const PieceSquareTable& queenMgPST = m_Weights.queenPstMg;
+    const PieceSquareTable& queenEgPST = m_Weights.queenPstEg;
+
+    for (auto s: queenBB) {
+        HCEWeight weight(queenMgPST.valueAt(s, c), queenEgPST.valueAt(s, c));
+        total += weight.get(gpf);
+    }
+
+    // Pawns
+    Bitboard pawnBB = pos.getBitboard(Piece(c, PT_PAWN));
+
+    KingsDistribution kingsDistribution = staticanalysis::getKingsDistribution(pos, c);
+    const PieceSquareTable& pawnMgPST = m_Weights.pawnPstsMg[kingsDistribution];
+    const PieceSquareTable& pawnEgPST = m_Weights.pawnPstEg;
+
+    for (auto s: pawnBB) {
+        HCEWeight weight(pawnMgPST.valueAt(s, c), pawnEgPST.valueAt(s, c));
+
+        total += weight.get(gpf);
+    }
+
 
     return total;
 }
@@ -252,7 +316,7 @@ int HandCraftedEvaluator::getMobilityScore(int gpf, Color us) const {
         total += m_Weights.rookVerticalMobilityScore[verticalScoreIdx].get(gpf);
     }
 
-    return total / 2;
+    return total * 2 / 3;
 }
 
 int HandCraftedEvaluator::getKnightOutpostScore(int gpf, Color c) const {
@@ -283,11 +347,10 @@ int HandCraftedEvaluator::getIsolatedPawnsScore(int gpf, Color c) const {
     return isolatedPawns.count() * m_Weights.isolatedPawnScore.get(gpf);
 }
 
-int HandCraftedEvaluator::getPassedPawnsScore(int gpf, Color c) const {
+int HandCraftedEvaluator::getPassedPawnsScore(int gpf, Color c, Bitboard passedPawns) const {
     const auto& pos = getPosition();
 
     int total = 0;
-    Bitboard passedPawns = staticanalysis::getPassedPawns(pos, c);
     for (Square s: passedPawns) {
         int steps = stepsFromPromotion(s, c);
         int idx = std::min(size_t(steps), m_Weights.passedPawnScore.size()) - 1;
@@ -430,6 +493,38 @@ int HandCraftedEvaluator::getBishopPairScore(int gpf, Color c) const {
     return m_Weights.bishopPairScore.get(gpf) * std::min(lsBishops.count(), dsBishops.count());
 }
 
+int HandCraftedEvaluator::getRooksScore(int gpf, Color c, Bitboard passers) const {
+    const auto& pos = getPosition();
+    int total = 0;
+
+    Bitboard occ = pos.getCompositeBitboard();
+    Bitboard ourRooks = pos.getBitboard(Piece(c, PT_ROOK));
+    if (ourRooks == 0) {
+        return 0;
+    }
+
+    int openFileScore = m_Weights.rookOnOpenFile.get(gpf);
+    int behindPasserScore = m_Weights.rookBehindPasser.get(gpf);
+
+    for (Square s: ourRooks) {
+        BoardFile file = getFile(s);
+        FileState fileState = staticanalysis::getFileState(pos, file);
+
+        if (fileState == FS_OPEN) {
+            total += openFileScore;
+        }
+
+        Bitboard fileBB = bbs::getFileBitboard(file);
+        Bitboard rookFileAtks = bbs::getRookAttacks(s, occ) & fileBB;
+
+        if ((rookFileAtks & passers) != 0) {
+            total += behindPasserScore;
+        }
+    }
+
+    return total;
+}
+
 int HandCraftedEvaluator::getKingAttackScore(int gpf, Color us) const {
     const auto& pos = getPosition();
     Color them = getOppositeColor(us);
@@ -485,7 +580,7 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color us) const {
         totalAttackPower += QUEENS_TOUCH_POWER;
     }
 
-    return m_Weights.kingAttackScore[std::min(size_t(totalAttackPower), m_Weights.kingAttackScore.size() - 1)];
+    return m_Weights.kingAttackScore[std::min(size_t(totalAttackPower), m_Weights.kingAttackScore.size() - 1)] * 2 / 3;
 }
 
 int HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) const {

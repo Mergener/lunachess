@@ -155,6 +155,23 @@ inline FileState getFileState(const Position& pos, BoardFile f) {
     return FS_SEMIOPEN;
 }
 
+inline KingsDistribution getKingsDistribution(const Position& pos, Color a = CL_WHITE) {
+    Color b = getOppositeColor(a);
+
+    Square aKingSquare = pos.getKingSquare(a);
+    Square bKingSquare = pos.getKingSquare(b);
+
+    Bitboard kingSide = bbs::getBoardSide(SIDE_KING);
+    Bitboard queenSide = bbs::getBoardSide(SIDE_QUEEN);
+
+    if (kingSide.contains(aKingSquare)) {
+        // Side A on King Side
+        return kingSide.contains(bKingSquare) ? KD_KK : KD_KQ;
+    }
+    // Side A on Queen Side
+    return queenSide.contains(bKingSquare) ? KD_QQ : KD_QK;
+}
+
 } // staticanalysis
 
 } // lunachess

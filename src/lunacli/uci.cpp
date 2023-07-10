@@ -86,10 +86,11 @@ static std::initializer_list<HCEParameterUCI> s_HCEParams = {
     { ai::HCEP_ENDGAME_THEORY, "HCE_Endgame_Theory", true },
     { ai::HCEP_KING_EXPOSURE, "HCE_King_Exposure", false },
     { ai::HCEP_KING_PAWN_DISTANCE, "HCE_King_Pawn_Distance", true },
-    { ai::HCEP_PAWN_SHIELD, "HCE_Pawn_Shield", true },
+    { ai::HCEP_PAWN_SHIELD, "HCE_Pawn_Shield", false },
     { ai::HCEP_TROPISM, "HCE_Tropism", false },
     { ai::HCEP_TROPISM, "HCE_BishopPair", true },
     { ai::HCEP_KING_ATTACK, "HCE_KingAttack", true },
+    { ai::HCEP_ROOKS, "HCE_Rooks", true },
     { ai::HCEP_DIMINISHING_MATERIAL_GAINS, "HCE_DiminishingMaterialGains", false },
 };
 

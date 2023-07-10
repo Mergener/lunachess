@@ -210,6 +210,15 @@ enum CastlingRightsMask {
 
 };
 
+enum KingsDistribution {
+
+    KD_KK, // Same side, both king side
+    KD_KQ, // Opposite side, color A on king side
+    KD_QK, // Opposite side, color A on queen side
+    KD_QQ  // Same side, both queen side
+
+};
+
 enum Squares {
 
 	SQ_A1 = 00,
