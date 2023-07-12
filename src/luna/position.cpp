@@ -5,6 +5,7 @@
 
 #include <sstream>
 
+
 namespace lunachess {
 
 void Position::refreshCastles() {
@@ -42,12 +43,12 @@ void Position::updateAttacks() {
         // Get their king's square to check for checks
         Square theirKing = getKingSquare(them);
 
-        Bitboard pawns = getBitboard(Piece(c, PT_PAWN));
+        Bitboard pawns   = getBitboard(Piece(c, PT_PAWN));
         Bitboard knights = getBitboard(Piece(c, PT_KNIGHT));
         Bitboard bishops = getBitboard(Piece(c, PT_BISHOP));
-        Bitboard rooks = getBitboard(Piece(c, PT_ROOK));
-        Bitboard queens = getBitboard(Piece(c, PT_QUEEN));
-        Bitboard kings = getBitboard(Piece(c, PT_KING));
+        Bitboard rooks   = getBitboard(Piece(c, PT_ROOK));
+        Bitboard queens  = getBitboard(Piece(c, PT_QUEEN));
+        Bitboard kings   = getBitboard(Piece(c, PT_KING));
 
         for (auto s : pawns) {
             Bitboard attacks = bbs::getPawnAttacks(s, c);
@@ -360,10 +361,6 @@ void Position::setEnPassantSquare(Square s) {
     if (m_Status.epSquare != SQ_INVALID) {
         m_Status.zobrist ^= zobrist::getEnPassantSquareKey(m_Status.epSquare);
     }
-}
-
-bool Position::legal() const {
-    return !isSquareAttacked(getKingSquare(getOppositeColor(getColorToMove())), getColorToMove());
 }
 
 bool Position::isRepetitionDraw(int maxAppearances) const {

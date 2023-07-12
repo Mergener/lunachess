@@ -358,13 +358,11 @@ void generateCastles(const Position &pos, MoveList &ml) {
         return;
     }
 
-    if constexpr (!PSEUDO_LEGAL) {
-        if (pos.getAttacks(THEM, PT_NONE) & KING_PATH) {
-            // There are opposing pieces attacking the king path
-            // Note that this already covers cases in which the king is in check,
-            // since KING_PATH includes the king's square.
-            return;
-        }
+    if (pos.getAttacks(THEM, PT_NONE) & KING_PATH) {
+        // There are opposing pieces attacking the king path
+        // Note that this already covers cases in which the king is in check,
+        // since KING_PATH includes the king's square.
+        return;
     }
 
     // Castles move can be generated, generate it.
@@ -460,27 +458,26 @@ void generateAll(const Position& pos, MoveList& ml) {
  */
 template<MoveTypeMask ALLOWED_MOVE_TYPES = MTM_ALL, PieceTypeMask ALLOWED_PIECE_TYPES = PTM_ALL, bool PSEUDO_LEGAL = false>
 int generate(const Position &pos, MoveList &ml) {
+    MoveList moves;
     int initialCount = ml.size();
     if (pos.getColorToMove() == CL_WHITE) {
         // Generate moves with white pieces
         utils::generateAll<CL_WHITE,
                            ALLOWED_MOVE_TYPES,
                            ALLOWED_PIECE_TYPES,
-                           PSEUDO_LEGAL>(pos, ml);
+                           PSEUDO_LEGAL>(pos, moves);
 
     } else {
         // Generate moves with black pieces
         utils::generateAll<CL_BLACK,
                 ALLOWED_MOVE_TYPES,
                 ALLOWED_PIECE_TYPES,
-                PSEUDO_LEGAL>(pos, ml);
+                PSEUDO_LEGAL>(pos, moves);
     }
 
-    if constexpr (!PSEUDO_LEGAL) {
-        for (int i = ml.size() - 1; i >= initialCount; --i) {
-            if (!pos.isMoveLegal(ml[i])) {
-                ml.removeAt(i);
-            }
+    for (auto move: moves) {
+        if (PSEUDO_LEGAL || pos.isMoveLegal(move)) {
+            ml.add(move);
         }
     }
 

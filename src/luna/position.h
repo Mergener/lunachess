@@ -25,6 +25,7 @@ public:
 
     inline Piece getPieceAt(Square s) const { return m_Pieces[s]; }
     inline void setPieceAt(Square s, Piece p) {
+
         setPieceAt<true, true>(s, p);
     }
 
@@ -119,7 +120,12 @@ public:
      * if the current color to move doesn't have any pieces attacking the opposing
      * king.
      */
-    bool legal() const;
+    inline bool legal() const {
+        Color us = getColorToMove();
+        Color them = getOppositeColor(us);
+        Square kingSquare = getKingSquare(them);
+        return !isSquareAttacked(kingSquare, us);
+    }
 
     inline bool isMoveLegal(Move move) const {
         if (isCheck()) {
@@ -134,50 +140,6 @@ public:
      */
     inline bool isCheck() const {
         return m_Status.nCheckers > 0;
-    }
-
-    /**
-     * Computes the sum of the point values of all remaining pieces on the board.
-     * @tparam EXCLUDE_PAWNS If true, excludes pawns from the count.
-     * @return The material count.
-     */
-    template <bool EXCLUDE_PAWNS = false, Color C = CL_COUNT>
-    int countMaterial() const {
-        PieceType initialPt;
-
-        if (EXCLUDE_PAWNS) {
-            initialPt = PT_PAWN + 1;
-        }
-        else {
-            initialPt = PT_PAWN;
-        }
-
-        int total = 0;
-
-        for (PieceType pt = initialPt; pt < PT_KING; ++pt) {
-            if constexpr (C != CL_BLACK) {
-                Bitboard wbb = getBitboard(Piece(CL_WHITE, pt));
-                total += wbb.count() * getPiecePointValue(pt);
-            }
-            if constexpr (C != CL_WHITE) {
-                Bitboard bbb = getBitboard(Piece(CL_BLACK, pt));
-                total += bbb.count() * getPiecePointValue(pt);
-            }
-        }
-
-        return total;
-    }
-
-    template <bool EXCLUDE_PAWNS = false>
-    int countMaterial(Color c) const {
-        if (c == CL_WHITE) {
-            return countMaterial<EXCLUDE_PAWNS, CL_WHITE>();
-        }
-        return countMaterial<EXCLUDE_PAWNS, CL_BLACK>();
-    }
-
-    inline bool isPinned(Square s) const {
-        return m_Pinned.contains(s);
     }
 
     //
@@ -373,6 +335,14 @@ bool Position::isMoveLegal(Move move) const {
 
         if (bbs::getRookAttacks(ourKing, epOcc) & theirHorizontalAtks) {
             return false;
+        }
+
+        if (CHECK) {
+            Bitboard theirBishops = getBitboard(Piece(them, PT_BISHOP));
+            Bitboard theirDiagAttackers = theirBishops | theirQueens;
+            if (bbs::getBishopAttacks(ourKing, occ) & theirDiagAttackers) {
+                return false;
+            }
         }
     }
     else if (srcPiece.getType() == PT_KING) {
