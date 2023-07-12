@@ -142,6 +142,10 @@ public:
         return m_Status.nCheckers > 0;
     }
 
+    inline bool isPinned(Square s) const {
+        return m_Pinned.contains(s);
+    }
+
     //
     // Move-related methods
     //
