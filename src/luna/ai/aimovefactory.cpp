@@ -145,9 +145,9 @@ int AIMoveFactory::scoreQuietMove(const Position& pos, Move move) const {
 
     total += getHotmapDelta(move) * m_Scores.placementDeltaMultiplier;
 
-    if (pos.getAttacks(getOppositeColor(pos.getColorToMove()), PT_PAWN).contains(move.getDest())) {
-        total -= m_Scores.squareGuardedByPawnPenalty;
-    }
+//    if (pos.getAttacks(getOppositeColor(pos.getColorToMove()), PT_PAWN).contains(move.getDest())) {
+//        total -= m_Scores.squareGuardedByPawnPenalty;
+//    }
 
     //int guardValue = staticanalysis::guardValue(pos, move.getDest(), pos.getColorToMove()) * m_Scores.guardValueMultiplier;
     //total += guardValue;
