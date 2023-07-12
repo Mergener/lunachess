@@ -37,7 +37,7 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 
 ## Project Structure
 
-`/src` - Source code
+- `/src` - Source code
 
   - `/luna` - Static library that contains all Luna's core logic, but no entry point.
 
@@ -45,9 +45,9 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 
   - `/lunatest` - Executable for unit tests.
 
-`/ext` - External dependencies.
+- `/ext` - External dependencies.
 
-`/scripts` - Useful scripts related to testing, datagen, tuning or any other required task.
+- `/scripts` - Useful scripts related to testing, datagen, tuning or any other required task.
 
 ## Building Prerequisites
 
