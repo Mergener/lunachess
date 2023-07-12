@@ -3,11 +3,6 @@
 Luna is an alpha-beta pruning based chess engine that uses traditional evaluation methods.
 It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) protocol, so it is possible to embed it into a GUI.
 
-## Prerequisites
-
-- C++17 compliant compiler
-- CMake 3.12 or higher (build system generator)
-
 ## Features
 
 - Move generation
@@ -39,6 +34,20 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Bishop pair
   - Knight outposts
   - Endgame specific evaluations (ex: KBN vs K)
+
+## Project Structure
+
+`/src` - Source code
+  `/luna` - Static library that contains all Luna's core logic, but no entry point.
+  `/lunacli` - Command line application that runs Luna beneath a UCI protocol layer.
+  `/lunatest` - Executable for unit tests.
+`/ext` - External dependencies.
+`/scripts` - Useful scripts related to testing, datagen, tuning or any other required task.
+
+## Building Prerequisites
+
+- C++17 compliant compiler
+- CMake 3.12 or higher (build system generator)
 
 ## Building
 
