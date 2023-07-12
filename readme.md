@@ -39,7 +39,7 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 
 - `/src` - Source code
 
-  - `/luna` - Static library that contains all Luna's core logic, but no entry point.
+  - `/luna` - Static library that contains all of Luna's core logic, but no entry point.
 
   - `/lunacli` - Command line application that runs Luna beneath a UCI protocol layer.
 
