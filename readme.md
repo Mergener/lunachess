@@ -39,11 +39,11 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 
 `/src` - Source code
 
-  `/luna` - Static library that contains all Luna's core logic, but no entry point.
+  - `/luna` - Static library that contains all Luna's core logic, but no entry point.
 
-  `/lunacli` - Command line application that runs Luna beneath a UCI protocol layer.
+  - `/lunacli` - Command line application that runs Luna beneath a UCI protocol layer.
 
-  `/lunatest` - Executable for unit tests.
+  - `/lunatest` - Executable for unit tests.
 
 `/ext` - External dependencies.
 
