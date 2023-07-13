@@ -19,36 +19,9 @@
 namespace lunachess::ai {
 
 /**
- * Type of parameter that is evaluated by the HCE.
- */
-enum HCEParameter {
-    HCEP_MATERIAL,
-    HCEP_MOBILITY,
-    HCEP_PASSED_PAWNS,
-    HCEP_BACKWARD_PAWNS,
-    HCEP_PLACEMENT,
-    HCEP_KNIGHT_OUTPOSTS,
-    HCEP_BLOCKING_PAWNS,
-    HCEP_ISOLATED_PAWNS,
-    HCEP_ENDGAME_THEORY,
-    HCEP_KING_PAWN_DISTANCE,
-    HCEP_BISHOP_PAIR,
-    HCEP_KING_ATTACK,
-    HCEP_DIMINISHING_MATERIAL_GAINS,
-    HCEP_ROOKS,
-
-    HCEP_PARAM_COUNT,
-};
-
-using HCEParameterMask = ui64;
-
-static constexpr HCEParameterMask HCEPM_ALL = ~0;
-/**
  * A hand-crafted evaluator that uses human domain knowledge to evaluate positions.
  *
  * Several evaluation parameters are evaluated, including material count, king safety, pawn structure...
- * Parameters can be toggled on or off based on the specified parameter mask.
- * By default, all parameters are set to ON.
  */
 class HandCraftedEvaluator : public Evaluator {
 public:

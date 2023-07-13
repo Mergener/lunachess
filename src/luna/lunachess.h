@@ -28,7 +28,6 @@
 #include "ai/timemanager.h"
 #include "ai/transpositiontable.h"
 #include "ai/hce/hce.h"
-#include "ai/hce/tuning.h"
 
 namespace lunachess {
 
