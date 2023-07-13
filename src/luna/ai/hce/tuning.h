@@ -3,7 +3,7 @@
 
 #include <istream>
 
-#include "classicevaluator.h"
+#include "hce.h"
 
 namespace lunachess::ai {
 

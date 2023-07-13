@@ -11,7 +11,7 @@
 #include "transpositiontable.h"
 #include "evaluator.h"
 #include "aimovefactory.h"
-#include "classiceval/classicevaluator.h"
+#include "hce/hce.h"
 #include "timemanager.h"
 
 #include "../clock.h"

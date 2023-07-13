@@ -20,6 +20,7 @@ void initializeEverything() {
 
     // Initialize AI functionalities
     ai::AIMoveFactory::initialize();
+    ai::initializeDefaultHCEWeights();
 }
 
 }

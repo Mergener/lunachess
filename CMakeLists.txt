@@ -48,8 +48,8 @@ add_library(luna STATIC
         src/luna/endgame.h src/luna/openingbook.cpp
         src/luna/openingbook.h src/luna/pst.cpp
         src/luna/pst.h
-        src/luna/ai/classiceval/classicevaluator.cpp
-        src/luna/ai/classiceval/classicevaluator.h
+        src/luna/ai/hce/hce.cpp
+        src/luna/ai/hce/hce.h
         src/luna/ai/aimovefactory.h
         src/luna/ai/evaluator.h
         src/luna/ai/quiescevaluator.h
@@ -76,7 +76,7 @@ add_library(luna STATIC
         src/luna/types.h
         src/luna/utils.h
         src/luna/zobrist.h
-        src/luna/ai/classiceval/tuning.h src/luna/ai/classiceval/tuning.cpp src/luna/ai/classiceval/tuning.h src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h)
+        src/luna/ai/hce/tuning.h src/luna/ai/hce/tuning.cpp src/luna/ai/hce/tuning.h src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h)
 
 add_executable(lunacli
         src/lunacli/main.cpp

@@ -36,7 +36,10 @@ struct UCIContext {
     // Search settings
     ai::AlphaBetaSearcher searcher;
     bool useOpBook = false;
+
+    // HCE settings
     std::shared_ptr<ai::HandCraftedEvaluator> hce = std::make_shared<ai::HandCraftedEvaluator>();
+    const ai::HCEWeightTable* hceWeights = ai::getDefaultHCEWeights();
 };
 
 using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
@@ -64,60 +67,6 @@ static void errorWrongArg(std::string_view cmdName, std::string_view wrongArg) {
     std::cerr << "Unexpected argument '" << wrongArg << "' for command '" << cmdName << "'." << std::endl;
 }
 
-/**
- * Defines HCE parameters that can be toggled on/off using setoption.
- * Toggling these parameters will affect how the HCE evaluates positions.
- */
-struct HCEParameterUCI {
-    ai::HCEParameter param;
-    std::string optionName;
-    bool defaultValue;
-};
-
-static std::initializer_list<HCEParameterUCI> s_HCEParams = {
-    { ai::HCEP_MATERIAL, "HCE_Material", true },
-    { ai::HCEP_MOBILITY, "HCE_Mobility", true },
-    { ai::HCEP_BACKWARD_PAWNS, "HCE_BackwardPawns", true },
-    { ai::HCEP_PASSED_PAWNS, "HCE_PassedPawns", true },
-    { ai::HCEP_PLACEMENT, "HCE_Placement", true },
-    { ai::HCEP_KNIGHT_OUTPOSTS, "HCE_Knight_Outposts", true },
-    { ai::HCEP_BLOCKING_PAWNS, "HCE_Blocking_Pawns", true },
-    { ai::HCEP_ISOLATED_PAWNS, "HCE_Isolated_Pawns", true },
-    { ai::HCEP_ENDGAME_THEORY, "HCE_Endgame_Theory", true },
-    { ai::HCEP_KING_PAWN_DISTANCE, "HCE_King_Pawn_Distance", true },
-    { ai::HCEP_BISHOP_PAIR, "HCE_BishopPair", true },
-    { ai::HCEP_KING_ATTACK, "HCE_KingAttack", true },
-    { ai::HCEP_ROOKS, "HCE_Rooks", true },
-    { ai::HCEP_DIMINISHING_MATERIAL_GAINS, "HCE_DiminishingMaterialGains", false },
-};
-
-static void setupHCEParameters(UCIContext& ctx) {
-    for (auto& param: s_HCEParams) {
-        ctx.hce->toggleParameter(param.param, param.defaultValue);
-    }
-}
-
-static bool processHCEOption(UCIContext& ctx, std::string_view option, std::string_view value) {
-    ai::HCEParameter param;
-    bool isHCEOption = false;
-
-    for (const auto& p: s_HCEParams) {
-        if (option == p.optionName) {
-            param = p.param;
-            isHCEOption = true;
-            break;
-        }
-    }
-
-    if (!isHCEOption) {
-        return false;
-    }
-
-    ctx.hce->toggleParameter(param, value == "true");
-
-    return true;
-}
-
 //
 // UCI Commands:
 //
@@ -140,20 +89,12 @@ static void displayOption(UCIContext& ctx, std::string_view optName,
     std::cout << std::endl;
 }
 
-static void displayHCEOptions(UCIContext& ctx) {
-    for (const auto& p: s_HCEParams) {
-        displayOption(ctx, p.optionName, "check", p.defaultValue ? "true" : "false");
-    }
-}
-
 static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "id name LunaChess" << std::endl;
     std::cout << "id author Thomas Mergener" << std::endl;
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
     displayOption(ctx, "Hash", "spin", strutils::toString(ai::TranspositionTable::DEFAULT_SIZE_MB), "1", "1048576");
     displayOption(ctx, "UseOwnBook", "check", "false");
-
-    displayHCEOptions(ctx);
 
     std::cout << "uciok" << std::endl;
 }
@@ -202,9 +143,6 @@ static void processOption(UCIContext& ctx, std::string_view option, std::string_
         else {
             std::cerr << "Invalid value '" << value << "'. Expected 'true' or 'false'." << std::endl;
         }
-    }
-    else if (processHCEOption(ctx, option, value)) {
-        // Done in function
     }
 }
 
@@ -686,7 +624,6 @@ static void cmdTune(UCIContext& ctx, const CommandArgs& args) {
     auto& tbl = eval->getWeights();
 
     ai::TuningSettings settings;
-    settings.parametersMask = eval->getParameterMask();
 
     ai::tune(tbl, samplePositions, settings);
 }
@@ -697,8 +634,16 @@ static void cmdLoadweights(UCIContext& ctx, const CommandArgs& args) {
     fs::path path = args[0];
     try {
         nlohmann::json weightsJson = nlohmann::json::parse(utils::readFromFile(path));
-        ai::HCEWeightTable weights = weightsJson;
+
+
+        ai::HCEWeightTable* weights = new ai::HCEWeightTable(weightsJson);
         ctx.hce->setWeights(weights);
+
+        if (ctx.hceWeights != ai::getDefaultHCEWeights()) {
+            delete ctx.hceWeights;
+        }
+        ctx.hceWeights = weights;
+
         std::cout << "Succesfully loaded weights from " << fs::absolute(path) << std::endl;
     }
     catch (const std::exception& e) {
@@ -882,8 +827,6 @@ static void inputThreadMain(UCIContext& ctx) {
 
 int uciMain() {
     std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
-
-    setupHCEParameters(*ctx);
 
     inputThreadMain(*ctx);
 

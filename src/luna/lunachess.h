@@ -27,8 +27,8 @@
 #include "ai/search.h"
 #include "ai/timemanager.h"
 #include "ai/transpositiontable.h"
-#include "ai/classiceval/classicevaluator.h"
-#include "ai/classiceval/tuning.h"
+#include "ai/hce/hce.h"
+#include "ai/hce/tuning.h"
 
 namespace lunachess {
 

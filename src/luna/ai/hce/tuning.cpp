@@ -5,7 +5,7 @@
 
 #include "../../strutils.h"
 #include "../quiescevaluator.h"
-#include "classicevaluator.h"
+#include "hce.h"
 
 namespace lunachess::ai {
 
@@ -143,8 +143,7 @@ HCEWeightTable tune(const HCEWeightTable& tbl,
                     const std::vector<TuningSamplePosition>& positions,
                     const TuningSettings& settings) {
     HCEWeightTable newTbl = tbl;
-    HandCraftedEvaluator hce;
-    hce.setWeights(newTbl);
+    HandCraftedEvaluator hce(&newTbl);
     QuiesceEvaluator eval(&hce);
 
     auto paramMask = settings.parametersMask;

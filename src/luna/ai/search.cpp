@@ -94,6 +94,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
                                bool nullMoveAllowed,
                                MoveList *searchMoves) {
     const Position& pos = m_Eval->getPosition();
+
     bool isRoot = ply == 0;
     if (pos.isDraw() && !isRoot) {
         // Position is a draw, return draw score.
@@ -224,7 +225,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
 
     // Finally, do the search
     int bestMoveIdx = 0;
-    bool pvSearch = true;
+    bool shouldSearchPV = true;
 
     for (int i = 0; i < searchMoves->size(); ++i) {
         Move move = (*searchMoves)[i];
@@ -268,7 +269,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         // #----------------------------------------
         // # LATE MOVE REDUCTIONS
         // #----------------------------------------
-        if (!pvSearch) {
+        if (!shouldSearchPV) {
             if (depth >= 2 &&
                 !pos.isCheck() &&
                 i >= 2 &&
@@ -279,12 +280,11 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         // #----------------------------------------
 
         int score;
-        if (pvSearch) {
+        if (shouldSearchPV) {
             // Perform PVS. First move of the list is always PVS.
             score = -negamax(iterationDepth, ply + 1, -beta, -alpha);
         }
         else {
-
             // Perform a ZWS. Searches after the first move are performed
             // with a null window. If the search fails high, do a re-search
             // with the full window.
@@ -313,7 +313,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
             alpha = score;
             bestMoveIdx = i;
         }
-        pvSearch = false;
+        shouldSearchPV = false;
     }
 
     // Store search data in transposition table
