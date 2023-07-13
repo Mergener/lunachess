@@ -6,7 +6,7 @@
 namespace lunachess {
 
 enum EndgameType {
-    EG_UNKNOWN,
+    EG_UNKNOWN = 0,
 
     //
     // 1 man endgames
