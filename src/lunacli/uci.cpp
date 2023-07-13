@@ -589,45 +589,6 @@ static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
         << std::endl;
 }
 
-static void cmdTune(UCIContext& ctx, const CommandArgs& args) {
-    namespace fs = std::filesystem;
-
-    fs::path positionsPath = "positions.csv";
-
-    for (int i = 0; i < args.size(); ++i) {
-        const auto arg = args[i];
-
-        if (arg == "file") {
-            i++;
-            if (i >= args.size()) {
-                std::cerr << "Expected a path." << std::endl;
-                return;
-            }
-            positionsPath = args[i];
-        }
-    }
-
-    std::vector<ai::TuningSamplePosition> samplePositions;
-    try {
-        std::ifstream ifstream(positionsPath);
-        ifstream.exceptions(std::ios_base::badbit | std::ios_base::failbit);
-        samplePositions = ai::fetchSamplePositionsFromCSV(ifstream);
-
-        ifstream.close();
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Error when reading sample positions: " << e.what() << std::endl;
-        return;
-    }
-
-    auto eval = ctx.hce;
-    auto& tbl = eval->getWeights();
-
-    ai::TuningSettings settings;
-
-    ai::tune(tbl, samplePositions, settings);
-}
-
 static void cmdLoadweights(UCIContext& ctx, const CommandArgs& args) {
     namespace fs = std::filesystem;
 
