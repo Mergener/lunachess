@@ -76,16 +76,19 @@ add_library(luna STATIC
         src/luna/types.h
         src/luna/utils.h
         src/luna/zobrist.h
-        src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h)
+        src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h ext/include/popl/popl.h)
 
 add_executable(lunacli
         src/lunacli/main.cpp
         src/lunacli/uci.cpp
-        src/lunacli/uci.h)
+        src/lunacli/uci.h ext/include/popl/popl.h)
 
 add_executable(lunatest
         src/lunatest/main.cpp
-        src/lunatest/testlist.cpp)
+        src/lunatest/testlist.cpp ext/include/popl/popl.h)
+
+add_executable(lunatuner
+        src/lunatuner/main.cpp ext/include/popl/popl.h)
 
 ##
 # Compilation settings
@@ -115,7 +118,13 @@ endif()
 
 target_link_libraries(lunacli PRIVATE luna)
 target_link_libraries(lunatest PRIVATE luna)
+target_link_libraries(lunatuner PRIVATE luna)
 
 target_include_directories(luna PUBLIC "ext/json/single_include")
 target_include_directories(lunacli PUBLIC "ext/json/single_include" "src/luna")
 target_include_directories(lunatest PUBLIC "ext/json/single_include" "src/luna")
+target_include_directories(lunatuner PUBLIC "ext/json/single_include" "src/luna")
+target_include_directories(luna PUBLIC "ext/include")
+target_include_directories(lunacli PUBLIC "ext/include")
+target_include_directories(lunatest PUBLIC "ext/include")
+target_include_directories(lunatuner PUBLIC "ext/include")

@@ -1,6 +1,8 @@
 #ifndef LUNA_AI_HCEWEIGHTS_H
 #define LUNA_AI_HCEWEIGHTS_H
 
+#include <cstring>
+
 #include <nlohmann/json.hpp>
 
 #include "../../pst.h"
@@ -46,7 +48,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeight, mg, eg);
  * Weight table used by the HCE to define position scores.
  */
 struct HCEWeightTable {
-    HCEWeightTable() = default;
+    inline HCEWeightTable() {
+        std::memset(this, 0, sizeof(*this));
+    }
 
     std::array<HCEWeight, PT_COUNT> material;
     std::array<HCEWeight, 8> knightMobilityScore;

@@ -60,6 +60,19 @@ bool tryParseInteger(std::string_view sv, TInt& ret) {
     return true;
 }
 
+template <typename TInt>
+TInt parseInteger(std::string_view sv) {
+    static_assert(std::is_integral<TInt>::value);
+
+    TInt ret;
+
+    if (!tryParseInteger(sv, ret)) {
+        throw std::runtime_error("Invalid integer");
+    }
+
+    return ret;
+}
+
 } // lunachess
 
 #endif //LUNA_STRUTILS_H

@@ -45,15 +45,15 @@ inline bool randomChance(float chancePct) {
     return rnd <= chancePct;
 }
 
-inline void writeToFile(std::filesystem::path path, std::string_view data) {
-    std::ofstream stream(path);
-    stream.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
+inline void writeToFile(std::filesystem::path path, const std::string& data) {
+    std::fstream stream(path);
+    stream.exceptions(std::ofstream::badbit | std::ofstream::failbit);
     stream << data;
 }
 
 inline std::string readFromFile(std::filesystem::path path) {
     std::ifstream stream(path);
-    stream.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
+    stream.exceptions(std::ifstream::badbit);
     std::stringstream buffer;
     buffer << stream.rdbuf();
     return buffer.str();
@@ -82,6 +82,30 @@ void insertionSort(TIter begin, TIter end, TCompar comp) {
 
         *(j + 1) = std::move(key);
     }
+}
+
+template <typename T>
+struct Chunk {
+    int firstIdx;
+    int lastIdx; // inclusive
+};
+
+template <typename T>
+std::vector<Chunk<T>> splitIntoChunks(const std::vector<T>& v, int nChunks) {
+    std::vector<Chunk<T>> chunks;
+    int size = v.size();
+    int chunkSize = size / nChunks;
+    int remaining = size % nChunks;
+
+    int startIdx = 0;
+    for (int i = 0; i < nChunks; ++i) {
+        int currentChunkSize = chunkSize + (i < remaining ? 1 : 0);
+        int endIdx = startIdx + currentChunkSize - 1;
+        chunks.push_back({startIdx, endIdx});
+        startIdx = endIdx + 1;
+    }
+
+    return chunks;
 }
 
 } // lunachess::utils

@@ -7,7 +7,7 @@
 #include <string>
 #include <functional>
 
-#include "rang.h"
+#include "../../ext/include/rang.h"
 
 #define TERMINAL_ERASE_LINE()       (std::cout << "\33[2K\r")
 #define TERMINAL_COLOR_DEFAULT()    (std::cout << rang::bg::reset << rang::style::reset << rang::fgB::cyan)

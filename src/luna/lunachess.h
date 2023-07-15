@@ -17,6 +17,7 @@
 #include "staticanalysis.h"
 #include "staticlist.h"
 #include "strutils.h"
+#include "threadpool.h"
 #include "types.h"
 #include "utils.h"
 #include "zobrist.h"

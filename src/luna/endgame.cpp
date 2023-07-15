@@ -63,7 +63,9 @@ EndgameData identify(const Position& pos) {
                                pos.getBitboard(BLACK_QUEEN).count());
 
 
-    return s_Endgames[whiteMask][blackMask];
+    EndgameData data = s_Endgames[whiteMask][blackMask];
+
+    return data;
 }
 
 bool isInsideTheSquare(Square pawnSquare, Square enemyKingSquare,

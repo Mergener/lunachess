@@ -112,7 +112,7 @@ void initializeDefaultHCEWeights() {
         HCEWeight(3200, 3800),  // PT_KNIGHT
         HCEWeight(3600, 4200),  // PT_BISHOP
         HCEWeight(5100, 6100),  // PT_ROOK
-        HCEWeight(10000, 12000), // PT_QUEEN
+        HCEWeight(10600, 12000), // PT_QUEEN
         HCEWeight(0, 0),        // PT_KING
     };
 
@@ -186,7 +186,7 @@ void initializeDefaultHCEWeights() {
 
     tbl.blockingPawnsScore = { -50, -120 };
 
-    tbl.backwardPawnScore = { -75, -150 };
+    tbl.backwardPawnScore = { -75, -130 };
 
     tbl.isolatedPawnScore = { -50, -120 };
 

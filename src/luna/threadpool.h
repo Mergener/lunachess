@@ -1,6 +1,7 @@
 #ifndef LUNA_THREADPOOL_H
 #define LUNA_THREADPOOL_H
 
+#include <future>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -24,6 +25,19 @@ public:
             m_Tasks.emplace([f, args...] { f(args...); });
         }
         m_Condition.notify_one();
+    }
+
+    template<class F, class... Args>
+    auto submit(F&& f, Args&&... args) -> std::future<decltype(f(args...))> {
+        using TRet = decltype(f(args...));
+        auto task = std::make_shared<std::packaged_task<TRet()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        std::future<TRet> result = task->get_future();
+        {
+            std::unique_lock<std::mutex> lock(m_QueueMutex);
+            m_Tasks.emplace([task]() { (*task)(); });
+        }
+        m_Condition.notify_one();
+        return result;
     }
 
 private:

@@ -65,7 +65,15 @@ for engine in engines:
     
     timemargin = engine.get('timemargin') or 0
 
-    command += f' -engine name=\"{name}\" proto={protocol} timemargin={timemargin} cmd=\"{cmd}\"'
+    init_strs = engine.get('initializationStrings')
+    init_str = ''
+    if init_strs != None and len(init_strs) > 0:
+        all_strs = []
+        for s in init_strs:
+            all_strs += s + '\\n'
+        init_str += f'{"".join(all_strs)}'
+
+    command += f' -engine name=\"{name}\" proto={protocol} timemargin={timemargin} cmd=\"{cmd}\" initstr=\"{init_str}\"'
 
 
 if openings_path:
