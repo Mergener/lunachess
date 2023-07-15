@@ -8,14 +8,18 @@ void TimeManager::start(const TimeControl& tc) {
     m_Tc = tc;
     m_Start = Clock::now();
 
+    m_BestItMove = MOVE_INVALID;
+    m_ItMoveReps = 0;
+
     // Calculate target time
     switch (m_Tc.mode) {
         case TC_MOVETIME:
-            m_TargetTime = tc.time - 50;
+            m_TargetTime = tc.time - 80;
             break;
 
         case TC_TOURNAMENT:
-            m_TargetTime = std::min(tc.time - 50, tc.time / 20 + tc.increment * 2);
+            m_TargetTime = std::min(tc.time - 80, tc.time / 18 + tc.increment * 2);
+            m_OriginalTargetTime = m_TargetTime;
             break;
 
         default:
@@ -37,6 +41,19 @@ void TimeManager::onNewDepth(const SearchResults& res) {
     if (res.searchedDepth < 2) {
         // Always search to depth 2, at least.
         return;
+    }
+
+    if (res.bestMove == m_BestItMove) {
+        m_ItMoveReps++;
+        if (m_ItMoveReps >= 8) {
+            m_TargetTime /= 2;
+            m_ItMoveReps = 0;
+        }
+    }
+    else {
+        m_BestItMove = res.bestMove;
+        m_TargetTime = m_OriginalTargetTime;
+        m_ItMoveReps = 0;
     }
 
     // We have a target time that we want to reach.
