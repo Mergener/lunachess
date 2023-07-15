@@ -201,9 +201,9 @@ static double sigmoid(double x, double k) {
     return 1 / (1 + std::pow(10, -k * x / 400));
 }
 
-static double averageEvaluationError(nlohmann::json flatWeightsJson,
-                                     const InputData& id, int startIdx, int endIdx,
-                                     double k) {
+static double evaluationErrorSum(nlohmann::json flatWeightsJson,
+                                 const InputData& id, int startIdx, int endIdx,
+                                 double k) {
     double totalError = 0;
     int n = 0;
 
@@ -227,7 +227,7 @@ static double averageEvaluationError(nlohmann::json flatWeightsJson,
         n++;
     }
 
-    return totalError / n;
+    return totalError;
 }
 
 static std::tuple<int, double> tune(const Settings& settings,
@@ -243,36 +243,36 @@ static std::tuple<int, double> tune(const Settings& settings,
 
     ThreadPool threadPool(settings.threads);
     while (true) {
-        double error = 0;
+        double avgError = 0;
 
         // Tune the parameter
         value += step;
 
-        // Compute the error in multiple threads
+        // Compute the avgError in multiple threads
         flatWeightsJson[parameter] = value;
 
         auto chunks = utils::splitIntoChunks(inputData.entries, settings.threads);
         std::vector<std::future<double>> partialErrors;
         for (auto chunk: chunks) {
             partialErrors.push_back(threadPool.submit([&]() {
-                return averageEvaluationError(flatWeightsJson, inputData, chunk.firstIdx, chunk.lastIdx, settings.k);
+                return evaluationErrorSum(flatWeightsJson, inputData, chunk.firstIdx, chunk.lastIdx, settings.k);
             }));
         }
 
         for (auto& err: partialErrors) {
-            error += err.get();
+            avgError += err.get();
         }
-        error /= settings.threads;
+        avgError /= inputData.entries.size();
 
-        if (error < lowestError) {
+        if (avgError < lowestError) {
             bestValue = value;
-            lowestError = error;
+            lowestError = avgError;
             badIts = 0;
         }
         else {
             // We need to stop when we think we're starting to overtune or undertune
             // our parameter. If we get a certain minimum of "bad" iterations (iterations
-            // that increased the error), interrupt the search.
+            // that increased the avgError), interrupt the search.
             badIts++;
             if (badIts >= MAX_BAD_ITERATIONS) {
                 break;
@@ -283,10 +283,10 @@ static std::tuple<int, double> tune(const Settings& settings,
     return std::make_tuple(bestValue, lowestError);
 }
 
-static int optimizeParameter(const Settings& settings,
-                             const InputData& inputData,
-                             nlohmann::json flatWeightsJson,
-                             std::string parameter) {
+static int tuneParameter(const Settings& settings,
+                         const InputData& inputData,
+                         nlohmann::json flatWeightsJson,
+                         std::string parameter) {
     auto paramJsonVal = flatWeightsJson[parameter];
     if (!paramJsonVal.is_number()) {
         throw std::runtime_error("Unsupported parameter type.");
@@ -310,7 +310,7 @@ static int optimizeParameter(const Settings& settings,
         lowestErr = upError;
     }
 
-    std::cout << std::setprecision(8) << "Done optimizing parameter " << parameter
+    std::cout << std::setprecision(8) << "Done tuning parameter " << parameter
               << ": " << initialValue << " -> " << bestValue << " (err " << std::setprecision(6) << lowestErr
               << ")" << std::endl;
 
@@ -333,15 +333,15 @@ static void tune(const Settings& settings) {
 
     int i = 0;
     for (const auto& item: flatWeights.items()) {
-        // Optimize each weight individually and save it on the flatWeights again.
+        // Tune each weight individually and save it on the flatWeights again.
         // By doing this we're making sure the following weights will take into consideration
         // the tuning that was done to the ones before them.
         std::string param = item.key();
-        int newValue = optimizeParameter(settings, inputData, flatWeights, param);
+        int newValue = tuneParameter(settings, inputData, flatWeights, param);
         std::cout << ++i << " of " << flatWeights.size() << " parameters tuned." << std::endl;
         flatWeights[param] = newValue;
 
-        // Save everything whenever we optimize a parameter
+        // Save everything whenever we tune a parameter
         nlohmann::json unflattened = flatWeights.unflatten();
         std::ofstream ofstream(settings.outPath);
         ofstream << std::setw(2) << unflattened << std::endl;
