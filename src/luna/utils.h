@@ -84,15 +84,14 @@ void insertionSort(TIter begin, TIter end, TCompar comp) {
     }
 }
 
-template <typename T>
 struct Chunk {
     int firstIdx;
     int lastIdx; // inclusive
 };
 
 template <typename T>
-std::vector<Chunk<T>> splitIntoChunks(const std::vector<T>& v, int nChunks) {
-    std::vector<Chunk<T>> chunks;
+std::vector<Chunk> splitIntoChunks(const std::vector<T>& v, int nChunks) {
+    std::vector<Chunk> chunks;
     int size = v.size();
     int chunkSize = size / nChunks;
     int remaining = size % nChunks;
