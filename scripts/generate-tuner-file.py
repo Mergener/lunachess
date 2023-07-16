@@ -7,12 +7,13 @@ import chess.pgn
 # Script settings
 GAMES_DIR      = "../temp/games"
 OUT_FILE       = "tunerfile2.csv"
-MAX_POS        = 1000000
+MAX_POS        = 5000000
 MIN_PLY        = 20
-ENDGAME_PIECES = 2
+ENDGAME_PIECES = 4
 
 pgn_paths = [f for f in listdir(GAMES_DIR) if isfile(join(GAMES_DIR, f)) and f.endswith(".pgn")]
 n_pos = 0
+
 
 """
     Given a chess position, the move that led to it and its next move, returns True
@@ -25,14 +26,16 @@ def accept_position(board: chess.Board,
     if board.is_check():
         return False
 
+    board_ply = board.ply()
+
     # Don't add opening book positions
-    if last_move == None or board.ply() < MIN_PLY:
+    if last_move == None or board_ply < MIN_PLY:
         return False
     
     # Don't add positions in which a noisy move was played
     if board.is_capture(next_move) or board.gives_check(next_move):
         return False
-
+    
     # Don't add potentially theoretical endgames
     if (board.occupied.bit_count() - 2) <= ENDGAME_PIECES:
         return False 

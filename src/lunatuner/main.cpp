@@ -2,6 +2,7 @@
 
 #include <popl/popl.h>
 
+#include <random>
 #include <string>
 #include <iostream>
 #include <filesystem>
@@ -19,6 +20,7 @@ struct Settings {
     int threads = 1;
     double k = 0.113;
     std::optional<fs::path> baseWeightsPath = std::nullopt;
+    bool quiesce = false;
 };
 
 struct DataEntry {
@@ -33,60 +35,17 @@ struct InputData {
     std::vector<DataEntry> entries;
 };
 
-static Settings processArgs(int argc, char* argv[]) {
-    try {
-        Settings settings;
-
-        popl::OptionParser op("Luna's HCE tuning tool.\nUsage");
-
-        auto optHelp = op.add<popl::Switch>("h", "help", "Explains lunatuner's usage.");
-
-        auto optTunerData = op.add<popl::Value<std::string>>("d", "data",
-                                                             "Path to the tuning dataset");
-
-        auto optOutPath = op.add<popl::Value<std::string>>("o", "o",
-                                                           "Path to the output weights JSON file.");
-
-        auto optThreads = op.add<popl::Implicit<int>>("t", "threads", "Number of threads to be used.", 1);
-
-        auto optBaseWeights = op.add<popl::Value<std::string>>("b", "base-weights",
-                                                               "JSON file of base weights. If none is provided, uses the hardcoded base HCE weights.");
-
-        op.parse(argc, argv);
-
-        if (optHelp->value()) {
-            // Display help and exit
-            std::cout << op << std::endl;
-            std::exit(EXIT_SUCCESS);
-        }
-
-        settings.tunerDataPath   = optTunerData->value();
-        settings.outPath         = optOutPath->value();
-        settings.threads         = optThreads->value();
-
-        if (optBaseWeights->is_set()) {
-            settings.baseWeightsPath = optBaseWeights->value();
-        }
-
-        return settings;
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Usage error: " << e.what() << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-}
-
-static int quiesce(Position& pos,
-                   Move* pv,
-                   int alpha = INT_MIN,
-                   int beta = INT_MAX) {
+static int quiescenceSearch(Position& pos,
+                            Move* pv,
+                            int alpha = INT_MIN,
+                            int beta = INT_MAX) {
     Color c = pos.getColorToMove();
     int standPat =
             100  * (pos.getBitboard(WHITE_PAWN).count()   - pos.getBitboard(BLACK_PAWN).count()) +
-            350  * (pos.getBitboard(WHITE_KNIGHT).count() - pos.getBitboard(BLACK_KNIGHT).count()) +
-            360  * (pos.getBitboard(WHITE_BISHOP).count() - pos.getBitboard(BLACK_BISHOP).count()) +
-            550  * (pos.getBitboard(WHITE_ROOK).count()   - pos.getBitboard(BLACK_ROOK).count()) +
-            1100 * (pos.getBitboard(WHITE_QUEEN).count()  - pos.getBitboard(BLACK_QUEEN).count());
+            320  * (pos.getBitboard(WHITE_KNIGHT).count() - pos.getBitboard(BLACK_KNIGHT).count()) +
+            320  * (pos.getBitboard(WHITE_BISHOP).count() - pos.getBitboard(BLACK_BISHOP).count()) +
+            520  * (pos.getBitboard(WHITE_ROOK).count()   - pos.getBitboard(BLACK_ROOK).count()) +
+            1050 * (pos.getBitboard(WHITE_QUEEN).count()  - pos.getBitboard(BLACK_QUEEN).count());
     if (c == CL_BLACK) {
         standPat = -standPat;
     }
@@ -103,7 +62,7 @@ static int quiesce(Position& pos,
 
     for (Move move: moves) {
         pos.makeMove(move);
-        int score = -quiesce(pos, pv + 1, -beta, -alpha);
+        int score = -quiescenceSearch(pos, pv + 1, -beta, -alpha);
         pos.undoMove();
 
         if (score >= beta) {
@@ -119,10 +78,10 @@ static int quiesce(Position& pos,
     return alpha;
 }
 
-static void acquiescePosition(Position& pos) {
+static void quiescePosition(Position& pos) {
     std::array<Move, 128> pv;
     std::fill(pv.begin(), pv.end(), MOVE_INVALID);
-    quiesce(pos, pv.data());
+    quiescenceSearch(pos, pv.data());
 
     for (Move move: pv) {
         if (move == MOVE_INVALID) {
@@ -133,7 +92,7 @@ static void acquiescePosition(Position& pos) {
     }
 }
 
-static InputData parseData(fs::path dataFilePath, int threads) {
+static InputData parseData(fs::path dataFilePath) {
     try {
         std::cout << "Parsing data from " << dataFilePath << std::endl;
         std::ifstream stream(dataFilePath);
@@ -155,31 +114,6 @@ static InputData parseData(fs::path dataFilePath, int threads) {
             inputData.entries.emplace_back(std::move(pos), eval);
         }
 
-        std::mutex acquiescedCounterMutex;
-        int nAcquiesced = 0;
-        {
-            ThreadPool threadPool(threads);
-            auto chunks = utils::splitIntoChunks(inputData.entries, threads);
-            for (auto chunk: chunks) {
-                threadPool.enqueue([chunk, &nAcquiesced, &inputData, &acquiescedCounterMutex]() {
-                    for (int i = chunk.firstIdx; i <= chunk.lastIdx; ++i) {
-                        auto& entry = inputData.entries[i];
-                        acquiescePosition(entry.position);
-
-                        {
-                            std::unique_lock lock(acquiescedCounterMutex);
-                            if ((nAcquiesced % 25000) == 0) {
-                                std::cout << nAcquiesced << " positions acquiesced..." << std::endl;
-                            }
-                            nAcquiesced++;
-                        }
-
-                    }
-                });
-            }
-        }
-        std::cout << nAcquiesced << " positions acquiesced." << std::endl;
-
         std::cout << "Succesfully parsed data from " << dataFilePath << std::endl;
 
         return inputData;
@@ -188,6 +122,34 @@ static InputData parseData(fs::path dataFilePath, int threads) {
         std::cerr << "Error parsing data file at " << dataFilePath << ": " << e.what();
         std::exit(EXIT_FAILURE);
     }
+}
+
+static void quiesceDataPositions(InputData& inputData, int threads) {
+    std::cout << "Quiescing positions...";
+    std::mutex quiescedCounterMutex;
+    int nQuiesced = 0;
+    {
+        ThreadPool threadPool(threads);
+        auto chunks = utils::splitIntoChunks(inputData.entries, threads);
+        for (auto chunk: chunks) {
+            threadPool.enqueue([chunk, &nQuiesced, &inputData, &quiescedCounterMutex]() {
+                for (int i = chunk.firstIdx; i <= chunk.lastIdx; ++i) {
+                    auto& entry = inputData.entries[i];
+                    quiescePosition(entry.position);
+
+                    {
+                        std::unique_lock lock(quiescedCounterMutex);
+                        if ((nQuiesced % 25000) == 0) {
+                            std::cout << nQuiesced << " positions quiesced..." << std::endl;
+                        }
+                        nQuiesced++;
+                    }
+
+                }
+            });
+        }
+    }
+    std::cout << nQuiesced << " positions quiesced." << std::endl;
 }
 
 static nlohmann::json loadWeightsJson(fs::path weightsJsonFilePath) {
@@ -320,7 +282,10 @@ static int tuneParameter(const Settings& settings,
 static void tune(const Settings& settings) {
     std::cout << "Initializing tuning process" << std::endl;
 
-    InputData inputData = parseData(settings.tunerDataPath, settings.threads);
+    InputData inputData = parseData(settings.tunerDataPath);
+    if (settings.quiesce) {
+        quiesceDataPositions(inputData, settings.threads);
+    }
 
     nlohmann::json weightsJSON = settings.baseWeightsPath.has_value()
         ? loadWeightsJson(settings.baseWeightsPath.value())
@@ -331,12 +296,18 @@ static void tune(const Settings& settings) {
     // to create a weights table object.
     nlohmann::json flatWeights = weightsJSON.flatten();
 
-    int i = 0;
+    // Add all parameters and shuffle.
+    std::vector<std::string> parameters;
     for (const auto& item: flatWeights.items()) {
+        parameters.push_back(item.key());
+    }
+    std::shuffle(parameters.begin(), parameters.end(), std::default_random_engine());
+
+    int i = 0;
+    for (const auto& param: parameters) {
         // Tune each weight individually and save it on the flatWeights again.
         // By doing this we're making sure the following weights will take into consideration
         // the tuning that was done to the ones before them.
-        std::string param = item.key();
         int newValue = tuneParameter(settings, inputData, flatWeights, param);
         std::cout << ++i << " of " << flatWeights.size() << " parameters tuned." << std::endl;
         flatWeights[param] = newValue;
@@ -349,6 +320,53 @@ static void tune(const Settings& settings) {
     }
 
     std::cout << "Tuning finished. Saving at " << fs::absolute(settings.outPath) << std::endl;
+}
+
+static Settings processArgs(int argc, char* argv[]) {
+    try {
+        Settings settings;
+
+        popl::OptionParser op("Luna's HCE tuning tool.\nUsage");
+
+        auto optHelp = op.add<popl::Switch>("h", "help", "Explains lunatuner's usage.");
+
+        auto optTunerData = op.add<popl::Value<std::string>>("d", "data",
+                                                             "Path to the tuning dataset");
+
+        auto optOutPath = op.add<popl::Value<std::string>>("o", "o",
+                                                           "Path to the output weights JSON file.");
+
+        auto optThreads = op.add<popl::Implicit<int>>("t", "threads", "Number of threads to be used.", 1);
+
+        auto optBaseWeights = op.add<popl::Value<std::string>>("b", "base-weights",
+                                                               "JSON file of base weights. If none is provided, uses the hardcoded base HCE weights.");
+
+        auto optQuiesce = op.add<popl::Switch>("q", "quiesce",
+                                               "If set, transforms positions with captures that yield positive material balance for the moving side into quiet positions before tuning.");
+
+        op.parse(argc, argv);
+
+        if (optHelp->value()) {
+            // Display help and exit
+            std::cout << op << std::endl;
+            std::exit(EXIT_SUCCESS);
+        }
+
+        settings.tunerDataPath = optTunerData->value();
+        settings.outPath       = optOutPath->value();
+        settings.threads       = optThreads->value();
+        settings.quiesce       = optQuiesce->value();
+
+        if (optBaseWeights->is_set()) {
+            settings.baseWeightsPath = optBaseWeights->value();
+        }
+
+        return settings;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Usage error: " << e.what() << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
 }
 
 int main(int argc, char* argv[]) {
