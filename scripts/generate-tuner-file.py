@@ -1,5 +1,7 @@
 from os import listdir
-from os.path import isfile, join
+import os.path
+
+import random
 
 import chess
 import chess.pgn
@@ -11,7 +13,8 @@ MAX_POS        = 5000000
 MIN_PLY        = 20
 ENDGAME_PIECES = 4
 
-pgn_paths = [f for f in listdir(GAMES_DIR) if isfile(join(GAMES_DIR, f)) and f.endswith(".pgn")]
+pgn_paths = [f for f in listdir(GAMES_DIR) if os.path.isfile(os.path.join(GAMES_DIR, f)) and f.endswith(".pgn")]
+
 n_pos = 0
 
 
@@ -43,8 +46,9 @@ def accept_position(board: chess.Board,
     return True
 
 with open(OUT_FILE, "w") as out:
+    random.shuffle(pgn_paths)
     for pgn_path in pgn_paths:
-        pgn_path = join(GAMES_DIR, pgn_path)
+        pgn_path = os.path.join(GAMES_DIR, pgn_path)
         with open(pgn_path, "r") as f:
             while n_pos < MAX_POS:
                 game = chess.pgn.read_game(f)
