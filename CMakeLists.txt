@@ -76,7 +76,7 @@ add_library(luna STATIC
         src/luna/types.h
         src/luna/utils.h
         src/luna/zobrist.h
-        src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h ext/include/popl/popl.h)
+        src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h ext/include/popl/popl.h src/luna/ai/movecursor.cpp src/luna/ai/movecursor.h)
 
 add_executable(lunacli
         src/lunacli/main.cpp
