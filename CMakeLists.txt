@@ -31,6 +31,8 @@ set(CMAKE_CXX_STANDARD 17)
 ##
 # Source code
 ##
+set(HCE_WEIGHTS_FILE ${CMAKE_SOURCE_DIR}/src/luna/ai/hce/weights.json)
+
 add_library(luna STATIC
         src/luna/types.cpp
         src/luna/bitboard.cpp
@@ -82,7 +84,24 @@ add_library(luna STATIC
         src/luna/types.h
         src/luna/utils.h
         src/luna/zobrist.h
-        src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h ext/include/popl/popl.h src/luna/ai/movecursor.cpp src/luna/ai/movecursor.h)
+        src/luna/threadpool.h
+        src/luna/threadpool.cpp
+        src/luna/threadpool.h
+        src/luna/ai/hce/hceweights.cpp
+        src/luna/ai/hce/hceweights.h
+        ext/include/popl/popl.h
+        src/luna/ai/movecursor.cpp
+        src/luna/ai/movecursor.h)
+
+# Temporary solution to always force recompilation of hceweights.cpp.
+# The reason for this is to remove the chance of making changes to the evaluation weights and
+# not having them embedded into the final binary.
+# Ideally, we'd like to do this only when the weights JSON file is changed, but this is the
+# best solution that worked so far.
+add_custom_target(luna_hce
+        COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${CMAKE_SOURCE_DIR}/src/luna/ai/hce/hceweights.cpp)
+
+add_dependencies(${PROJECT_NAME} luna_hce)
 
 add_executable(lunacli
         src/lunacli/main.cpp
@@ -103,6 +122,8 @@ set_target_properties(luna PROPERTIES OUTPUT_NAME ${LUNA_OUT_NAME})
 set_target_properties(lunacli PROPERTIES OUTPUT_NAME ${LUNA_OUT_NAME})
 target_compile_definitions(lunacli PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FULL}\")
 target_compile_definitions(lunatest PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FULL}\")
+
+target_compile_definitions(luna PUBLIC HCE_WEIGHTS_FILE=\"${HCE_WEIGHTS_FILE}\")
 
 ##
 # Add external dependencies
