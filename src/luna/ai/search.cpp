@@ -189,14 +189,14 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
     constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
     constexpr int NULL_MOVE_MIN_PIECES = 4;
 
-    if (IS_SET(flags, DO_NULL) && !isCheck &&
+    if (!IS_SET(flags, SKIP_NULL) && !isCheck &&
         depth >= NULL_SEARCH_MIN_DEPTH &&
         pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
 
         // Null move pruning allowed
         m_Eval->makeNullMove();
 
-        int score = -negamax<NO_SEARCH_FLAGS>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
+        int score = -negamax<SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
         if (score >= beta) {
             //depth -= NULL_SEARCH_DEPTH_RED;
             m_Eval->undoNullMove();

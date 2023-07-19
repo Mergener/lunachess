@@ -168,7 +168,7 @@ private:
 
         NO_SEARCH_FLAGS,
         ROOT      = BIT(0),
-        DO_NULL   = BIT(1),
+        SKIP_NULL = BIT(1),
 
     };
 
