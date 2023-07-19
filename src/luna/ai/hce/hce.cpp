@@ -347,6 +347,8 @@ int HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egDat
         // Drawn endgames
         case EG_KR_KN:
         case EG_KR_KB:
+        case EG_KR_KR:
+        case EG_KQ_KQ:
             return getDrawScore();
 
         case EG_KP_K:

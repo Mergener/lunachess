@@ -38,8 +38,26 @@ void initialize() {
     registerEndgame(EG_KQ_K, buildEgMask(0, 0, 0, 0, 1), 0);
     registerEndgame(EG_KBB_K, buildEgMask(0, 0, 2, 0, 0), 0);
     registerEndgame(EG_KBN_K, buildEgMask(0, 1, 1, 0, 0), 0);
-    registerEndgame(EG_KR_KN, buildEgMask(0, 0, 0, 1, 0), buildEgMask(0, 1, 0, 0, 0));
-    registerEndgame(EG_KR_KB, buildEgMask(0, 0, 0, 1, 0), buildEgMask(0, 0, 1, 0, 0));
+
+    registerEndgame(EG_KR_KN,
+                    buildEgMask(0, 0, 0, 1, 0),
+                    buildEgMask(0, 1, 0, 0, 0)
+                    );
+
+    registerEndgame(EG_KR_KB,
+                    buildEgMask(0, 0, 0, 1, 0),
+                    buildEgMask(0, 0, 1, 0, 0)
+                    );
+
+    registerEndgame(EG_KR_KR,
+                    buildEgMask(0, 0, 0, 1, 0),
+                    buildEgMask(0, 0, 0, 1, 0)
+                    );
+
+    registerEndgame(EG_KR_KR,
+                    buildEgMask(0, 0, 0, 0, 1),
+                    buildEgMask(0, 0, 0, 0, 1)
+                    );
 }
 
 EndgameData identify(const Position& pos) {
