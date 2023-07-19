@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "hce/hce.h"
-#include "aimovefactory.h"
+#include "movecursor.h"
 
 namespace lunachess::ai {
 
@@ -39,7 +39,7 @@ protected:
 
 private:
     Evaluator* m_Eval;
-    AIMoveFactory m_MvFactory;
+    MoveOrderingData m_MvOrderData;
 
     int quiesce(int depth, int alpha, int beta) const;
 };

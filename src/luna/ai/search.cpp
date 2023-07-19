@@ -62,7 +62,6 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     // #----------------------------------------
 
     MoveCursor<true> moveCursor;
-
     Move move;
     while ((move = moveCursor.next(pos, m_MvOrderData, ply))) {
         if (move.getType() == MT_SIMPLE_CAPTURE &&
@@ -73,6 +72,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         }
 
         m_Eval->makeMove(move);
+
         int score = -quiesce(ply + 1, -beta, -alpha);
         m_Eval->undoMove();
 
@@ -361,6 +361,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
         m_Searching = true;
         m_ShouldStop = false;
         m_MvOrderData.resetHistory();
+        m_MvOrderData.resetKillers();
 
         // Setup variables
         m_Eval->setPosition(argPos);

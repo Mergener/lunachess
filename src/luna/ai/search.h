@@ -11,7 +11,6 @@
 #include "transpositiontable.h"
 #include "evaluator.h"
 #include "movecursor.h"
-#include "aimovefactory.h"
 #include "hce/hce.h"
 #include "timemanager.h"
 

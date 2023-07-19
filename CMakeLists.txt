@@ -41,7 +41,6 @@ add_library(luna STATIC
         src/luna/ai/timemanager.cpp
         src/luna/ai/search.cpp
         src/luna/ai/transpositiontable.cpp
-        src/luna/ai/aimovefactory.cpp
         src/luna/ai/quiescevaluator.cpp
         src/luna/utils.cpp
         src/luna/endgame.cpp
@@ -50,7 +49,6 @@ add_library(luna STATIC
         src/luna/pst.h
         src/luna/ai/hce/hce.cpp
         src/luna/ai/hce/hce.h
-        src/luna/ai/aimovefactory.h
         src/luna/ai/evaluator.h
         src/luna/ai/quiescevaluator.h
         src/luna/ai/search.h

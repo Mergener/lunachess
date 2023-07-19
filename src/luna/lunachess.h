@@ -22,7 +22,6 @@
 #include "utils.h"
 #include "zobrist.h"
 
-#include "ai/aimovefactory.h"
 #include "ai/quiescevaluator.h"
 #include "ai/evaluator.h"
 #include "ai/search.h"

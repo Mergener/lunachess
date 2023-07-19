@@ -44,7 +44,12 @@ public:
         std::memset(m_History, 0, sizeof(m_History));
     }
 
+    inline void resetKillers() {
+        std::memset(m_Killers, 0, sizeof(m_Killers));
+    }
+
     inline MoveOrderingData() {
+        resetKillers();
         resetHistory();
     }
 
