@@ -160,9 +160,7 @@ int main() {
         std::ios_base::sync_with_stdio(false);
 
         TERMINAL_COLOR_DEFAULT();
-        std::cout << "Running lunatest with Luna " << LUNA_VERSION_MAJOR << "."
-                  << LUNA_VERSION_MINOR << "."
-                  << LUNA_VERSION_PATCH << ".\n"
+        std::cout << "Running lunatest with Luna " << LUNA_VERSION_NAME << "."
                   << std::endl;
 
         int ret = lunachess::tests::testMain();
