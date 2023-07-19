@@ -26,11 +26,10 @@ int QuiesceEvaluator::quiesce(int depth, int alpha, int beta) const {
         alpha = standPat;
     }
 
-    MoveList moves;
-    int moveCount = m_MvFactory.generateNoisyMoves(moves, pos, 0);
 
-    for (int i = 0; i < moveCount; ++i) {
-        Move move = moves[i];
+    MoveCursor<true> moveCursor;
+    Move move;
+    while ((move = moveCursor.next(pos, m_MvOrderData, 0))) {
         if (move.getType() == MT_SIMPLE_CAPTURE &&
             !staticanalysis::hasGoodSEE(pos, move)) {
             // The result of the exchange series will always result in

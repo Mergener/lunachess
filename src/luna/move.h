@@ -103,6 +103,7 @@ public:
 
     inline bool operator==(Move rhs) const { return m_Data == rhs.m_Data; }
     inline bool operator!=(Move rhs) const { return m_Data != rhs.m_Data; }
+    inline operator bool() const { return *this != MOVE_INVALID; }
 
 private:
     ui32 m_Data;

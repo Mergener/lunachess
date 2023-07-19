@@ -41,7 +41,6 @@ add_library(luna STATIC
         src/luna/ai/timemanager.cpp
         src/luna/ai/search.cpp
         src/luna/ai/transpositiontable.cpp
-        src/luna/ai/aimovefactory.cpp
         src/luna/ai/quiescevaluator.cpp
         src/luna/utils.cpp
         src/luna/endgame.cpp
@@ -50,7 +49,6 @@ add_library(luna STATIC
         src/luna/pst.h
         src/luna/ai/hce/hce.cpp
         src/luna/ai/hce/hce.h
-        src/luna/ai/aimovefactory.h
         src/luna/ai/evaluator.h
         src/luna/ai/quiescevaluator.h
         src/luna/ai/search.h
@@ -76,7 +74,7 @@ add_library(luna STATIC
         src/luna/types.h
         src/luna/utils.h
         src/luna/zobrist.h
-        src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h ext/include/popl/popl.h)
+        src/luna/threadpool.h src/luna/threadpool.cpp src/luna/threadpool.h src/luna/ai/hce/hceweights.cpp src/luna/ai/hce/hceweights.h ext/include/popl/popl.h src/luna/ai/movecursor.cpp src/luna/ai/movecursor.h)
 
 add_executable(lunacli
         src/lunacli/main.cpp
