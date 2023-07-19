@@ -24,6 +24,8 @@ enum EndgameType {
     EG_KBN_K,
     EG_KR_KN,
     EG_KR_KB,
+    EG_KR_KR,
+    EG_KQ_KQ,
 };
 
 struct EndgameData {
