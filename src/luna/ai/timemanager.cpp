@@ -18,7 +18,7 @@ void TimeManager::start(const TimeControl& tc) {
             break;
 
         case TC_TOURNAMENT:
-            m_TargetTime = std::min(tc.time - 80, tc.time / 18 + tc.increment * 2);
+            m_TargetTime = std::min(tc.time - 80, tc.time / 19 + tc.increment * 2);
             m_OriginalTargetTime = m_TargetTime;
             break;
 
@@ -45,7 +45,7 @@ void TimeManager::onNewDepth(const SearchResults& res) {
 
     if (res.bestMove == m_BestItMove) {
         m_ItMoveReps++;
-        if (m_ItMoveReps >= 8) {
+        if (m_ItMoveReps >= 11) {
             m_TargetTime /= 2;
             m_ItMoveReps = 0;
         }
