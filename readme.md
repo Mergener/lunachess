@@ -7,6 +7,7 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
 
 - Move generation
   - Magic bitboards based move-generation
+  - Staged movegen
 
 - Search features
   - Principal Variation Search
