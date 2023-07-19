@@ -4,11 +4,19 @@ project(luna)
 ##
 # Luna version numbers
 ##
-set(LUNA_VERSION_MAJOR "0")
-set(LUNA_VERSION_MINOR "4")
+set(LUNA_VERSION_MAJOR "1")
+set(LUNA_VERSION_MINOR "0")
 set(LUNA_VERSION_PATCH "0")
 
-message("Luna version is set to ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH}")
+# If set to 0, this is interpreted as a non-dev patch.
+set(LUNA_DEV_PATCH "1")
+
+set(LUNA_VERSION_FULL ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH})
+if (LUNA_DEV_PATCH GREATER 0)
+    set(LUNA_VERSION_FULL "${LUNA_VERSION_FULL}-dev-${LUNA_DEV_PATCH}")
+endif()
+
+message("Luna version is set to ${LUNA_VERSION_FULL}")
 
 ##
 # Executable name
@@ -93,12 +101,8 @@ add_executable(lunatuner
 ##
 set_target_properties(luna PROPERTIES OUTPUT_NAME ${LUNA_OUT_NAME})
 set_target_properties(lunacli PROPERTIES OUTPUT_NAME ${LUNA_OUT_NAME})
-target_compile_definitions(lunacli PUBLIC LUNA_VERSION_MAJOR=${LUNA_VERSION_MAJOR})
-target_compile_definitions(lunacli PUBLIC LUNA_VERSION_MINOR=${LUNA_VERSION_MINOR})
-target_compile_definitions(lunacli PUBLIC LUNA_VERSION_PATCH=${LUNA_VERSION_PATCH})
-target_compile_definitions(lunatest PUBLIC LUNA_VERSION_MAJOR=${LUNA_VERSION_MAJOR})
-target_compile_definitions(lunatest PUBLIC LUNA_VERSION_MINOR=${LUNA_VERSION_MINOR})
-target_compile_definitions(lunatest PUBLIC LUNA_VERSION_PATCH=${LUNA_VERSION_PATCH})
+target_compile_definitions(lunacli PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FULL}\")
+target_compile_definitions(lunatest PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FULL}\")
 
 ##
 # Add external dependencies

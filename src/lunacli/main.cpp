@@ -12,7 +12,7 @@ int main() {
         std::cin.tie();
         std::cout << std::boolalpha;
 
-        std::cout << "LunaChess AB v" << LUNA_VERSION_MAJOR << "." << LUNA_VERSION_MINOR << "." << LUNA_VERSION_PATCH << std::endl;
+        std::cout << "LunaChess AB " << LUNA_VERSION_NAME << std::endl;
 
 #ifdef LUNA_ASSERTS_ON
         std::cout << "LUNA_ASSERTS_ON is enabled." << std::endl;
