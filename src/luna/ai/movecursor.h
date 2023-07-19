@@ -12,6 +12,7 @@ namespace lunachess::ai {
 
 enum MoveCursorStage {
 
+    MCS_HASH_MOVE,
     MCS_PROM_CAPTURES,
     MCS_PROMOTIONS,
     MCS_CAPTURES,
@@ -35,7 +36,7 @@ public:
         m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] += depth*depth;
     }
 
-    inline int getMoveHistory(Move move) {
+    inline int getMoveHistory(Move move) const {
         return m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()];
     }
 
@@ -52,6 +53,8 @@ private:
     int m_History[CL_COUNT][SQ_COUNT][SQ_COUNT];
 };
 
+int getQuietMoveScore(Move move);
+
 template <bool NOISY_ONLY = false>
 class MoveCursor {
     inline static constexpr MoveCursorStage LAST_STAGE =
@@ -60,22 +63,36 @@ class MoveCursor {
                 : MCS_QUIET;
 
 public:
-    Move next(const Position& pos, const MoveOrderingData& moveOrderingData) {
+    Move next(const Position& pos,
+              const MoveOrderingData& moveOrderingData,
+              int ply,
+              Move hashMove = MOVE_INVALID) {
+
         while (m_Iter == m_Moves.end()) {
             if (m_Stage > LAST_STAGE) {
                 return MOVE_INVALID;
             }
-            generate(pos, moveOrderingData);
+            if (m_Stage == MCS_HASH_MOVE && hashMove != MOVE_INVALID) {
+                m_Stage = static_cast<MoveCursorStage>(m_Stage + 1);
+                return hashMove;
+            }
+            generate(pos, moveOrderingData, ply);
             m_Stage = static_cast<MoveCursorStage>(m_Stage + 1);
         }
 
-        return *m_Iter++;
+        // Prevent hashMove from being searched more than once
+        Move move = *m_Iter++;
+        if (move == hashMove || !pos.isMoveLegal(move)) {
+            return next(pos, moveOrderingData, ply, hashMove);
+        }
+
+        return move;
     }
 
 private:
     MoveList m_Moves;
     MoveList::Iterator m_Iter = m_Moves.begin();
-    MoveCursorStage m_Stage = MCS_PROM_CAPTURES;
+    MoveCursorStage m_Stage = MCS_HASH_MOVE;
 
     static bool compareMvvLva(Move a, Move b) {
         constexpr int MVV_LVA[PT_COUNT][PT_COUNT] {
@@ -93,12 +110,14 @@ private:
                MVV_LVA[b.getSourcePiece().getType()][b.getDestPiece().getType()];
     }
 
-    void generate(const Position& pos, const MoveOrderingData& moveOrderingData){
+    void generate(const Position& pos,
+                  const MoveOrderingData& moveOrderingData,
+                  int ply) {
         auto stageBegin = m_Moves.end();
 
         switch (m_Stage) {
             case MCS_PROM_CAPTURES: {
-                movegen::generate<BIT(MT_PROMOTION_CAPTURE)>(pos, m_Moves);
+                movegen::generate<BIT(MT_PROMOTION_CAPTURE), PTM_ALL, true>(pos, m_Moves);
                 utils::insertionSort(m_Moves.begin(), m_Moves.end(), [this](Move a, Move b) {
                     return compareMvvLva(a, b);
                 });
@@ -106,12 +125,12 @@ private:
             }
 
             case MCS_PROMOTIONS: {
-                movegen::generate<BIT(MT_SIMPLE_PROMOTION)>(pos, m_Moves);
+                movegen::generate<BIT(MT_SIMPLE_PROMOTION), PTM_ALL, true>(pos, m_Moves);
                 break;
             }
 
             case MCS_CAPTURES: {
-                movegen::generate<BIT(MT_SIMPLE_CAPTURE)>(pos, m_Moves);
+                movegen::generate<BIT(MT_SIMPLE_CAPTURE), PTM_ALL, true>(pos, m_Moves);
 
                 // Compute the SEE for each simple capture
                 bool seeTable[SQ_COUNT][SQ_COUNT];
@@ -134,12 +153,35 @@ private:
                     return compareMvvLva(a, b);
                 });
 
-                movegen::generate<BIT(MT_EN_PASSANT_CAPTURE), BIT(PT_PAWN)>(pos, m_Moves);
+                movegen::generate<BIT(MT_EN_PASSANT_CAPTURE), BIT(PT_PAWN), true>(pos, m_Moves);
                 break;
             }
 
             case MCS_QUIET: {
-                // to-do
+                movegen::generate<MTM_QUIET, PTM_ALL, true>(pos, m_Moves);
+                utils::insertionSort(stageBegin, m_Moves.end(), [this, &pos, &moveOrderingData, ply](Move a, Move b) {
+                    // Killer move heuristic
+                    bool aIsKiller = moveOrderingData.isKillerMove(a, ply);
+                    bool bIsKiller = moveOrderingData.isKillerMove(b, ply);
+                    if (aIsKiller && !bIsKiller) {
+                        return true;
+                    }
+                    else if (!aIsKiller && bIsKiller) {
+                        return false;
+                    }
+
+                    // History heuristic
+                    int aHist = moveOrderingData.getMoveHistory(a);
+                    int bHist = moveOrderingData.getMoveHistory(b);
+                    if (aHist > bHist) {
+                        return true;
+                    }
+                    if (aHist < bHist) {
+                        return false;
+                    }
+
+                    return getQuietMoveScore(a) > getQuietMoveScore(b);
+                });
             }
 
             default:
@@ -148,8 +190,6 @@ private:
 
     }
 };
-
-int getQuietMoveScore(Move move);
 
 }
 

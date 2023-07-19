@@ -10,6 +10,7 @@
 
 #include "transpositiontable.h"
 #include "evaluator.h"
+#include "movecursor.h"
 #include "aimovefactory.h"
 #include "hce/hce.h"
 #include "timemanager.h"
@@ -131,21 +132,6 @@ public:
 
     SearchResults search(const Position& pos, SearchSettings settings = SearchSettings());
 
-    /**
-     * Performs a quiescence search. The quiescence search searches for 'noisy' moves only.
-     * For Luna, noisy moves consist of captures and promotions.
-     *
-     * @param pos The position to search.
-     * @param ply The current search ply.
-     * @param alpha The alpha (lower bound) value. The returned score is always greater than or equal to alpha.
-     * @param beta The beta (upperbound) value. The returned score is always less than or equal to beta.
-     * @return The score of the position after the quiescence search.
-     */
-    inline int quiesce(const Position& pos, int ply = 0, int alpha = -HIGH_BETA, int beta = HIGH_BETA) {
-        m_Eval->setPosition(pos);
-        return quiesce(ply, alpha, beta);
-    }
-
     inline AlphaBetaSearcher()
         : m_Eval(new HandCraftedEvaluator()) {
     }
@@ -172,13 +158,22 @@ public:
 private:
     TranspositionTable m_TT;
     SearchResults m_LastResults;
-    AIMoveFactory m_MvFactory;
+    MoveOrderingData m_MvOrderData;
     std::shared_ptr<Evaluator> m_Eval;
     TimeManager m_TimeManager;
     bool m_ShouldStop = false;
     bool m_Searching = false;
 
-    int negamax(int depth, int ply, int alpha, int beta, bool nullMoveAllowed = true, MoveList* searchMoves = nullptr);
+    enum SearchFlags {
+
+        NO_SEARCH_FLAGS,
+        ROOT      = BIT(0),
+        DO_NULL   = BIT(1),
+
+    };
+
+    template <SearchFlags flags = NO_SEARCH_FLAGS>
+    int negamax(int depth, int ply, int alpha, int beta, MoveList* searchMoves = nullptr);
 
     int quiesce(int ply, int alpha, int beta);
 

@@ -40,9 +40,6 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         alpha = standPat;
     }
 
-    MoveList moves;
-    int moveCount = m_MvFactory.generateNoisyMoves(moves, pos, ply);
-
     // #----------------------------------------
     // # DELTA PRUNING
     // #----------------------------------------
@@ -64,8 +61,10 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     }
     // #----------------------------------------
 
-    for (int i = 0; i < moveCount; ++i) {
-        Move move = moves[i];
+    MoveCursor<true> moveCursor;
+
+    Move move;
+    while ((move = moveCursor.next(pos, m_MvOrderData, ply))) {
         if (move.getType() == MT_SIMPLE_CAPTURE &&
             !staticanalysis::hasGoodSEE(pos, move)) {
             // The result of the exchange series will always result in
@@ -89,14 +88,13 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
+template <AlphaBetaSearcher::SearchFlags flags>
 int AlphaBetaSearcher::negamax(int depth, int ply,
                                int alpha, int beta,
-                               bool nullMoveAllowed,
                                MoveList *searchMoves) {
     const Position& pos = m_Eval->getPosition();
 
-    bool isRoot = ply == 0;
-    if (pos.isDraw() && !isRoot) {
+    if (!IS_SET(flags, ROOT) && pos.isDraw()) {
         // Position is a draw, return draw score.
         return m_Eval->getDrawScore();
     }
@@ -191,14 +189,14 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
     constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
     constexpr int NULL_MOVE_MIN_PIECES = 4;
 
-    if (nullMoveAllowed && !isCheck &&
+    if (IS_SET(flags, DO_NULL) && !isCheck &&
         depth >= NULL_SEARCH_MIN_DEPTH &&
         pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
 
         // Null move pruning allowed
         m_Eval->makeNullMove();
 
-        int score = -negamax(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1, false);
+        int score = -negamax<NO_SEARCH_FLAGS>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
         if (score >= beta) {
             //depth -= NULL_SEARCH_DEPTH_RED;
             m_Eval->undoNullMove();
@@ -209,26 +207,21 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
     }
     // #----------------------------------------
 
-    // Generate moves
-    MoveList moves;
-    if (searchMoves == nullptr) {
-        m_MvFactory.generateMoves(moves, pos, ply, hashMove);
-        searchMoves = &moves;
-    }
-    if (searchMoves->size() == 0) {
-        // Either stalemate or checkmate
-        if (isCheck) {
-            return -MATE_SCORE + ply;
-        }
-        return drawScore;
-    }
-
     // Finally, do the search
-    int bestMoveIdx = 0;
     bool shouldSearchPV = true;
 
-    for (int i = 0; i < searchMoves->size(); ++i) {
-        Move move = (*searchMoves)[i];
+    MoveCursor moveCursor;
+    Move bestMove = moveCursor.next(pos, m_MvOrderData, ply, hashMove);
+    int searchedMoves = 0;
+    for (Move move = bestMove; move != MOVE_INVALID; move = moveCursor.next(pos, m_MvOrderData, ply)) {
+        if (IS_SET(flags, ROOT) &&
+            searchMoves != nullptr &&
+            !searchMoves->contains(move)) {
+            // Don't search for unrequested moves
+            continue;
+        }
+
+        searchedMoves++;
         m_Eval->makeMove(move);
 
         // The highest depth we're going to search during this iteration.
@@ -240,7 +233,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         // #----------------------------------------
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
         constexpr int FUTILITY_MARGIN = 2500;
-        if (!pos.isCheck() && !isRoot && move.is<MTM_QUIET>()) {
+        if (!IS_SET(flags, ROOT) && !pos.isCheck() && move.is<MTM_QUIET>()) {
             if (fullIterationDepth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
                 // Prune
                 m_Eval->undoMove();
@@ -272,7 +265,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         if (!shouldSearchPV) {
             if (depth >= 2 &&
                 !pos.isCheck() &&
-                i >= 2 &&
+                searchedMoves >= 2 &&
                 move.is<MTM_QUIET>()) {
                 iterationDepth -= 2;
             }
@@ -301,24 +294,30 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
             // Beta cutoff, fail high
             alpha = beta;
 
-            bestMoveIdx = i;
+            bestMove = move;
 
             if (move.is<MTM_QUIET>()) {
-                m_MvFactory.storeHistory(move, iterationDepth);
-                m_MvFactory.storeKillerMove(move, ply);
+                m_MvOrderData.storeHistory(move, iterationDepth);
+                m_MvOrderData.storeKillerMove(move, ply);
             }
             break;
         }
         if (score > alpha) {
             alpha = score;
-            bestMoveIdx = i;
+            bestMove = move;
         }
         shouldSearchPV = false;
     }
 
-    // Store search data in transposition table
-    Move bestMove = (*searchMoves)[bestMoveIdx];
+    if (searchedMoves == 0) {
+        // Either stalemate or checkmate
+        if (isCheck) {
+            return -MATE_SCORE + ply;
+        }
+        return drawScore;
+    }
 
+    // Store search data in transposition table
     if (alpha <= originalAlpha) {
         // Fail low
         ttEntry.type = TranspositionTable::UPPERBOUND;
@@ -331,9 +330,9 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         ttEntry.type = TranspositionTable::EXACT;
     }
 
-    ttEntry.depth = originalDepth;
-    ttEntry.move = bestMove;
-    ttEntry.score = alpha;
+    ttEntry.depth      = originalDepth;
+    ttEntry.move       = bestMove;
+    ttEntry.score      = alpha;
     ttEntry.zobristKey = posKey;
     ttEntry.staticEval = staticEval;
     m_TT.maybeAdd(ttEntry);
@@ -361,7 +360,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
         // Reset everything
         m_Searching = true;
         m_ShouldStop = false;
-        m_MvFactory.resetHistory();
+        m_MvOrderData.resetHistory();
 
         // Setup variables
         m_Eval->setPosition(argPos);
@@ -369,11 +368,9 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
         int drawScore = m_Eval->getDrawScore();
         int maxDepth = std::min(MAX_SEARCH_DEPTH, settings.maxDepth);
 
-        // Generate and order all moves
+        // Get result before searching
         MoveList moves;
-        m_MvFactory.generateMoves(moves, pos, 0, MOVE_INVALID);
-
-        // If no moves were generated, position is a stalemate or checkmate.
+        movegen::generate(pos, moves);
         if (moves.size() == 0) {
             int score = pos.isCheck()
                         ? -MATE_SCORE // Checkmate
@@ -397,7 +394,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
         m_LastResults.searchedVariations.clear();
 
         m_LastResults.bestMove = moves[0];
-        m_LastResults.searchedVariations.resize(moves.size());
+        m_LastResults.searchedVariations.resize(settings.multiPvCount);
 
         // Notify the time manager that we're starting a search
         m_TimeManager.start(settings.ourTimeControl);
@@ -455,7 +452,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
                             beta = HIGH_BETA;
                         }
 
-                        score = negamax(depth, 0, alpha, beta, false, &moves);
+                        score = negamax<ROOT>(depth, 0, alpha, beta, &moves);
                         if (score <= alpha) {
                             // Fail low, widen lower bound.
                             alpha -= static_cast<int>(alphaDelta * 1000);
@@ -526,10 +523,8 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
                 }
             }
 
-            // Re-generate moves list with new ordering
             moves.clear();
-
-            m_MvFactory.generateMoves(moves, pos, 0, m_LastResults.bestMove);
+            movegen::generate(pos, moves);
             filterMoves(moves, settings.moveFilter);
 
             m_TimeManager.onNewDepth(m_LastResults);
