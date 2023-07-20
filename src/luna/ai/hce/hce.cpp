@@ -204,8 +204,6 @@ int HandCraftedEvaluator::getIsolatedPawnsScore(int gpf, Color c) const {
 }
 
 int HandCraftedEvaluator::getPassedPawnsScore(int gpf, Color c, Bitboard passedPawns) const {
-    const auto& pos = getPosition();
-
     int total = 0;
     for (Square s: passedPawns) {
         int steps = stepsFromPromotion(s, c);
@@ -291,38 +289,45 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color us) const {
     int totalAttackPower = 0;
     Square theirKingSquare = pos.getKingSquare(getOppositeColor(us));
     Bitboard occ = pos.getCompositeBitboard();
-    Bitboard theirPieces = pos.getBitboard(Piece(them, PT_NONE));
 
     // Add attack power for each piece of ours that can attack a square near
     // the opponent's king.
-    constexpr int PIECE_ATK_POWER[] {
-    0, 1, 2, 2, 3, 4, 1
-    };
-    Bitboard ourPieces = pos.getBitboard(Piece(us, PT_NONE));
-    Bitboard nearKingSquares = bbs::getNearKingSquares(theirKingSquare);
-    for (Square s: ourPieces) {
-        Piece p = pos.getPieceAt(s);
-        Bitboard atks = bbs::getPieceAttacks(s, occ, p);
-        if ((atks & nearKingSquares) != 0) {
-            totalAttackPower += PIECE_ATK_POWER[p.getType()];
-        }
-        if (nearKingSquares.contains(s)) {
-            totalAttackPower += PIECE_ATK_POWER[p.getType()];
-        }
-    }
+//    constexpr int PIECE_ATK_POWER[] {
+//    0, 1, 1, 1, 2, 2, 1
+//    };
 
     // Add attack power if our pieces can check the opponent's king
     constexpr int PIECE_CHK_POWER[] {
-            0, 1, 4, 4, 5, 5, 1
+            0, 2, 6, 6, 6, 8, 10
     };
-    for (PieceType pt: { PT_PAWN, PT_KNIGHT, PT_BISHOP, PT_ROOK, PT_QUEEN }) {
-        Piece p = Piece(us, pt);
-        Bitboard atksFromKing = bbs::getPieceAttacks(theirKingSquare, occ, p);
-        Bitboard ourAtks = pos.getAttacks(us, pt);
-        Bitboard checkableSquares = (atksFromKing & ourAtks) & (~theirPieces);
 
-        if (checkableSquares) {
-            totalAttackPower += PIECE_CHK_POWER[pt] * pos.getBitboard(p).count();
+//    Bitboard nearKingSquares = bbs::getNearKingSquares(theirKingSquare);
+
+    for (PieceType pt: { PT_PAWN, PT_KNIGHT, PT_BISHOP, PT_ROOK, PT_QUEEN }) {
+        Bitboard theirDefendedSquares = staticanalysis::getDefendedSquares(pos, them, pt);
+        Piece p(us, pt);
+        Bitboard pieceBB = pos.getBitboard(p);
+        Bitboard atksFromKing = bbs::getPieceAttacks(theirKingSquare, occ, p);
+
+        for (Square s: pieceBB) {
+            Bitboard atks = bbs::getPieceAttacks(s, occ, p) & (~theirDefendedSquares);
+//
+//            // Compute near king attacks
+//            if ((atks & nearKingSquares) != 0) {
+//                totalAttackPower += PIECE_ATK_POWER[p.getType()];
+//            }
+//            if (nearKingSquares.contains(s)) {
+//                totalAttackPower += PIECE_ATK_POWER[p.getType()];
+//            }
+
+            // Compute checks
+            if ((atksFromKing & atks) != 0 && p.getType() != PT_KING) {
+                totalAttackPower += PIECE_CHK_POWER[p.getType()];
+
+//                std::cout << "In pos " << pos.toFen() << ", " << p.getIdentifier() << " on " << getSquareName(s) << " can check king on "
+//                          << getSquareName(theirKingSquare) << " from: " << std::endl;
+//                std::cout << Bitboard(atksFromKing & atks) << std::endl;
+            }
         }
     }
 
@@ -339,7 +344,7 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color us) const {
         totalAttackPower += QUEENS_TOUCH_POWER;
     }
 
-    return m_Weights->kingAttackScore[std::min(size_t(totalAttackPower), m_Weights->kingAttackScore.size() - 1)] * 2 / 3;
+    return m_Weights->kingAttackScore[std::min(size_t(totalAttackPower), m_Weights->kingAttackScore.size() - 1)];
 }
 
 int HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) const {

@@ -89,9 +89,9 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
 }
 
 template <AlphaBetaSearcher::SearchFlags flags>
-int AlphaBetaSearcher::negamax(int depth, int ply,
-                               int alpha, int beta,
-                               MoveList *searchMoves) {
+int AlphaBetaSearcher::pvs(int depth, int ply,
+                           int alpha, int beta,
+                           MoveList *searchMoves) {
     const Position& pos = m_Eval->getPosition();
 
     if (!IS_SET(flags, ROOT) && pos.isDraw()) {
@@ -196,7 +196,7 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         // Null move pruning allowed
         m_Eval->makeNullMove();
 
-        int score = -negamax<SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
+        int score = -pvs<SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
         if (score >= beta) {
             //depth -= NULL_SEARCH_DEPTH_RED;
             m_Eval->undoNullMove();
@@ -275,16 +275,16 @@ int AlphaBetaSearcher::negamax(int depth, int ply,
         int score;
         if (shouldSearchPV) {
             // Perform PVS. First move of the list is always PVS.
-            score = -negamax(iterationDepth, ply + 1, -beta, -alpha);
+            score = -pvs(iterationDepth, ply + 1, -beta, -alpha);
         }
         else {
             // Perform a ZWS. Searches after the first move are performed
             // with a null window. If the search fails high, do a re-search
             // with the full window.
-            score = -negamax(iterationDepth, ply + 1, -alpha - 1, -alpha);
+            score = -pvs(iterationDepth, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
                 iterationDepth = fullIterationDepth;
-                score = -negamax(iterationDepth, ply + 1, -beta, -alpha);
+                score = -pvs(iterationDepth, ply + 1, -beta, -alpha);
             }
         }
 
@@ -453,7 +453,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
                             beta = HIGH_BETA;
                         }
 
-                        score = negamax<ROOT>(depth, 0, alpha, beta, &moves);
+                        score = pvs<ROOT>(depth, 0, alpha, beta, &moves);
                         if (score <= alpha) {
                             // Fail low, widen lower bound.
                             alpha -= static_cast<int>(alphaDelta * 1000);
