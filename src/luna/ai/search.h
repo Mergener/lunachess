@@ -172,7 +172,7 @@ private:
     };
 
     template <SearchFlags flags = NO_SEARCH_FLAGS>
-    int negamax(int depth, int ply, int alpha, int beta, MoveList* searchMoves = nullptr);
+    int pvs(int depth, int ply, int alpha, int beta, MoveList* searchMoves = nullptr);
 
     int quiesce(int ply, int alpha, int beta);
 

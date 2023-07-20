@@ -23,7 +23,6 @@ TInt randomInteger(TInt minInclusive, TInt maxExclusive) {
 
 template <typename TFloat>
 TFloat randomFloatingPoint(TFloat min, TFloat max) {
-    constexpr ui64 MAX = 1000000000;
     static_assert(std::is_floating_point_v<TFloat>);
 
     std::uniform_real_distribution<TFloat> gen(min, max);

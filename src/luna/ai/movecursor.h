@@ -145,7 +145,7 @@ private:
                 }
 
                 // Sort the captures in see > mvv-lva order
-                utils::insertionSort(stageBegin, m_Moves.end(), [this, &seeTable](Move a, Move b) {
+                utils::insertionSort(stageBegin, m_Moves.end(), [&seeTable](Move a, Move b) {
                     bool aHasGoodSEE = seeTable[a.getSource()][a.getDest()];
                     bool bHasGoodSEE = seeTable[b.getSource()][b.getDest()];
                     if (aHasGoodSEE && !bHasGoodSEE) {
