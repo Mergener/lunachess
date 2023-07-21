@@ -20,6 +20,7 @@ void initializeEverything() {
 
     // Initialize AI functionalities
     ai::initializeDefaultHCEWeights();
+    ai::initializeSearchParameters();
 }
 
 }

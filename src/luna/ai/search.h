@@ -184,6 +184,8 @@ private:
     void interruptSearchIfNecessary();
 };
 
+void initializeSearchParameters();
+
 }
 
 #endif // LUNA_AI_SEARCH_H

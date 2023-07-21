@@ -13,6 +13,21 @@ class SearchInterrupt {
 
 constexpr int CHECK_TIME_NODE_INTERVAL = 1024;
 
+static std::array<std::array<int, MoveList::MAX_ELEMS>, MAX_SEARCH_DEPTH * 2> s_LMRReductions;
+
+void initializeSearchParameters() {
+    for (int depth = 0; depth < s_LMRReductions.size(); ++depth) {
+        auto& lmrPerMove = s_LMRReductions[depth];
+        for (int m = 0; m < lmrPerMove.size(); ++m) {
+            lmrPerMove[m] = static_cast<int>(1.25 + std::log(depth) * std::log(m) * 100 / 267);
+        }
+    }
+}
+
+static int getLMRReduction(int depth, int moveIndex) {
+    return s_LMRReductions[depth][moveIndex];
+}
+
 void AlphaBetaSearcher::interruptSearchIfNecessary() {
     if (m_LastResults.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
         (m_TimeManager.timeIsUp()
@@ -267,7 +282,8 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 !pos.isCheck() &&
                 searchedMoves >= 2 &&
                 move.is<MTM_QUIET>()) {
-                iterationDepth -= 2;
+                int reduction = getLMRReduction(iterationDepth, searchedMoves);
+                iterationDepth -= reduction;
             }
         }
         // #----------------------------------------

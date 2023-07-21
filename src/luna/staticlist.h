@@ -18,6 +18,8 @@ namespace lunachess {
 template <typename T, int CAPACITY>
 class StaticList {
 public:
+    inline static constexpr int MAX_ELEMS = CAPACITY;
+
     using TVal = T;
     using Iterator = TVal*;
     using ConstIterator = const TVal*;
