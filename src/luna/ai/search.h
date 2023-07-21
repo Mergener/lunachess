@@ -168,10 +168,11 @@ private:
         NO_SEARCH_FLAGS,
         ROOT      = BIT(0),
         SKIP_NULL = BIT(1),
+        ZW        = BIT(2)
 
     };
 
-    template <SearchFlags flags = NO_SEARCH_FLAGS>
+    template <SearchFlags FLAGS = NO_SEARCH_FLAGS>
     int pvs(int depth, int ply, int alpha, int beta, MoveList* searchMoves = nullptr);
 
     int quiesce(int ply, int alpha, int beta);

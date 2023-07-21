@@ -103,13 +103,13 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     return alpha;
 }
 
-template <AlphaBetaSearcher::SearchFlags flags>
+template <AlphaBetaSearcher::SearchFlags FLAGS>
 int AlphaBetaSearcher::pvs(int depth, int ply,
                            int alpha, int beta,
                            MoveList *searchMoves) {
     const Position& pos = m_Eval->getPosition();
 
-    if (!IS_SET(flags, ROOT) && pos.isDraw()) {
+    if (!IS_SET(FLAGS, ROOT) && pos.isDraw()) {
         // Position is a draw, return draw score.
         return m_Eval->getDrawScore();
     }
@@ -196,31 +196,33 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     int drawScore = m_Eval->getDrawScore();
 
-    // #----------------------------------------
-    // # NULL MOVE PRUNING
-    // #----------------------------------------
-    // Prune if making a null move fails high
-    constexpr int NULL_SEARCH_DEPTH_RED = 2;
-    constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
-    constexpr int NULL_MOVE_MIN_PIECES = 4;
+    if (IS_SET(FLAGS, ZW) && !isCheck) {
+        // #----------------------------------------
+        // # NULL MOVE PRUNING
+        // #----------------------------------------
+        // Prune if making a null move fails high
+        constexpr int NULL_SEARCH_DEPTH_RED = 2;
+        constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
+        constexpr int NULL_MOVE_MIN_PIECES = 4;
 
-    if (!IS_SET(flags, SKIP_NULL) && !isCheck &&
-        depth >= NULL_SEARCH_MIN_DEPTH &&
-        pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
+        if (!IS_SET(FLAGS, SKIP_NULL) &&
+            depth >= NULL_SEARCH_MIN_DEPTH &&
+            pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
 
-        // Null move pruning allowed
-        m_Eval->makeNullMove();
+            // Null move pruning allowed
+            m_Eval->makeNullMove();
 
-        int score = -pvs<SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
-        if (score >= beta) {
-            //depth -= NULL_SEARCH_DEPTH_RED;
+            int score = -pvs<SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
+            if (score >= beta) {
+                //depth -= NULL_SEARCH_DEPTH_RED;
+                m_Eval->undoNullMove();
+                return beta; // Prune
+            }
+
             m_Eval->undoNullMove();
-            return beta; // Prune
         }
-
-        m_Eval->undoNullMove();
+        // #----------------------------------------
     }
-    // #----------------------------------------
 
     // Finally, do the search
     bool shouldSearchPV = true;
@@ -229,7 +231,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     Move bestMove = moveCursor.next(pos, m_MvOrderData, ply, hashMove);
     int searchedMoves = 0;
     for (Move move = bestMove; move != MOVE_INVALID; move = moveCursor.next(pos, m_MvOrderData, ply)) {
-        if (IS_SET(flags, ROOT) &&
+        if (IS_SET(FLAGS, ROOT) &&
             searchMoves != nullptr &&
             !searchMoves->contains(move)) {
             // Don't search for unrequested moves
@@ -248,7 +250,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // #----------------------------------------
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
         constexpr int FUTILITY_MARGIN = 2500;
-        if (!IS_SET(flags, ROOT) && !pos.isCheck() && move.is<MTM_QUIET>()) {
+        if (!IS_SET(FLAGS, ROOT) && !pos.isCheck() && move.is<MTM_QUIET>()) {
             if (fullIterationDepth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
                 // Prune
                 m_Eval->undoMove();
@@ -261,16 +263,6 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             }
         }
         // #----------------------------------------
-
-//        Piece movePiece = move.getSourcePiece();
-//        if (movePiece.getType() == PT_PAWN &&
-//            stepsFromPromotion(move.getDest(), movePiece.getColor()) <= 2) {
-//            Bitboard passedPawns = staticanalysis::getPassedPawns(pos, movePiece.getColor());
-//            if (passedPawns.contains(move.getDest())) {
-//                // Extend passed pawn pushes that are close to promotion
-//                fullIterationDepth++;
-//            }
-//        }
 
         int iterationDepth = fullIterationDepth;
 
@@ -297,7 +289,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             // Perform a ZWS. Searches after the first move are performed
             // with a null window. If the search fails high, do a re-search
             // with the full window.
-            score = -pvs(iterationDepth, ply + 1, -alpha - 1, -alpha);
+            score = -pvs<ZW>(iterationDepth, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
                 iterationDepth = fullIterationDepth;
                 score = -pvs(iterationDepth, ply + 1, -beta, -alpha);
