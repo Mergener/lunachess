@@ -46,7 +46,7 @@ inline bool randomChance(float chancePct) {
 }
 
 inline void writeToFile(std::filesystem::path path, const std::string& data) {
-    std::fstream stream(path);
+    std::ofstream stream(path);
     stream.exceptions(std::ofstream::badbit | std::ofstream::failbit);
     stream << data;
 }

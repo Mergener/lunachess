@@ -73,7 +73,7 @@ public:
 private:
     Move m_Killers[128][2];
     Move m_CounterMoves[SQ_COUNT][SQ_COUNT];
-    int  m_History[CL_COUNT][SQ_COUNT][SQ_COUNT];
+    int  m_History[CL_COUNT][SQ_COUNT][SQ_COUNT] = {};
 };
 
 int getQuietMoveScore(Move move);

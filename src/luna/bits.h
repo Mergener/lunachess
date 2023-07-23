@@ -12,7 +12,7 @@
 #endif
 
 #define BIT(n) (C64(1) << (n))
-#define IS_SET(bitmask, bit) ((bitmask & bit) != 0)
+#define BIT_INTERSECTS(bitmask, bit) ((bitmask & bit) != 0)
 #define BITMASK(nbits) ((1ul << (nbits)) - 1ul)
 
 namespace lunachess::bits {
