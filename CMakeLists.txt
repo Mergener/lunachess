@@ -36,12 +36,10 @@ set(HCE_WEIGHTS_FILE ${CMAKE_SOURCE_DIR}/src/luna/ai/hce/weights.json)
 add_library(luna STATIC
         src/luna/types.cpp
         src/luna/bitboard.cpp
-        src/luna/chessgame.cpp
         src/luna/endgame.cpp
         src/luna/piece.cpp
         src/luna/position.cpp
         src/luna/zobrist.cpp
-        src/luna/square.cpp
         src/luna/move.cpp
         src/luna/perft.cpp
         src/luna/lunachess.cpp
@@ -51,7 +49,6 @@ add_library(luna STATIC
         src/luna/ai/timemanager.cpp
         src/luna/ai/search.cpp
         src/luna/ai/transpositiontable.cpp
-        src/luna/ai/quiescevaluator.cpp
         src/luna/utils.cpp
         src/luna/endgame.cpp
         src/luna/endgame.h src/luna/openingbook.cpp
@@ -60,13 +57,11 @@ add_library(luna STATIC
         src/luna/ai/hce/hce.cpp
         src/luna/ai/hce/hce.h
         src/luna/ai/evaluator.h
-        src/luna/ai/quiescevaluator.h
         src/luna/ai/search.h
         src/luna/ai/timemanager.h
         src/luna/ai/transpositiontable.h
         src/luna/bitboard.h
         src/luna/bits.h
-        src/luna/chessgame.h
         src/luna/clock.h
         src/luna/debug.h
         src/luna/endgame.h

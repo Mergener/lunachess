@@ -3,7 +3,6 @@
 
 #include "bitboard.h"
 #include "bits.h"
-#include "chessgame.h"
 #include "clock.h"
 #include "debug.h"
 #include "endgame.h"
@@ -22,7 +21,6 @@
 #include "utils.h"
 #include "zobrist.h"
 
-#include "ai/quiescevaluator.h"
 #include "ai/evaluator.h"
 #include "ai/search.h"
 #include "ai/timemanager.h"
