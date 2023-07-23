@@ -33,13 +33,13 @@ struct UCIContext {
     // Internal state
     UCIState state = IDLE;
 
-    // Search settings
-    ai::AlphaBetaSearcher searcher;
-    bool useOpBook = false;
-
     // HCE settings
     std::shared_ptr<ai::HandCraftedEvaluator> hce = std::make_shared<ai::HandCraftedEvaluator>();
     const ai::HCEWeightTable* hceWeights = ai::getDefaultHCEWeights();
+
+    // Search settings
+    ai::AlphaBetaSearcher searcher = ai::AlphaBetaSearcher(hce);
+    bool useOpBook = false;
 };
 
 using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
@@ -291,7 +291,6 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
             return;
         }
     }
-    ctx.searcher = ai::AlphaBetaSearcher(ctx.hce);
 
     TimePoint startTime = Clock::now();
     searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
