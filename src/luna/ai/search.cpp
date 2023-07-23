@@ -120,20 +120,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     int staticEval = 0; // Used for some pruning/reduction techniques
     const int originalDepth = depth;
     const int originalAlpha = alpha;
-
-    // Before we start the search, probe the transposition table.
-    // If we had already searched this same position before but with
-    // equal or higher depth, we remove ourselves the burden of researching it
-    // and reuse previous results.
-    //
-    // If we find data in the TT searched at lowe depth, however, searching
-    // will still be necessary. Although we can still use the found data
-    // as a heuristic to accelerate the proccess of searching. For instance,
-    // there is a great chance that the best move at this position on a depth d
-    // is also the best move at d - 1 depth. Thus, we can search the best move
-    // at depth d - 1 first.
-
     Move hashMove = MOVE_INVALID; // Move extracted from TT
+
+    // Probe the transposition table
     ui64 posKey = pos.getZobrist();
     TranspositionTable::Entry ttEntry = {};
     ttEntry.zobristKey = posKey;
@@ -197,6 +186,8 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     int drawScore = m_Eval->getDrawScore();
 
     if (IS_SET(FLAGS, ZW) && !isCheck) {
+        int pieceCount = pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count();
+
         // #----------------------------------------
         // # NULL MOVE PRUNING
         // #----------------------------------------
@@ -207,7 +198,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
         if (!IS_SET(FLAGS, SKIP_NULL) &&
             depth >= NULL_SEARCH_MIN_DEPTH &&
-            pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count() > NULL_MOVE_MIN_PIECES) {
+            pieceCount > NULL_MOVE_MIN_PIECES) {
 
             // Null move pruning allowed
             m_Eval->makeNullMove();
@@ -223,6 +214,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         }
         // #----------------------------------------
     }
+
+    // Save last move. Used in countermove heuristic.
+    Move lastMove = pos.getLastMove();
 
     // Finally, do the search
     bool shouldSearchPV = true;
@@ -275,6 +269,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 searchedMoves >= 2 &&
                 move.is<MTM_QUIET>()) {
                 int reduction = getLMRReduction(iterationDepth, searchedMoves);
+
                 iterationDepth -= reduction;
             }
         }
@@ -296,6 +291,13 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             }
         }
 
+        if (score >= FORCED_MATE_THRESHOLD) {
+            score--;
+        }
+        else if (score <= -FORCED_MATE_THRESHOLD) {
+            score++;
+        }
+
         m_Eval->undoMove();
 
         if (score >= beta) {
@@ -307,6 +309,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             if (move.is<MTM_QUIET>()) {
                 m_MvOrderData.storeHistory(move, iterationDepth);
                 m_MvOrderData.storeKillerMove(move, ply);
+                m_MvOrderData.storeCounterMove(lastMove, move);
             }
             break;
         }
@@ -320,7 +323,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     if (searchedMoves == 0) {
         // Either stalemate or checkmate
         if (isCheck) {
-            return -MATE_SCORE + ply;
+            return -MATE_SCORE;
         }
         return drawScore;
     }
@@ -365,11 +368,11 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
     while (m_Searching); // Wait current search.
 
     try {
+
         // Reset everything
         m_Searching = true;
         m_ShouldStop = false;
-        m_MvOrderData.resetHistory();
-        m_MvOrderData.resetKillers();
+        m_MvOrderData.resetAll();
 
         // Setup variables
         m_Eval->setPosition(argPos);
@@ -377,7 +380,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
         int drawScore = m_Eval->getDrawScore();
         int maxDepth = std::min(MAX_SEARCH_DEPTH, settings.maxDepth);
 
-        // Get result before searching
+        // Try to generate moves in the position before we search
         MoveList moves;
         movegen::generate(pos, moves);
         if (moves.size() == 0) {
@@ -392,7 +395,7 @@ SearchResults AlphaBetaSearcher::search(const Position &argPos, SearchSettings s
             return m_LastResults;
         }
 
-        // Filter out undesired moves
+        // Filter out undesired moves (usually as specified by UCI 'searchmoves')
         filterMoves(moves, settings.moveFilter);
 
         // Setup results object

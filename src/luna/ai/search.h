@@ -129,6 +129,10 @@ public:
         m_ShouldStop = true;
     }
 
+    inline bool searching() const {
+        return m_Searching;
+    }
+
     SearchResults search(const Position& pos, SearchSettings settings = SearchSettings());
 
     inline AlphaBetaSearcher()
@@ -139,7 +143,7 @@ public:
      * Constructs a move searcher with an externally created evaluator.
      */
     inline explicit AlphaBetaSearcher(std::shared_ptr<Evaluator> eval)
-        : m_Eval(eval) {
+        : m_Eval(std::move(eval)) {
     }
 
     inline AlphaBetaSearcher& operator=(const AlphaBetaSearcher& other) {
@@ -156,12 +160,13 @@ public:
 
 private:
     TranspositionTable m_TT;
-    SearchResults m_LastResults;
-    MoveOrderingData m_MvOrderData;
+    SearchResults      m_LastResults;
+    MoveOrderingData   m_MvOrderData;
+    TimeManager        m_TimeManager;
     std::shared_ptr<Evaluator> m_Eval;
-    TimeManager m_TimeManager;
+
     bool m_ShouldStop = false;
-    bool m_Searching = false;
+    bool m_Searching  = false;
 
     enum SearchFlags {
 
@@ -186,7 +191,6 @@ private:
 };
 
 void initializeSearchParameters();
-
 }
 
 #endif // LUNA_AI_SEARCH_H

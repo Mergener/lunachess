@@ -36,8 +36,20 @@ public:
         m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] += depth*depth;
     }
 
+    inline void storeCounterMove(Move lastMove, Move counterMove) {
+        m_CounterMoves[lastMove.getSource()][lastMove.getDest()] = counterMove;
+    }
+
+    inline bool isCounterMove(Move lastMove, Move counterMove) const {
+        return m_CounterMoves[lastMove.getSource()][lastMove.getDest()] == counterMove;
+    }
+
     inline int getMoveHistory(Move move) const {
         return m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()];
+    }
+
+    inline void resetCountermoves() {
+        std::memset(m_CounterMoves, 0, sizeof(m_CounterMoves));
     }
 
     inline void resetHistory() {
@@ -48,14 +60,20 @@ public:
         std::memset(m_Killers, 0, sizeof(m_Killers));
     }
 
-    inline MoveOrderingData() {
+    inline void resetAll() {
         resetKillers();
         resetHistory();
+        resetCountermoves();
+    }
+
+    inline MoveOrderingData() {
+        resetAll();
     }
 
 private:
     Move m_Killers[128][2];
-    int m_History[CL_COUNT][SQ_COUNT][SQ_COUNT];
+    Move m_CounterMoves[SQ_COUNT][SQ_COUNT];
+    int  m_History[CL_COUNT][SQ_COUNT][SQ_COUNT];
 };
 
 int getQuietMoveScore(Move move);
@@ -172,6 +190,17 @@ private:
                         return true;
                     }
                     else if (!aIsKiller && bIsKiller) {
+                        return false;
+                    }
+
+                    // Countermove Heuristic
+                    Move lastMove = pos.getLastMove();
+                    bool aIsCountermove = moveOrderingData.isCounterMove(lastMove, a);
+                    bool bIsCountermove = moveOrderingData.isCounterMove(lastMove, b);
+                    if (aIsCountermove && !bIsCountermove) {
+                        return true;
+                    }
+                    else if (!aIsCountermove && bIsCountermove) {
                         return false;
                     }
 
