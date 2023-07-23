@@ -77,7 +77,10 @@ public:
     }
 
     inline void clear() {
-        std::memset(reinterpret_cast<void*>(m_Buckets), 0, m_Capacity * sizeof(Bucket));
+        // Simply resize to the same capacity.
+        // Calling calloc() seems to be slightly faster than memsetting the
+        // entire array to zero.
+        resize(m_Capacity * sizeof(Bucket));
     }
 
     /**
@@ -85,12 +88,14 @@ public:
      */
     inline void resize(size_t hashSizeBytes) {
         if (m_Buckets != nullptr) {
-            delete m_Buckets;
+            std::free(m_Buckets);
         }
 
         m_Capacity = hashSizeBytes / sizeof(Bucket);
-        m_Buckets = new Bucket[m_Capacity];
-        std::memset(reinterpret_cast<void*>(m_Buckets), 0, m_Capacity * sizeof(Bucket));
+        m_Buckets = static_cast<Bucket*>(std::calloc(m_Capacity, sizeof(Bucket)));
+        if (m_Buckets == nullptr) {
+            throw std::bad_alloc();
+        }
     }
 
     inline TranspositionTable(size_t hashSizeBytes = DEFAULT_SIZE_MB * 1024 * 1024) {
@@ -99,7 +104,7 @@ public:
 
     inline ~TranspositionTable() {
         if (m_Buckets != nullptr) {
-            delete[] m_Buckets;
+            std::free(m_Buckets);
         }
     }
 
