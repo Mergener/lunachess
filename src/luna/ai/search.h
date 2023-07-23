@@ -13,6 +13,7 @@
 #include "movecursor.h"
 #include "hce/hce.h"
 #include "timemanager.h"
+#include "searchtrace.h"
 
 #include "../clock.h"
 #include "../position.h"
@@ -95,6 +96,13 @@ struct SearchResults {
     inline ui64 getNPS() const {
         return static_cast<ui64>(static_cast<double>(visitedNodes) / getSearchTime() * 1000);
     }
+
+    /**
+     * Data structure that contains all paths taken by this search and results found along the way.
+     * This tree is only created if "trace" is set to true in search settings. Otherwise, this is set
+     * to nullptr.
+     */
+    std::shared_ptr<SearchTree> traceTree = nullptr;
 };
 
 struct SearchSettings {
@@ -119,8 +127,10 @@ struct SearchSettings {
     //
     // Event handlers
     //
-    std::function<void(SearchResults)> onDepthFinish;
-    std::function<void(SearchResults, int pvIdx)> onPvFinish;
+    std::function<void(const SearchResults&)> onDepthFinish;
+    std::function<void(const SearchResults&, int pvIdx)> onPvFinish;
+
+    bool trace = false;
 };
 
 class AlphaBetaSearcher {
@@ -160,9 +170,10 @@ public:
 
 private:
     TranspositionTable m_TT;
-    SearchResults      m_LastResults;
+    SearchResults      m_Results;
     MoveOrderingData   m_MvOrderData;
     TimeManager        m_TimeManager;
+    SearchTracer       m_Tracer;
     std::shared_ptr<Evaluator> m_Eval;
 
     bool m_ShouldStop = false;
@@ -177,9 +188,10 @@ private:
 
     };
 
-    template <SearchFlags FLAGS = NO_SEARCH_FLAGS>
+    template <bool TRACE, SearchFlags FLAGS = NO_SEARCH_FLAGS>
     int pvs(int depth, int ply, int alpha, int beta, MoveList* searchMoves = nullptr);
 
+    template <bool TRACE>
     int quiesce(int ply, int alpha, int beta);
 
     /**
@@ -188,6 +200,11 @@ private:
      * If it should, stops it by throwing 'SearchInterrupt'.
      */
     void interruptSearchIfNecessary();
+
+    bool isBadCapture(Move move) const;
+
+    template <bool TRACE>
+    SearchResults searchInternal(const Position& argPos, SearchSettings settings = SearchSettings());
 };
 
 void initializeSearchParameters();

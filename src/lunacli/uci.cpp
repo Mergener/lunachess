@@ -40,6 +40,7 @@ struct UCIContext {
     // Search settings
     ai::AlphaBetaSearcher searcher = ai::AlphaBetaSearcher(hce);
     bool useOpBook = false;
+    bool trace = true;
 };
 
 using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
@@ -95,6 +96,7 @@ static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
     displayOption(ctx, "Hash", "spin", strutils::toString(ai::TranspositionTable::DEFAULT_SIZE_MB), "1", "1048576");
     displayOption(ctx, "UseOwnBook", "check", "false");
+    displayOption(ctx, "TraceSearchTree", "check", "false");
 
     std::cout << "uciok" << std::endl;
 }
@@ -139,6 +141,17 @@ static void processOption(UCIContext& ctx, std::string_view option, std::string_
         }
         else if (value == "false") {
             ctx.useOpBook = false;
+        }
+        else {
+            std::cerr << "Invalid value '" << value << "'. Expected 'true' or 'false'." << std::endl;
+        }
+    }
+    else if (option == "TraceSearchTree") {
+        if (value == "true") {
+            ctx.trace = true;
+        }
+        else if (value == "false") {
+            ctx.trace = false;
         }
         else {
             std::cerr << "Invalid value '" << value << "'. Expected 'true' or 'false'." << std::endl;
@@ -293,8 +306,8 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
     }
 
     TimePoint startTime = Clock::now();
-    searchSettings.onPvFinish = [startTime](ai::SearchResults res, int pv) {
-        ai::SearchedVariation& var = res.searchedVariations[pv];
+    searchSettings.onPvFinish = [startTime](const ai::SearchResults& res, int pv) {
+        const ai::SearchedVariation& var = res.searchedVariations[pv];
 
         std::cout << "info depth " << res.searchedDepth;
 
@@ -341,6 +354,22 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         try {
             ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
             std::cout << "bestmove " << res.bestMove << std::endl;
+
+            if (res.traceTree != nullptr && ctx.trace) {
+                try {
+                    std::cout << "Saving traced tree..." << std::endl;
+
+                    std::ofstream traceResult("depth " + strutils::toString(res.searchedDepth) + ".json");
+                    traceResult.exceptions(std::ios::badbit | std::ios::failbit);
+
+                    traceResult << *res.traceTree << std::endl;
+
+                    std::cout << "Saved traced tree succesfully." << std::endl;
+                }
+                catch (const std::exception& e) {
+                    std::cerr << "Failed to save traced tree: " << e.what() << std::endl;
+                }
+            }
 
             ctx.state = IDLE;
         }
@@ -435,6 +464,7 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
     searchSettings.ourTimeControl = timeControl[pos.getColorToMove()];
     searchSettings.theirTimeControl = timeControl[getOppositeColor(pos.getColorToMove())];
     searchSettings.multiPvCount = ctx.multiPvCount;
+    searchSettings.trace = ctx.trace;
 
     goSearch(ctx, pos, searchSettings);
 }
