@@ -83,6 +83,11 @@ Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPiece
 
 std::ostream& operator<<(std::ostream& stream, Move m) {
 
+    if (m == MOVE_INVALID) {
+        stream << "null";
+        return stream;
+    }
+
     stream << getSquareName(m.getSource());
     stream << getSquareName(m.getDest());
 
