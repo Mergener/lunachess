@@ -5,13 +5,14 @@
 
 namespace lunachess::ai {
 
-#define TRACE_NEW_TREE(pos, depth) if constexpr (TRACE) { m_Tracer.newTree(pos, depth); }
-#define TRACE_PUSH(move)           if constexpr (TRACE) { m_Tracer.push(move); }
-#define TRACE_POP()                if constexpr (TRACE) { m_Tracer.pop(); }
-#define TRACE_ADD_FLAGS(flags)     if constexpr (TRACE) { m_Tracer.addFlags(flags); }
-#define TRACE_SET_SCORE(score)     if constexpr (TRACE) { m_Tracer.setScore(score); }
-#define TRACE_SET_STATEVAL(eval)   if constexpr (TRACE) { m_Tracer.setStaticEval(eval); }
-#define TRACE_FINISH_TREE(out)     if constexpr (TRACE) { out = m_Tracer.finishTree(); }
+#define TRACE_NEW_TREE(pos, depth)    if constexpr (TRACE) { m_Tracer.newTree(pos, depth); }
+#define TRACE_PUSH(move)              if constexpr (TRACE) { m_Tracer.push(move); }
+#define TRACE_POP()                   if constexpr (TRACE) { m_Tracer.pop(); }
+#define TRACE_ADD_FLAGS(flags)        if constexpr (TRACE) { m_Tracer.addFlags(flags); }
+#define TRACE_SET_SCORES(score, a, b) if constexpr (TRACE) { m_Tracer.setScores(score, a, b); }
+#define TRACE_SET_STATEVAL(eval)      if constexpr (TRACE) { m_Tracer.setStaticEval(eval); }
+#define TRACE_UPDATE_BEST_MOVE(move)  if constexpr (TRACE) { m_Tracer.updateBestMove(move); }
+#define TRACE_FINISH_TREE(out)        if constexpr (TRACE) { out = m_Tracer.finishTree(); }
 
 /**
  * Pseudo-exception to be thrown when the search must be interrupted.
@@ -57,7 +58,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     if (standPat >= beta) {
         // Fail high
         TRACE_ADD_FLAGS(STF_BETA_CUTOFF);
-        TRACE_SET_SCORE(beta);
+        TRACE_SET_SCORES(beta, alpha, beta);
         return beta;
     }
 
@@ -84,7 +85,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     if (standPat < alpha - bigDelta) {
         // No material delta could improve our position enough, we can
         // perform some pruning.
-        TRACE_SET_SCORE(alpha);
+        TRACE_SET_SCORES(alpha, alpha, beta);
         return alpha;
     }
     // #----------------------------------------
@@ -110,16 +111,18 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         if (score >= beta) {
             // Fail high
             TRACE_ADD_FLAGS(STF_BETA_CUTOFF);
-            TRACE_SET_SCORE(beta);
+            TRACE_SET_SCORES(beta, alpha, beta);
+            TRACE_UPDATE_BEST_MOVE(move);
             return beta;
         }
 
         if (score > alpha) {
             alpha = score;
+            TRACE_UPDATE_BEST_MOVE(move);
         }
     }
 
-    TRACE_SET_SCORE(alpha);
+    TRACE_SET_SCORES(alpha, alpha, beta);
     return alpha;
 }
 
@@ -135,7 +138,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     if (!BIT_INTERSECTS(FLAGS, ROOT) && pos.isDraw()) {
         // Position is a draw, return draw score.
-        TRACE_SET_SCORE(m_Eval->getDrawScore());
+        TRACE_SET_SCORES(m_Eval->getDrawScore(), alpha, beta);
         TRACE_SET_STATEVAL(m_Eval->evaluate());
         return m_Eval->getDrawScore();
     }
@@ -171,7 +174,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                         // includes the move found in the TT.
                         m_Results.visitedNodes++;
 
-                        TRACE_SET_SCORE(ttEntry.score);
+                        TRACE_SET_SCORES(ttEntry.score, alpha, beta);
                         return ttEntry.score;
                     }
                     else {
@@ -190,12 +193,13 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 if (alpha >= beta) {
                     m_Results.visitedNodes++;
 
-                    TRACE_SET_SCORE(ttEntry.score);
+                    TRACE_SET_SCORES(ttEntry.score, alpha, beta);
                     return ttEntry.score;
                 }
             }
         }
     }
+
     // #----------------------------------------
 
     if (depth <= 0) {
@@ -203,16 +207,14 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     }
     m_Results.visitedNodes++;
 
-    bool isCheck = pos.isCheck();
-    if (!isCheck) {
-        // Only decrease depth if we're not currently in check
-        depth--;
+    depth--;
 
-        if (!foundInTT) {
-            // No TT entry found and we're not in check, we need to compute the static eval here.
-            staticEval = m_Eval->evaluate();
-            TRACE_SET_STATEVAL(staticEval);
-        }
+    bool isCheck = pos.isCheck();
+    if (!isCheck && !foundInTT) {
+        // No TT entry found and we're not in check, we need to compute the static eval here.
+        staticEval = m_Eval->evaluate();
+        TRACE_SET_STATEVAL(staticEval);
+
     }
 
     int drawScore = m_Eval->getDrawScore();
@@ -242,7 +244,8 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 TRACE_POP();
                 m_Eval->undoNullMove();
 
-                TRACE_SET_SCORE(beta);
+                TRACE_SET_SCORES(beta, alpha, beta);
+                TRACE_ADD_FLAGS(STF_BETA_CUTOFF);
                 return beta; // Prune
             }
 
@@ -273,16 +276,18 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         TRACE_PUSH(move);
         m_Eval->makeMove(move);
 
+        bool moveGivesCheck = pos.isCheck();
+
         // The highest depth we're going to search during this iteration.
         // Used in PV nodes or researches after fail highs.
-        int fullIterationDepth = depth;
+        int fullIterationDepth = moveGivesCheck ? depth + 1 : depth;
 
         // #----------------------------------------
         // # FUTILITY PRUNING
         // #----------------------------------------
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
         constexpr int FUTILITY_MARGIN = 2500;
-        if (!BIT_INTERSECTS(FLAGS, ROOT) && !pos.isCheck() && move.is<MTM_QUIET>()) {
+        if (!BIT_INTERSECTS(FLAGS, ROOT) && !moveGivesCheck && move.is<MTM_QUIET>()) {
             if (fullIterationDepth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
                 // Prune
                 m_Eval->undoMove();
@@ -305,7 +310,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // #----------------------------------------
         if (!shouldSearchPV) {
             if (depth >= 2 &&
-                !pos.isCheck() &&
+                !moveGivesCheck &&
                 searchedMoves >= 2 &&
                 (move.is<MTM_QUIET>() || (isBadCapture(move)))) {
                 int reduction = getLMRReduction(iterationDepth, searchedMoves);
@@ -346,6 +351,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             alpha = beta;
 
             bestMove = move;
+            TRACE_UPDATE_BEST_MOVE(move);
 
             if (move.is<MTM_QUIET>()) {
                 m_MvOrderData.storeHistory(move, iterationDepth);
@@ -357,6 +363,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         if (score > alpha) {
             alpha = score;
             bestMove = move;
+            TRACE_UPDATE_BEST_MOVE(move);
         }
         shouldSearchPV = false;
     }
@@ -364,10 +371,10 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     if (searchedMoves == 0) {
         // Either stalemate or checkmate
         if (isCheck) {
-            TRACE_SET_SCORE(-MATE_SCORE);
+            TRACE_SET_SCORES(-MATE_SCORE, alpha, beta);
             return -MATE_SCORE;
         }
-        TRACE_SET_SCORE(drawScore);
+        TRACE_SET_SCORES(drawScore, alpha, beta);
         return drawScore;
     }
 
@@ -391,7 +398,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     ttEntry.staticEval = staticEval;
     m_TT.maybeAdd(ttEntry);
 
-    TRACE_SET_SCORE(alpha);
+    TRACE_SET_SCORES(alpha, alpha, beta);
 
     return alpha;
 }
