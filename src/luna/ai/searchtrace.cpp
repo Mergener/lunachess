@@ -118,6 +118,7 @@ void SearchTree::serializeNode(std::ostream& stream, const Node& node, Position&
 
     // Get best move
     stream << Indent(indent) << Field("fen", pos.toFen()) << '\n';
+    stream << Indent(indent) << Field<int>("requestedDepth", node.requestedDepth) << '\n';
     stream << Indent(indent) << Field("score", node.score) << '\n';
     stream << Indent(indent) << Field("staticEval", node.staticEval) << '\n';
     stream << Indent(indent) << Field("alpha", node.alpha) << '\n';

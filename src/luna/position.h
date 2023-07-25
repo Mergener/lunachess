@@ -134,6 +134,36 @@ public:
         return isMoveLegal<false>(move);
     }
 
+    inline bool givesCheck(Move move) const {
+        // Normal check
+        Piece p      = move.getSourcePiece();
+        Color c      = p.getColor();
+        Square ks    = getKingSquare(getOppositeColor(c));
+        Bitboard occ = getCompositeBitboard();
+        Bitboard atksFromDest = bbs::getPieceAttacks(move.getDest(), occ, p);
+
+        if (atksFromDest.contains(ks)) {
+            return true;
+        }
+
+        // Discovered check -- remove the piece from the occupancy and see
+        // if a slider would attack the king
+        occ.remove(move.getSource());
+        Bitboard queens = getBitboard(Piece(c, PT_QUEEN));
+        Bitboard vertSliders = queens | getBitboard(Piece(c, PT_ROOK));
+        Bitboard diagSliders = queens | getBitboard(Piece(c, PT_BISHOP));
+        if ((bbs::getBishopAttacks(ks, occ) & diagSliders) != 0) {
+            // Discovered diagonal attack
+            return true;
+        }
+        if ((bbs::getRookAttacks(ks, occ) & vertSliders) != 0) {
+            // Discovered diagonal attack
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Returns true if the position is in a check. A check happens
      * when the king of the current color to move is under attack.

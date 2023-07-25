@@ -8,6 +8,7 @@ namespace lunachess::ai {
 #define TRACE_NEW_TREE(pos, depth)    if constexpr (TRACE) { m_Tracer.newTree(pos, depth); }
 #define TRACE_PUSH(move)              if constexpr (TRACE) { m_Tracer.push(move); }
 #define TRACE_POP()                   if constexpr (TRACE) { m_Tracer.pop(); }
+#define TRACE_DEPTH(depth)            if constexpr (TRACE) { m_Tracer.setRequestedDepth(depth); }
 #define TRACE_ADD_FLAGS(flags)        if constexpr (TRACE) { m_Tracer.addFlags(flags); }
 #define TRACE_SET_SCORES(score, a, b) if constexpr (TRACE) { m_Tracer.setScores(score, a, b); }
 #define TRACE_SET_STATEVAL(eval)      if constexpr (TRACE) { m_Tracer.setStaticEval(eval); }
@@ -47,6 +48,8 @@ void AlphaBetaSearcher::interruptSearchIfNecessary() {
 
 template <bool TRACE>
 int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
+    TRACE_DEPTH(0);
+
     const Position& pos = m_Eval->getPosition();
     m_Results.visitedNodes++;
 
@@ -92,6 +95,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
 
     MoveCursor<true> moveCursor;
     Move move;
+    int bestItScore = -HIGH_BETA;
     while ((move = moveCursor.next(pos, m_MvOrderData, ply))) {
         if (move.getType() == MT_SIMPLE_CAPTURE &&
             !staticanalysis::hasGoodSEE(pos, move)) {
@@ -108,17 +112,20 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         m_Eval->undoMove();
         TRACE_POP();
 
-        if (score >= beta) {
-            // Fail high
-            TRACE_ADD_FLAGS(STF_BETA_CUTOFF);
-            TRACE_SET_SCORES(beta, alpha, beta);
+        if (score > bestItScore) {
+            bestItScore = score;
             TRACE_UPDATE_BEST_MOVE(move);
-            return beta;
-        }
 
-        if (score > alpha) {
-            alpha = score;
-            TRACE_UPDATE_BEST_MOVE(move);
+            if (score >= beta) {
+                // Fail high
+                TRACE_ADD_FLAGS(STF_BETA_CUTOFF);
+                TRACE_SET_SCORES(beta, alpha, beta);
+                return beta;
+            }
+
+            if (score > alpha) {
+                alpha = score;
+            }
         }
     }
 
@@ -134,6 +141,7 @@ template <bool TRACE, AlphaBetaSearcher::SearchFlags FLAGS>
 int AlphaBetaSearcher::pvs(int depth, int ply,
                            int alpha, int beta,
                            MoveList *searchMoves) {
+    TRACE_DEPTH(depth);
     const Position& pos = m_Eval->getPosition();
 
     if (!BIT_INTERSECTS(FLAGS, ROOT) && pos.isDraw()) {
@@ -174,6 +182,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                         // includes the move found in the TT.
                         m_Results.visitedNodes++;
 
+                        TRACE_UPDATE_BEST_MOVE(ttEntry.move);
                         TRACE_SET_SCORES(ttEntry.score, alpha, beta);
                         return ttEntry.score;
                     }
@@ -193,6 +202,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 if (alpha >= beta) {
                     m_Results.visitedNodes++;
 
+                    TRACE_UPDATE_BEST_MOVE(ttEntry.move);
                     TRACE_SET_SCORES(ttEntry.score, alpha, beta);
                     return ttEntry.score;
                 }
@@ -215,6 +225,18 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         staticEval = m_Eval->evaluate();
         TRACE_SET_STATEVAL(staticEval);
 
+        // If we're in a line that is so much worse than our expected lowerbound,
+        // the chances of us improving our positions get increasingly lower the further we go.
+        // Reduce the depth.
+        int margin = 1200 + 800 * depth;
+        int evalPlusMargin = staticEval + margin;
+        if (BIT_INTERSECTS(FLAGS, ZW) && (evalPlusMargin < alpha) && depth > 5) {
+            int quiesceScore = quiesce<false>(ply, evalPlusMargin - 1, alpha);
+            if (quiesceScore < evalPlusMargin) {
+                TRACE_SET_SCORES(quiesceScore, alpha, beta);
+                depth = (depth * 2) / 3;
+            }
+        }
     }
 
     int drawScore = m_Eval->getDrawScore();
@@ -263,6 +285,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     MoveCursor moveCursor;
     Move bestMove = moveCursor.next(pos, m_MvOrderData, ply, hashMove);
+    int bestItScore = -HIGH_BETA;
     int searchedMoves = 0;
     for (Move move = bestMove; move != MOVE_INVALID; move = moveCursor.next(pos, m_MvOrderData, ply)) {
         if (BIT_INTERSECTS(FLAGS, ROOT) &&
@@ -346,24 +369,35 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         m_Eval->undoMove();
         TRACE_POP();
 
-        if (score >= beta) {
-            // Beta cutoff, fail high
-            alpha = beta;
-
-            bestMove = move;
-            TRACE_UPDATE_BEST_MOVE(move);
-
-            if (move.is<MTM_QUIET>()) {
-                m_MvOrderData.storeHistory(move, iterationDepth);
-                m_MvOrderData.storeKillerMove(move, ply);
-                m_MvOrderData.storeCounterMove(lastMove, move);
+        if constexpr (BIT_INTERSECTS(FLAGS, ROOT)) {
+            // Update results best move.
+            if (score > bestItScore) {
+                m_Results.bestScore = score;
+                m_Results.bestMove = move;
             }
-            break;
         }
-        if (score > alpha) {
-            alpha = score;
+
+        if (score > bestItScore) {
+            bestItScore = score;
             bestMove = move;
+
             TRACE_UPDATE_BEST_MOVE(move);
+            if (score >= beta) {
+                // Beta cutoff, fail high
+                alpha = beta;
+
+                bestMove = move;
+
+                if (move.is<MTM_QUIET>()) {
+                    m_MvOrderData.storeHistory(move, iterationDepth);
+                    m_MvOrderData.storeKillerMove(move, ply);
+                    m_MvOrderData.storeCounterMove(lastMove, move);
+                }
+                break;
+            }
+            if (score > alpha) {
+                alpha = score;
+            }
         }
         shouldSearchPV = false;
     }
@@ -481,8 +515,6 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     break;
                 }
 
-                TRACE_NEW_TREE(pos, depth);
-
                 // Prepare results object for this search
                 m_Results.currDepthStart = Clock::now();
 
@@ -491,7 +523,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     TranspositionTable::Entry ttEntry;
 
                     constexpr int ASPIRATION_WINDOWS_MIN_DEPTH = 3;
-                    constexpr int MAX_ASPIRATION_ITERATIONS = 0;
+                    constexpr int MAX_ASPIRATION_ITERATIONS = 3;
 
                     int alpha;
                     double alphaDelta = 1;
@@ -520,16 +552,18 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                             beta = HIGH_BETA;
                         }
 
+                        TRACE_NEW_TREE(pos, depth);
+
                         score = pvs<TRACE, ROOT>(depth, 0, alpha, beta, &moves);
                         if (score <= alpha) {
                             // Fail low, widen lower bound.
-                            alpha -= static_cast<int>(alphaDelta * 1000);
-                            alphaDelta += std::pow(alphaDelta + 0.6, alphaDelta + 0.3);
+                            TRACE_FINISH_TREE(m_Results.traceTree);
+                            alpha -= 500;
                         }
                         else if (score >= beta) {
                             // Fail high, increase lower bound
-                            beta += static_cast<int>(betaDelta * 1000);
-                            betaDelta += std::pow(betaDelta + 0.6, betaDelta + 0.3);
+                            TRACE_FINISH_TREE(m_Results.traceTree);
+                            beta += 500;
                         }
                         else {
                             break;
@@ -537,17 +571,8 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     }
 
                     m_TT.probe(pos, ttEntry);
+                    m_Results.searchedDepth = depth;
 
-                    if (multipv == 0) {
-                        // multipv == 0 means that this is the true principal variation.
-                        // The score and move found in this pv search are the best for the
-                        // position being searched.
-                        m_Results.bestScore = score;
-                        if (ttEntry.move != MOVE_INVALID) {
-                            m_Results.bestMove = ttEntry.move;
-                        }
-                        m_Results.searchedDepth = depth;
-                    }
                     moves.remove(ttEntry.move);
 
 

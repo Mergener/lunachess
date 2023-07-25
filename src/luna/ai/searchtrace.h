@@ -49,6 +49,7 @@ private:
         i32 beta              = beta;
         ui32 childIndexes[MAX_CHILDREN_PER_NODE] = {}; // zero-initialized
         ui8 nChildren         = 0;
+        ui8 requestedDepth    = 0;
         SearchTreeFlags flags = STF_NONE;
 
     };
@@ -93,6 +94,10 @@ public:
 
     inline void setStaticEval(i32 eval) {
         current().staticEval = eval;
+    }
+
+    inline void setRequestedDepth(ui8 depth) {
+        current().requestedDepth = depth;
     }
 
 private:

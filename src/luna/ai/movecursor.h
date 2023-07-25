@@ -76,7 +76,7 @@ private:
     int  m_History[CL_COUNT][SQ_COUNT][SQ_COUNT] = {};
 };
 
-int getQuietMoveScore(Move move);
+int getQuietMoveScore(Move move, const Position& pos);
 
 template <bool NOISY_ONLY = false>
 class MoveCursor {
@@ -182,7 +182,13 @@ private:
 
             case MCS_QUIET: {
                 movegen::generate<MTM_QUIET, PTM_ALL, true>(pos, m_Moves);
-                utils::insertionSort(stageBegin, m_Moves.end(), [this, &pos, &moveOrderingData, ply](Move a, Move b) {
+                bool checkTable[SQ_COUNT][SQ_COUNT];
+                for (auto it = stageBegin; it != m_Moves.end(); ++it) {
+                    Move m = *it;
+                    checkTable[m.getSource()][m.getDest()] = pos.givesCheck(m);
+                }
+
+                utils::insertionSort(stageBegin, m_Moves.end(), [this, &pos, &moveOrderingData, &checkTable, ply](Move a, Move b) {
                     // Killer move heuristic
                     bool aIsKiller = moveOrderingData.isKillerMove(a, ply);
                     bool bIsKiller = moveOrderingData.isKillerMove(b, ply);
@@ -192,6 +198,16 @@ private:
                     else if (!aIsKiller && bIsKiller) {
                         return false;
                     }
+
+//                    // Checks
+//                    bool aGivesCheck = checkTable[a.getSource()][a.getDest()];
+//                    bool bGivesCheck = checkTable[b.getSource()][b.getDest()];
+//                    if (aGivesCheck && !bGivesCheck) {
+//                        return true;
+//                    }
+//                    if (!aGivesCheck && bGivesCheck) {
+//                        return false;
+//                    }
 
                     // Countermove Heuristic
                     Move lastMove = pos.getLastMove();
@@ -214,7 +230,7 @@ private:
                         return false;
                     }
 
-                    return getQuietMoveScore(a) > getQuietMoveScore(b);
+                    return getQuietMoveScore(a, pos) > getQuietMoveScore(b, pos);
                 });
             }
 

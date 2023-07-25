@@ -154,6 +154,15 @@ int guardValue(const Position& pos, Square s, Color us) {
     return gv;
 }
 
+bool isPassedPawn(const Position& pos, Square s) {
+    Color c = pos.getPieceAt(s).getColor();
+    Bitboard theirPawns = pos.getBitboard(Piece(getOppositeColor(c), PT_PAWN));
+    Bitboard cantHaveEnemyPawnsBB =
+            bbs::getFileContestantsBitboard(s, c) | bbs::getPasserBlockerBitboard(s, c);
+
+    return (cantHaveEnemyPawnsBB & theirPawns) == 0;
+}
+
 Bitboard getPassedPawns(const Position& pos, Color c) {
     Bitboard pawns = pos.getBitboard(Piece(c, PT_PAWN));
     Bitboard theirPawns = pos.getBitboard(Piece(getOppositeColor(c), PT_PAWN));

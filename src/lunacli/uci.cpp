@@ -38,6 +38,7 @@ struct UCIContext {
     const ai::HCEWeightTable* hceWeights = ai::getDefaultHCEWeights();
 
     // Search settings
+    std::unique_ptr<std::thread> workThread = nullptr;
     ai::AlphaBetaSearcher searcher = ai::AlphaBetaSearcher(hce);
     bool useOpBook = false;
     bool trace = false;
@@ -102,8 +103,12 @@ static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static void cmdQuit(UCIContext& ctx, const CommandArgs& args) {
+    if (ctx.workThread != nullptr) {
+        ctx.workThread->join();
+    }
     ctx.state = STOPPING;
-    std::exit(0);
+
+//    std::exit(0);
 }
 
 static void cmdDebug(UCIContext& ctx, const CommandArgs& args) {
@@ -346,25 +351,23 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
-    // Spawn a secondary thread to run the search in order to keep listening
-    // for user input.
-    // The solution below is probably flawed due to the fact that we are not
-    // able to properly handle exceptions thrown from the thread
-    std::thread([&ctx, searchSettings, pos]() {
+    ctx.workThread = std::make_unique<std::thread>([&ctx, searchSettings, pos]() {
         try {
             ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
             std::cout << "bestmove " << res.bestMove << std::endl;
 
             if (res.traceTree != nullptr && ctx.trace) {
                 try {
+                    namespace fs = std::filesystem;
                     std::cout << "Saving traced tree..." << std::endl;
 
-                    std::ofstream traceResult("depth " + strutils::toString(res.searchedDepth) + ".json");
+                    fs::path outPath = "trace_depth-" + strutils::toString(res.searchedDepth) + ".json";
+                    std::ofstream traceResult(outPath);
                     traceResult.exceptions(std::ios::badbit | std::ios::failbit);
 
                     traceResult << *res.traceTree << std::endl;
 
-                    std::cout << "Saved traced tree succesfully." << std::endl;
+                    std::cout << "Saved traced tree succesfully to " << fs::absolute(outPath) << "." << std::endl;
                 }
                 catch (const std::exception& e) {
                     std::cerr << "Failed to save traced tree: " << e.what() << std::endl;
@@ -378,7 +381,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
                 << e.what() << std::endl;
             std::exit(EXIT_FAILURE);
         }
-    }).detach();
+    });
 }
 
 static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
@@ -389,6 +392,9 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
     // Create position clone
     Position pos = ctx.pos;
 
+    if (ctx.workThread != nullptr) {
+        ctx.workThread->join();
+    }
     ctx.state = BUSY;
 
     TimeControl timeControl[CL_COUNT];

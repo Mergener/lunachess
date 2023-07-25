@@ -30,6 +30,12 @@ bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
 int guardValue(const Position& pos, Square s, Color pov);
 
 /**
+ * Returns true if a pawn on the given square is a passer.
+ * Does not check if the piece at the square is actually a pawn.
+ */
+bool isPassedPawn(const Position& pos, Square pawnSquare);
+
+/**
  * Returns the bitboard for all pieces of the specified type that are currently placed in outposts.
  * For this, we consider an 'outpost' to be every square that cannot be contested
  * by an enemy pawn and is defended by at least one allied pawn.

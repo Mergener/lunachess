@@ -91,7 +91,7 @@ static int getHotmapDelta(Move move) {
     return ret;
 }
 
-int getQuietMoveScore(Move move) {
+int getQuietMoveScore(Move move, const Position& pos) {
     int total = 0;
 
     total += getHotmapDelta(move);

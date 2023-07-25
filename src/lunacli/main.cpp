@@ -12,6 +12,8 @@ int main() {
         std::cin.tie();
         std::cout << std::boolalpha;
 
+        lunachess::Position pos = lunachess::Position::getInitialPosition();
+
         std::cout << "LunaChess AB " << LUNA_VERSION_NAME << std::endl;
 
 #ifdef LUNA_ASSERTS_ON
