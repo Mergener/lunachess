@@ -73,10 +73,6 @@ public:
         return BIT(getType()) & FLAGS;
     }
 
-    inline bool is(MoveTypeMask flags) const {
-        return BIT(getType()) & flags;
-    }
-
     std::string toAlgebraic(const Position& pos) const;
     static Move fromAlgebraic(const Position& pos, std::string_view m);
 
