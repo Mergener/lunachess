@@ -22,6 +22,7 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Delta pruning
   - Aspiration Windows
   - Check extension
+  - Countermove heuristic
   
 - Evaluation features
   - Tapered eval 
