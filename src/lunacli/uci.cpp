@@ -311,7 +311,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
     }
 
     TimePoint startTime = Clock::now();
-    searchSettings.onPvFinish = [startTime](const ai::SearchResults& res, int pv) {
+    searchSettings.onPvFinish = [startTime, &ctx](const ai::SearchResults& res, int pv) {
         const ai::SearchedVariation& var = res.searchedVariations[pv];
 
         std::cout << "info depth " << res.searchedDepth;
@@ -342,6 +342,10 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         for (Move m: var.moves) {
             std::cout << " " << m;
         }
+
+        const auto& tt = ctx.searcher.getTT();
+        size_t hashFull = (tt.getCount() * 1000) / tt.getCapacity();
+        std::cout << " hashfull " << hashFull;
 
         std::cout << " nodes " << res.visitedNodes;
         std::cout << " nps " << res.getNPS();

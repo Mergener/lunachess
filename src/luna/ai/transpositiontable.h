@@ -42,6 +42,14 @@ private:
     };
 
 public:
+    inline size_t getCapacity() const {
+        return m_Capacity;
+    }
+
+    inline size_t getCount() const {
+        return m_Count;
+    }
+
     /**
         Adds a given entry to the transposition table, except if
         an entry for the same position with higher depth exists.
@@ -91,6 +99,7 @@ public:
             std::free(m_Buckets);
         }
 
+        m_Count = 0;
         m_Capacity = hashSizeBytes / sizeof(Bucket);
         m_Buckets = static_cast<Bucket*>(std::calloc(m_Capacity, sizeof(Bucket)));
         if (m_Buckets == nullptr) {
@@ -110,7 +119,8 @@ public:
 
 private:
     Bucket* m_Buckets = nullptr;
-    size_t m_Capacity = 0;
+    size_t  m_Capacity = 0;
+    size_t  m_Count = 0;
 
     inline Bucket& getBucket(ui64 key) const {
         return m_Buckets[key % m_Capacity];

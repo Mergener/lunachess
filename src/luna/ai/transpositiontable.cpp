@@ -7,6 +7,7 @@ bool TranspositionTable::maybeAdd(const Entry& entry) {
     if (!b.valid) {
         b.entry = entry;
         b.valid = true;
+        m_Count++;
         return true;
     }
 
