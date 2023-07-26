@@ -144,7 +144,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     TRACE_DEPTH(depth);
     const Position& pos = m_Eval->getPosition();
 
-    if (!BIT_INTERSECTS(FLAGS, ROOT) && pos.isDraw()) {
+    if (!BIT_INTERSECTS(FLAGS, ROOT) &&
+        (pos.isRepetitionDraw(2) ||
+        pos.is50MoveRuleDraw() || pos.isInsufficientMaterialDraw())) {
         // Position is a draw, return draw score.
         TRACE_SET_SCORES(m_Eval->getDrawScore(), alpha, beta);
         TRACE_SET_STATEVAL(m_Eval->evaluate());
@@ -526,9 +528,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     constexpr int MAX_ASPIRATION_ITERATIONS = 3;
 
                     int alpha;
-                    double alphaDelta = 1;
                     int beta;
-                    double betaDelta = 1;
 
                     int score;
                     int lastScore = m_Results.bestScore;

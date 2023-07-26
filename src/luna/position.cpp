@@ -368,6 +368,10 @@ bool Position::isRepetitionDraw(int maxAppearances) const {
 
     for (auto it = m_PrevStatuses.crbegin(); it != m_PrevStatuses.crend(); ++it) {
         const auto& status = *it;
+
+        if (status.lastMove.makesProgress()) {
+            break;
+        }
         if (status.zobrist == m_Status.zobrist) {
             appearances++;
             if (appearances == maxAppearances) {

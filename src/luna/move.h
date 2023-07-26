@@ -68,6 +68,10 @@ public:
 
     inline ui32 getRaw() const { return m_Data; }
 
+    inline bool makesProgress() const {
+        return is<MTM_CAPTURE>() || getSourcePiece().getType() == PT_PAWN;
+    }
+
     template <MoveTypeMask FLAGS>
     inline bool is() const {
         return BIT(getType()) & FLAGS;
