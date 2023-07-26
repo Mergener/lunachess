@@ -9,7 +9,7 @@ set(LUNA_VERSION_MINOR "0")
 set(LUNA_VERSION_PATCH "0")
 
 # If set to 0, this is interpreted as a non-dev patch.
-set(LUNA_DEV_PATCH "6")
+set(LUNA_DEV_PATCH "7")
 
 set(LUNA_VERSION_FULL ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH})
 if (LUNA_DEV_PATCH GREATER 0)
