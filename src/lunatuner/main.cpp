@@ -171,9 +171,9 @@ static double sigmoid(double x, double k) {
     return 1 / (1 + std::pow(10, -k * x / 400));
 }
 
-static double evaluationErrorSum(const HCEWeightTable& weights,
-                                 const InputData& id, int startIdx, int endIdx,
-                                 double k) {
+static double squaredErrorSum(const HCEWeightTable& weights,
+                              const InputData& id, int startIdx, int endIdx,
+                              double k) {
     double totalError = 0;
 
     HandCraftedEvaluator hce(&weights);
@@ -188,24 +188,24 @@ static double evaluationErrorSum(const HCEWeightTable& weights,
         }
 
         double score = sigmoid(double(scoreMp), k);
-        double error = std::abs(entry.expectedScore - score);
+        double error = entry.expectedScore - score;
 
-        totalError += error;
+        totalError += error * error;
     }
 
     return totalError;
 }
 
-static double computeAverageErrorsParallel(ThreadPool& threadPool,
-                                           const HCEWeightTable& weights,
-                                           const InputData& inputData,
-                                           int threads, double k) {
+static double computeMSE(ThreadPool& threadPool,
+                         const HCEWeightTable& weights,
+                         const InputData& inputData,
+                         int threads, double k) {
     double sum = 0;
     auto chunks = utils::splitIntoChunks(inputData.entries, threads);
     std::vector<std::future<double>> partialErrors;
     for (auto chunk: chunks) {
         partialErrors.push_back(threadPool.submit([&]() {
-            return evaluationErrorSum(weights, inputData, chunk.firstIdx, chunk.lastIdx, k);
+            return squaredErrorSum(weights, inputData, chunk.firstIdx, chunk.lastIdx, k);
         }));
     }
 
@@ -238,10 +238,10 @@ static std::tuple<int, double> tune(const Settings& settings,
         flatWeightsJson[parameter] = value;
 
         HCEWeightTable weights(flatWeightsJson.unflatten());
-        double avgError = computeAverageErrorsParallel(threadPool, weights,
-                                                       inputData,
-                                                       settings.threads,
-                                                       settings.k);
+        double avgError = computeMSE(threadPool, weights,
+                                     inputData,
+                                     settings.threads,
+                                     settings.k);
 
         double delta = lowestError - avgError;
         if (delta >= MIN_ERR_DELTA) {
@@ -269,9 +269,9 @@ static int tuneParameter(const Settings& settings,
     std::cout << "Tuning parameter " << parameter << std::endl;
 
     ThreadPool threadPool(settings.threads);
-    double lowestErr = computeAverageErrorsParallel(threadPool, flatWeightsJson,
-                                                    inputData, settings.threads,
-                                                    settings.k);
+    double lowestErr = computeMSE(threadPool, flatWeightsJson,
+                                  inputData, settings.threads,
+                                  settings.k);
 
     // We tune in "both directions" since we don't know whether the best value for
     // the parameter is higher or lower than the current one.
