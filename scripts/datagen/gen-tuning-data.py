@@ -46,6 +46,7 @@ def accept_position(board: chess.Board,
     return True
 
 def main():
+    global n_pos
     with open(OUT_FILE, "w") as out:
         random.shuffle(pgn_paths)
         for pgn_path in pgn_paths:
@@ -69,13 +70,11 @@ def main():
                     else:
                         result_val = 0.5
 
-                    last_move = None
                     lines = []
                     for move in game.mainline_moves():
-                        if accept_position(board, last_move, move):
+                        if accept_position(board, move):
                             lines.append(f"{board.fen()},{result_val}")
 
-                        last_move = move
                         board.push(move)
 
                     # Discard opening positions and positions closer to the end
