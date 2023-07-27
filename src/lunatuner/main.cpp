@@ -2,6 +2,7 @@
 
 #include <popl/popl.h>
 
+#include <algorithm>
 #include <random>
 #include <string>
 #include <iostream>
@@ -14,18 +15,25 @@ namespace fs = std::filesystem;
 using namespace lunachess;
 using namespace lunachess::ai;
 
+/** If a parameter priority is set to this value, it will be skipped. */
+constexpr int PRIO_SKIP = -99999;
+
 struct Settings {
     fs::path tunerDataPath;
     fs::path outPath;
-    int threads = 1;
-    double k = 0.113;
     std::optional<fs::path> baseWeightsPath = std::nullopt;
+    int threads  = 1;
+    double k     = 0.045;
     bool quiesce = false;
+    int repeat   = 0;
+    int step     = 4;
+
+    std::unordered_map<std::string, int> paramPriorities;
 };
 
 struct DataEntry {
     Position position;
-    double expectedScore;
+    double   expectedScore;
 
     inline DataEntry(Position pos, double expectedScore)
         : position(std::move(pos)), expectedScore(expectedScore) {}
@@ -124,6 +132,13 @@ static InputData parseData(fs::path dataFilePath) {
     }
 }
 
+static nlohmann::json loadWeightsJson(fs::path weightsJsonFilePath) {
+    std::cout << "Deserializing custom weights from " << weightsJsonFilePath << std::endl;
+    std::string str = utils::readFromFile(weightsJsonFilePath);
+    nlohmann::json weightsJson = nlohmann::json::parse(str);
+    return weightsJson;
+}
+
 static void quiesceDataPositions(InputData& inputData, int threads) {
     std::cout << "Quiescing positions...";
     std::mutex quiescedCounterMutex;
@@ -152,24 +167,15 @@ static void quiesceDataPositions(InputData& inputData, int threads) {
     std::cout << nQuiesced << " positions quiesced." << std::endl;
 }
 
-static nlohmann::json loadWeightsJson(fs::path weightsJsonFilePath) {
-    std::cout << "Deserializing custom weights from " << weightsJsonFilePath << std::endl;
-    std::string str = utils::readFromFile(weightsJsonFilePath);
-    nlohmann::json weightsJson = nlohmann::json::parse(str);
-    return weightsJson;
-}
-
 static double sigmoid(double x, double k) {
     return 1 / (1 + std::pow(10, -k * x / 400));
 }
 
-static double evaluationErrorSum(nlohmann::json flatWeightsJson,
+static double evaluationErrorSum(const HCEWeightTable& weights,
                                  const InputData& id, int startIdx, int endIdx,
                                  double k) {
     double totalError = 0;
-    int n = 0;
 
-    HCEWeightTable weights = flatWeightsJson.unflatten();
     HandCraftedEvaluator hce(&weights);
 
     for (int i = startIdx; i <= endIdx; ++i) {
@@ -185,27 +191,45 @@ static double evaluationErrorSum(nlohmann::json flatWeightsJson,
         double error = std::abs(entry.expectedScore - score);
 
         totalError += error;
-
-        n++;
     }
 
     return totalError;
 }
 
+static double computeAverageErrorsParallel(ThreadPool& threadPool,
+                                           const HCEWeightTable& weights,
+                                           const InputData& inputData,
+                                           int threads, double k) {
+    double sum = 0;
+    auto chunks = utils::splitIntoChunks(inputData.entries, threads);
+    std::vector<std::future<double>> partialErrors;
+    for (auto chunk: chunks) {
+        partialErrors.push_back(threadPool.submit([&]() {
+            return evaluationErrorSum(weights, inputData, chunk.firstIdx, chunk.lastIdx, k);
+        }));
+    }
+
+    for (auto& err: partialErrors) {
+        sum += err.get();
+    }
+    return sum / inputData.entries.size();
+}
+
 static std::tuple<int, double> tune(const Settings& settings,
                                    const InputData& inputData,
                                    nlohmann::json flatWeightsJson,
+                                   ThreadPool& threadPool,
                                    std::string parameter,
                                    int step) {
     constexpr int MAX_BAD_ITERATIONS = 5;
+    constexpr double MIN_ERR_DELTA = 0.000000001;
+
     int badIts = 0;
     int value = flatWeightsJson[parameter];
     int bestValue = value;
     double lowestError = INFINITY;
 
-    ThreadPool threadPool(settings.threads);
-    while (true) {
-        double avgError = 0;
+    while (badIts < MAX_BAD_ITERATIONS) {
 
         // Tune the parameter
         value += step;
@@ -213,32 +237,20 @@ static std::tuple<int, double> tune(const Settings& settings,
         // Compute the avgError in multiple threads
         flatWeightsJson[parameter] = value;
 
-        auto chunks = utils::splitIntoChunks(inputData.entries, settings.threads);
-        std::vector<std::future<double>> partialErrors;
-        for (auto chunk: chunks) {
-            partialErrors.push_back(threadPool.submit([&]() {
-                return evaluationErrorSum(flatWeightsJson, inputData, chunk.firstIdx, chunk.lastIdx, settings.k);
-            }));
-        }
+        HCEWeightTable weights(flatWeightsJson.unflatten());
+        double avgError = computeAverageErrorsParallel(threadPool, weights,
+                                                       inputData,
+                                                       settings.threads,
+                                                       settings.k);
 
-        for (auto& err: partialErrors) {
-            avgError += err.get();
-        }
-        avgError /= inputData.entries.size();
-
-        if (avgError < lowestError) {
+        double delta = lowestError - avgError;
+        if (delta >= MIN_ERR_DELTA) {
             bestValue = value;
             lowestError = avgError;
             badIts = 0;
         }
         else {
-            // We need to stop when we think we're starting to overtune or undertune
-            // our parameter. If we get a certain minimum of "bad" iterations (iterations
-            // that increased the avgError), interrupt the search.
             badIts++;
-            if (badIts >= MAX_BAD_ITERATIONS) {
-                break;
-            }
         }
     }
 
@@ -256,12 +268,21 @@ static int tuneParameter(const Settings& settings,
     int initialValue = paramJsonVal;
     std::cout << "Tuning parameter " << parameter << std::endl;
 
+    ThreadPool threadPool(settings.threads);
+    double lowestErr = computeAverageErrorsParallel(threadPool, flatWeightsJson,
+                                                    inputData, settings.threads,
+                                                    settings.k);
+
     // We tune in "both directions" since we don't know whether the best value for
     // the parameter is higher or lower than the current one.
-    auto [upValue, upError] = tune(settings, inputData, flatWeightsJson, parameter, 1);
-    auto [downValue, downError] = tune(settings, inputData, flatWeightsJson, parameter, -1);
+    auto [upValue, upError] = tune(settings, inputData, flatWeightsJson, threadPool, parameter, settings.step);
+    auto [downValue, downError] = tune(settings, inputData, flatWeightsJson, threadPool, parameter, -settings.step);
 
-    double lowestErr;
+    if (lowestErr < upError && lowestErr < downError) {
+        // Our value was already tuned
+        return initialValue;
+    }
+
     int bestValue;
     if (downError < upError) {
         bestValue = downValue;
@@ -272,9 +293,10 @@ static int tuneParameter(const Settings& settings,
         lowestErr = upError;
     }
 
-    std::cout << std::setprecision(8) << "Done tuning parameter " << parameter
-              << ": " << initialValue << " -> " << bestValue << " (err " << std::setprecision(6) << lowestErr
-              << ")" << std::endl;
+    std::cout << "Done tuning parameter " << parameter << ": "
+              << initialValue << " -> " << bestValue
+              << " (err " << std::setprecision(6) << lowestErr << ")"
+              << std::endl;
 
     return bestValue;
 }
@@ -296,30 +318,54 @@ static void tune(const Settings& settings) {
     // to create a weights table object.
     nlohmann::json flatWeights = weightsJSON.flatten();
 
-    // Add all parameters and shuffle.
+    // Add all parameters and sort.
     std::vector<std::string> parameters;
     for (const auto& item: flatWeights.items()) {
-        parameters.push_back(item.key());
+        const auto& key = item.key();
+
+        if (settings.paramPriorities.at(key) <= PRIO_SKIP) {
+            std::cout << "Skipping parameter " << key << std::endl;
+            continue;
+        }
+        parameters.push_back(key);
     }
-    std::shuffle(parameters.begin(), parameters.end(), std::default_random_engine());
+    std::sort(parameters.begin(), parameters.end(), [&settings](auto& a, auto& b) {
+        int aPrio = 0;
+        int bPrio = 0;
 
-    int i = 0;
-    for (const auto& param: parameters) {
-        // Tune each weight individually and save it on the flatWeights again.
-        // By doing this we're making sure the following weights will take into consideration
-        // the tuning that was done to the ones before them.
-        int newValue = tuneParameter(settings, inputData, flatWeights, param);
-        std::cout << ++i << " of " << flatWeights.size() << " parameters tuned." << std::endl;
-        flatWeights[param] = newValue;
+        auto it = settings.paramPriorities.find(a);
+        if (it != settings.paramPriorities.end()) {
+            aPrio = it->second;
+        }
+        it = settings.paramPriorities.find(b);
+        if (it != settings.paramPriorities.end()) {
+            bPrio = it->second;
+        }
 
-        // Save everything whenever we tune a parameter
-        nlohmann::json unflattened = flatWeights.unflatten();
-        std::ofstream ofstream(settings.outPath);
-        ofstream << std::setw(2) << unflattened << std::endl;
-        ofstream.close();
-    }
+        return aPrio > bPrio;
+    });
 
-    std::cout << "Tuning finished. Saving at " << fs::absolute(settings.outPath) << std::endl;
+    int it = 0;
+    do {
+
+        int i = 0;
+        for (const auto& param: parameters) {
+            // Tune each weight individually and save it on the flatWeights again.
+            // By doing this we're making sure the following weights will take into consideration
+            // the tuning that was done to the ones before them.
+            int newValue = tuneParameter(settings, inputData, nlohmann::json(flatWeights), param);
+            std::cout << ++i << " of " << parameters.size() << " parameters tuned." << std::endl;
+            flatWeights[param] = newValue;
+
+            // Save everything whenever we tune a parameter
+            nlohmann::json unflattened = flatWeights.unflatten();
+            std::ofstream ofstream(settings.outPath);
+            ofstream << std::setw(2) << unflattened << std::endl;
+            ofstream.close();
+        }
+
+        std::cout << "Tuning finished. Saving at " << fs::absolute(settings.outPath) << std::endl;
+    } while (it <= settings.repeat);
 }
 
 static Settings processArgs(int argc, char* argv[]) {
@@ -336,6 +382,9 @@ static Settings processArgs(int argc, char* argv[]) {
         auto optOutPath = op.add<popl::Value<std::string>>("o", "o",
                                                            "Path to the output weights JSON file.");
 
+        auto optPrioPath = op.add<popl::Value<std::string>>("p", "p",
+                                                           "Path to the parameter priorities JSON file.");
+
         auto optThreads = op.add<popl::Implicit<int>>("t", "threads", "Number of threads to be used.", 1);
 
         auto optBaseWeights = op.add<popl::Value<std::string>>("b", "base-weights",
@@ -343,6 +392,10 @@ static Settings processArgs(int argc, char* argv[]) {
 
         auto optQuiesce = op.add<popl::Switch>("q", "quiesce",
                                                "If set, transforms positions with captures that yield positive material balance for the moving side into quiet positions before tuning.");
+
+        auto optRepeat = op.add<popl::Implicit<int>>("r", "repeat",
+                                               "If set, repeats the tuning process by the specified number of times.", 0);
+
 
         op.parse(argc, argv);
 
@@ -356,9 +409,21 @@ static Settings processArgs(int argc, char* argv[]) {
         settings.outPath       = optOutPath->value();
         settings.threads       = optThreads->value();
         settings.quiesce       = optQuiesce->value();
+        settings.repeat        = optRepeat->value();
 
         if (optBaseWeights->is_set()) {
             settings.baseWeightsPath = optBaseWeights->value();
+        }
+
+
+        if (optPrioPath->is_set()) {
+            settings.paramPriorities = static_cast<std::unordered_map<std::string, int>>(
+                    nlohmann::json(utils::readFromFile(optPrioPath->value())).flatten()
+                    );
+
+            for (auto& pair: settings.paramPriorities) {
+                std::cout << pair.first << ": " << pair.second << std::endl;
+            }
         }
 
         return settings;

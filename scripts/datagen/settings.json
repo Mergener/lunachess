@@ -1,0 +1,9 @@
+{
+  "gamesDirectory": "../../temp/tuneset",
+  "outFile": "../../temp/tuning-data.csv",
+  "maxPositions": 5000000,
+  "minPly": 20,
+  "maxPliesBeforeEnd": 10,
+  "endgamePieces": 4,
+  "maxPositionsPerGame": 25
+}
