@@ -21,7 +21,8 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Futility pruning
   - Delta pruning
   - Aspiration Windows
-  - Check extension
+  - Check extensions
+  - Singular extensions
   - Countermove heuristic
   
 - Evaluation features
