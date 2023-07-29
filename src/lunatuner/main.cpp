@@ -237,7 +237,8 @@ static std::tuple<int, double> tune(const Settings& settings,
         // Compute the avgError in multiple threads
         flatWeightsJson[parameter] = value;
 
-        HCEWeightTable weights(flatWeightsJson.unflatten());
+        auto unflattened = flatWeightsJson.unflatten();
+        HCEWeightTable weights(unflattened);
         double avgError = computeMSE(threadPool, weights,
                                      inputData,
                                      settings.threads,
@@ -269,13 +270,13 @@ static int tuneParameter(const Settings& settings,
     std::cout << "Tuning parameter " << parameter << std::endl;
 
     ThreadPool threadPool(settings.threads);
-    double lowestErr = computeMSE(threadPool, flatWeightsJson,
+    double lowestErr = computeMSE(threadPool, flatWeightsJson.unflatten(),
                                   inputData, settings.threads,
                                   settings.k);
 
     // We tune in "both directions" since we don't know whether the best value for
     // the parameter is higher or lower than the current one.
-    auto [upValue, upError] = tune(settings, inputData, flatWeightsJson, threadPool, parameter, settings.step);
+    auto [upValue, upError]     = tune(settings, inputData, flatWeightsJson, threadPool, parameter, settings.step);
     auto [downValue, downError] = tune(settings, inputData, flatWeightsJson, threadPool, parameter, -settings.step);
 
     if (lowestErr < upError && lowestErr < downError) {
@@ -301,7 +302,7 @@ static int tuneParameter(const Settings& settings,
     return bestValue;
 }
 
-static void tune(const Settings& settings) {
+static void tune(Settings& settings) {
     std::cout << "Initializing tuning process" << std::endl;
 
     InputData inputData = parseData(settings.tunerDataPath);
@@ -320,41 +321,45 @@ static void tune(const Settings& settings) {
 
     // Add all parameters and sort.
     std::vector<std::string> parameters;
+
+    std::cout << "Registering parameters..." << std::endl;
     for (const auto& item: flatWeights.items()) {
         const auto& key = item.key();
 
-        if (settings.paramPriorities.at(key) <= PRIO_SKIP) {
-            std::cout << "Skipping parameter " << key << std::endl;
-            continue;
+        // We're going to use each parameter priority later on when we sort them.
+        // Also, we need to skip parameters that have been marked with PRIO_SKIP.
+        auto it = settings.paramPriorities.find(key);
+        if (it != settings.paramPriorities.end()) {
+            int priority = it->second;
+            if (priority <= PRIO_SKIP) {
+                std::cout << "Skipping parameter " << key << std::endl;
+                continue;
+            }
         }
+        else {
+            // By default, set priority to 0
+            settings.paramPriorities[key] = 0;
+        }
+
         parameters.push_back(key);
+        std::cout << "Added parameter " << key << std::endl;
     }
+
+    // Sort parameters so that we tune higher priority parameters first.
     std::sort(parameters.begin(), parameters.end(), [&settings](auto& a, auto& b) {
-        int aPrio = 0;
-        int bPrio = 0;
-
-        auto it = settings.paramPriorities.find(a);
-        if (it != settings.paramPriorities.end()) {
-            aPrio = it->second;
-        }
-        it = settings.paramPriorities.find(b);
-        if (it != settings.paramPriorities.end()) {
-            bPrio = it->second;
-        }
-
-        return aPrio > bPrio;
+        return settings.paramPriorities[a] > settings.paramPriorities[b];
     });
 
+    std::cout << "Starting tuning process." << std::endl;
     int it = 0;
     do {
-
-        int i = 0;
+        int nTunedParams = 0;
         for (const auto& param: parameters) {
             // Tune each weight individually and save it on the flatWeights again.
             // By doing this we're making sure the following weights will take into consideration
             // the tuning that was done to the ones before them.
-            int newValue = tuneParameter(settings, inputData, nlohmann::json(flatWeights), param);
-            std::cout << ++i << " of " << parameters.size() << " parameters tuned." << std::endl;
+            int newValue = tuneParameter(settings, inputData, flatWeights, param);
+            std::cout << ++nTunedParams << " of " << parameters.size() << " parameters tuned." << std::endl;
             flatWeights[param] = newValue;
 
             // Save everything whenever we tune a parameter
