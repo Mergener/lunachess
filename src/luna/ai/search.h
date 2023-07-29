@@ -174,6 +174,7 @@ private:
     MoveOrderingData   m_MvOrderData;
     TimeManager        m_TimeManager;
     SearchTracer       m_Tracer;
+    MoveList           m_RootMoves;
     std::shared_ptr<Evaluator> m_Eval;
 
     bool m_ShouldStop = false;
@@ -189,7 +190,7 @@ private:
     };
 
     template <bool TRACE, SearchFlags FLAGS = NO_SEARCH_FLAGS>
-    int pvs(int depth, int ply, int alpha, int beta, MoveList* searchMoves = nullptr);
+    int pvs(int depth, int ply, int alpha, int beta);
 
     template <bool TRACE>
     int quiesce(int ply, int alpha, int beta);

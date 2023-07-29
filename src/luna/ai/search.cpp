@@ -139,12 +139,15 @@ bool AlphaBetaSearcher::isBadCapture(Move move) const {
 
 template <bool TRACE, AlphaBetaSearcher::SearchFlags FLAGS>
 int AlphaBetaSearcher::pvs(int depth, int ply,
-                           int alpha, int beta,
-                           MoveList *searchMoves) {
+                           int alpha, int beta) {
+    constexpr bool IS_ROOT = BIT_INTERSECTS(FLAGS, ROOT);
+    constexpr bool IS_ZW   = BIT_INTERSECTS(FLAGS, ZW);
+    constexpr bool DO_NMP  = !BIT_INTERSECTS(FLAGS, SKIP_NULL);
+
     TRACE_DEPTH(depth);
     const Position& pos = m_Eval->getPosition();
 
-    if (!BIT_INTERSECTS(FLAGS, ROOT) &&
+    if (!IS_ROOT &&
         (pos.isRepetitionDraw(2) ||
         pos.is50MoveRuleDraw() || pos.isInsufficientMaterialDraw())) {
         // Position is a draw, return draw score.
@@ -172,27 +175,15 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         staticEval = ttEntry.staticEval;
         TRACE_SET_STATEVAL(ttEntry.staticEval);
 
-        // We don't care about the TT entry if its hash move is not within
-        // the scope of our searchMoves list.
-        if (searchMoves == nullptr || searchMoves->contains(ttEntry.move)) {
+        if (!IS_ROOT || m_RootMoves.contains(ttEntry.move)) {
             hashMove = ttEntry.move;
             if (ttEntry.depth >= depth) {
                 if (ttEntry.type == TranspositionTable::EXACT) {
-                    if (searchMoves == nullptr || searchMoves->contains(ttEntry.move)) {
-                        // Only use transposition table exact moves if we're either not using
-                        // an external provided search moves list or the one we're using
-                        // includes the move found in the TT.
-                        m_Results.visitedNodes++;
+                    m_Results.visitedNodes++;
 
-                        TRACE_UPDATE_BEST_MOVE(ttEntry.move);
-                        TRACE_SET_SCORES(ttEntry.score, alpha, beta);
-                        return ttEntry.score;
-                    }
-                    else {
-                        // This search uses an incompatible searchMoves list with the
-                        // TT entry. Remove the entry.
-                        m_TT.remove(posKey);
-                    }
+                    TRACE_UPDATE_BEST_MOVE(ttEntry.move);
+                    TRACE_SET_SCORES(ttEntry.score, alpha, beta);
+                    return ttEntry.score;
                 }
                 else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
                     alpha = std::max(alpha, ttEntry.score);
@@ -232,7 +223,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // Reduce the depth.
         int margin = 1200 + 800 * depth;
         int evalPlusMargin = staticEval + margin;
-        if (BIT_INTERSECTS(FLAGS, ZW) && (evalPlusMargin < alpha) && depth > 5) {
+        if (IS_ZW && (evalPlusMargin < alpha) && depth > 5) {
             int quiesceScore = quiesce<false>(ply, evalPlusMargin - 1, alpha);
             if (quiesceScore < evalPlusMargin) {
                 TRACE_SET_SCORES(quiesceScore, alpha, beta);
@@ -243,7 +234,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     int drawScore = m_Eval->getDrawScore();
 
-    if (BIT_INTERSECTS(FLAGS, ZW) && !isCheck) {
+    if (IS_ZW && !isCheck) {
         int pieceCount = pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count();
 
         // #----------------------------------------
@@ -254,7 +245,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
         constexpr int NULL_MOVE_MIN_PIECES = 4;
 
-        if (!BIT_INTERSECTS(FLAGS, SKIP_NULL) &&
+        if (!DO_NMP &&
             depth >= NULL_SEARCH_MIN_DEPTH &&
             pieceCount > NULL_MOVE_MIN_PIECES) {
 
@@ -290,9 +281,8 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     int bestItScore = -HIGH_BETA;
     int searchedMoves = 0;
     for (Move move = bestMove; move != MOVE_INVALID; move = moveCursor.next(pos, m_MvOrderData, ply)) {
-        if (BIT_INTERSECTS(FLAGS, ROOT) &&
-            searchMoves != nullptr &&
-            !searchMoves->contains(move)) {
+        if (IS_ROOT &&
+            !m_RootMoves.contains(move)) {
             // Don't search for unrequested moves
             continue;
         }
@@ -312,7 +302,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // #----------------------------------------
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
         constexpr int FUTILITY_MARGIN = 2500;
-        if (!BIT_INTERSECTS(FLAGS, ROOT) && !moveGivesCheck && move.is<MTM_QUIET>()) {
+        if (!IS_ROOT && !moveGivesCheck && move.is<MTM_QUIET>()) {
             if (fullIterationDepth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
                 // Prune
                 m_Eval->undoMove();
@@ -371,7 +361,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         m_Eval->undoMove();
         TRACE_POP();
 
-        if constexpr (BIT_INTERSECTS(FLAGS, ROOT)) {
+        if constexpr (IS_ROOT) {
             // Update results best move.
             if (score > bestItScore) {
                 m_Results.bestScore = score;
@@ -471,9 +461,8 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         int maxDepth = std::min(MAX_SEARCH_DEPTH, settings.maxDepth);
 
         // Try to generate moves in the position before we search
-        MoveList moves;
-        movegen::generate(pos, moves);
-        if (moves.size() == 0) {
+        movegen::generate(pos, m_RootMoves);
+        if (m_RootMoves.size() == 0) {
             int score = pos.isCheck()
                         ? -MATE_SCORE // Checkmate
                         : drawScore;  // Stalemate
@@ -485,8 +474,8 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
             return std::move(m_Results);
         }
 
-        // Filter out undesired moves (usually as specified by UCI 'searchmoves')
-        filterMoves(moves, settings.moveFilter);
+        // Filter out undesired moves (usually as specified by UCI 'm_SearchMoves')
+        filterMoves(m_RootMoves, settings.moveFilter);
 
         // Setup results object
         m_Results.visitedNodes = 1;
@@ -495,7 +484,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         // Last search results could have been filled with a previous search
         m_Results.searchedVariations.clear();
 
-        m_Results.bestMove = moves[0];
+        m_Results.bestMove = m_RootMoves[0];
         m_Results.searchedVariations.resize(settings.multiPvCount);
 
         // Notify the time manager that we're starting a search
@@ -512,7 +501,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
 
             // Caller might be asking for a multi-pv search. Search the number of pvs requested
             // or until all moves were searched
-            for (int multipv = 0; multipv < settings.multiPvCount && moves.size() > 0; ++multipv) {
+            for (int multipv = 0; multipv < settings.multiPvCount && m_RootMoves.size() > 0; ++multipv) {
                 if (m_TimeManager.timeIsUp() || m_ShouldStop) {
                     break;
                 }
@@ -554,7 +543,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
 
                         TRACE_NEW_TREE(pos, depth);
 
-                        score = pvs<TRACE, ROOT>(depth, 0, alpha, beta, &moves);
+                        score = pvs<TRACE, ROOT>(depth, 0, alpha, beta);
                         if (score <= alpha) {
                             // Fail low, widen lower bound.
                             TRACE_FINISH_TREE(m_Results.traceTree);
@@ -573,7 +562,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     m_TT.probe(pos, ttEntry);
                     m_Results.searchedDepth = depth;
 
-                    moves.remove(ttEntry.move);
+                    m_RootMoves.remove(ttEntry.move);
 
 
                     // We finished the search on this variation at this depth.
@@ -621,9 +610,9 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                 TRACE_FINISH_TREE(m_Results.traceTree);
             }
 
-            moves.clear();
-            movegen::generate(pos, moves);
-            filterMoves(moves, settings.moveFilter);
+            m_RootMoves.clear();
+            movegen::generate(pos, m_RootMoves);
+            filterMoves(m_RootMoves, settings.moveFilter);
 
             m_TimeManager.onNewDepth(m_Results);
             if (settings.onDepthFinish != nullptr) {
