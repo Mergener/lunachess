@@ -190,7 +190,7 @@ private:
     };
 
     template <bool TRACE, SearchFlags FLAGS = NO_SEARCH_FLAGS>
-    int pvs(int depth, int ply, int alpha, int beta);
+    int pvs(int depth, int ply, int alpha, int beta, Move moveToSkip = MOVE_INVALID);
 
     template <bool TRACE>
     int quiesce(int ply, int alpha, int beta);

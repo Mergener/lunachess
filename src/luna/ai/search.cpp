@@ -139,7 +139,8 @@ bool AlphaBetaSearcher::isBadCapture(Move move) const {
 
 template <bool TRACE, AlphaBetaSearcher::SearchFlags FLAGS>
 int AlphaBetaSearcher::pvs(int depth, int ply,
-                           int alpha, int beta) {
+                           int alpha, int beta,
+                           Move moveToSkip) {
     constexpr bool IS_ROOT = BIT_INTERSECTS(FLAGS, ROOT);
     constexpr bool IS_ZW   = BIT_INTERSECTS(FLAGS, ZW);
     constexpr bool DO_NMP  = !BIT_INTERSECTS(FLAGS, SKIP_NULL);
@@ -201,16 +202,21 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 }
             }
         }
-    }
 
-    // #----------------------------------------
+//        if constexpr (!IS_ROOT && IS_ZW) {
+//            if (ttEntry.depth > (depth - 3) &&
+//                depth > 4 &&
+//                !pos.isCheck() &&
+//                ttEntry.score < (alpha - 800 * depth)) {
+//                depth--;
+//            }
+//        }
+    }
 
     if (depth <= 0) {
         return quiesce<TRACE>(ply, alpha, beta);
     }
     m_Results.visitedNodes++;
-
-    depth--;
 
     bool isCheck = pos.isCheck();
     if (!isCheck && !foundInTT) {
@@ -255,7 +261,6 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
             int score = -pvs<TRACE, SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
             if (score >= beta) {
-                //depth -= NULL_SEARCH_DEPTH_RED;
                 TRACE_POP();
                 m_Eval->undoNullMove();
 
@@ -280,6 +285,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     Move bestMove = moveCursor.next(pos, m_MvOrderData, ply, hashMove);
     int bestItScore = -HIGH_BETA;
     int searchedMoves = 0;
+    int searchedDepth = 0;
     for (Move move = bestMove; move != MOVE_INVALID; move = moveCursor.next(pos, m_MvOrderData, ply)) {
         if (IS_ROOT &&
             !m_RootMoves.contains(move)) {
@@ -287,15 +293,48 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             continue;
         }
 
+        if (move == moveToSkip) {
+            continue;
+        }
+
+        // The highest depth we're going to search during this iteration.
+        // Used in PV nodes or researches after fail highs.
+        int fullIterationDepth = depth;
+
+        // #----------------------------------------
+        // # SINGULAR EXTENSION
+        // #----------------------------------------
+        bool extendedSingular = false;
+        if (!IS_ROOT   &&
+            depth >= 8 &&
+            foundInTT  &&
+            moveToSkip == MOVE_INVALID &&
+            ttEntry.depth >= depth - 3 && // Limits too many extensions
+            ttEntry.score < FORCED_MATE_THRESHOLD &&
+            (ttEntry.type == TranspositionTable::EXACT || ttEntry.type == TranspositionTable::LOWERBOUND) &&
+            move == hashMove) {
+            int seBeta = std::min(beta, ttEntry.score);
+
+            int score = pvs<TRACE, ZW>((depth - 1) / 2, ply + 1, seBeta - 1, seBeta, hashMove);
+            if (score < seBeta) {
+                // We have a singular move. Search it with extended depth
+                extendedSingular = true;
+                fullIterationDepth++;
+            }
+            else if (score >= beta) {
+                return score;
+            }
+        }
+        // #----------------------------------------
+
         searchedMoves++;
         TRACE_PUSH(move);
         m_Eval->makeMove(move);
 
         bool moveGivesCheck = pos.isCheck();
-
-        // The highest depth we're going to search during this iteration.
-        // Used in PV nodes or researches after fail highs.
-        int fullIterationDepth = moveGivesCheck ? depth + 1 : depth;
+        if (moveGivesCheck && !extendedSingular) {
+            fullIterationDepth++;
+        }
 
         // #----------------------------------------
         // # FUTILITY PRUNING
@@ -338,16 +377,16 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         int score;
         if (shouldSearchPV) {
             // Perform PVS. First move of the list is always PVS.
-            score = -pvs<TRACE>(iterationDepth, ply + 1, -beta, -alpha);
+            score = -pvs<TRACE>(iterationDepth - 1, ply + 1, -beta, -alpha);
         }
         else {
             // Perform a ZWS. Searches after the first move are performed
             // with a null window. If the search fails high, do a re-search
             // with the full window.
-            score = -pvs<TRACE, ZW>(iterationDepth, ply + 1, -alpha - 1, -alpha);
+            score = -pvs<TRACE, ZW>(iterationDepth - 1, ply + 1, -alpha - 1, -alpha);
             if (score > alpha) {
                 iterationDepth = fullIterationDepth;
-                score = -pvs<TRACE>(iterationDepth, ply + 1, -beta, -alpha);
+                score = -pvs<TRACE>(iterationDepth - 1, ply + 1, -beta, -alpha);
             }
         }
 
@@ -372,18 +411,20 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         if (score > bestItScore) {
             bestItScore = score;
             bestMove = move;
+            searchedDepth = iterationDepth;
 
             TRACE_UPDATE_BEST_MOVE(move);
             if (score >= beta) {
                 // Beta cutoff, fail high
+                TRACE_ADD_FLAGS(STF_BETA_CUTOFF);
                 alpha = beta;
 
                 bestMove = move;
 
-                if (move.is<MTM_QUIET>()) {
-                    m_MvOrderData.storeHistory(move, iterationDepth);
-                    m_MvOrderData.storeKillerMove(move, ply);
-                    m_MvOrderData.storeCounterMove(lastMove, move);
+                if (bestMove.is<MTM_QUIET>()) {
+                    m_MvOrderData.storeHistory(bestMove, searchedDepth);
+                    m_MvOrderData.storeKillerMove(bestMove, ply);
+                    m_MvOrderData.storeCounterMove(lastMove, bestMove);
                 }
                 break;
             }
