@@ -202,15 +202,6 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 }
             }
         }
-
-//        if constexpr (!IS_ROOT && IS_ZW) {
-//            if (ttEntry.depth > (depth - 3) &&
-//                depth > 4 &&
-//                !pos.isCheck() &&
-//                ttEntry.score < (alpha - 800 * depth)) {
-//                depth--;
-//            }
-//        }
     }
 
     if (depth <= 0) {
@@ -259,7 +250,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             TRACE_PUSH(MOVE_INVALID);
             m_Eval->makeNullMove();
 
-            int score = -pvs<TRACE, SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED, ply + 1, -beta, -beta + 1);
+            int score = -pvs<TRACE, SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED - 1, ply + 1, -beta, -beta + 1);
             if (score >= beta) {
                 TRACE_POP();
                 m_Eval->undoNullMove();
