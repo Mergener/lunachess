@@ -32,6 +32,7 @@ set(CMAKE_CXX_STANDARD 17)
 # Source code
 ##
 set(HCE_WEIGHTS_FILE ${CMAKE_SOURCE_DIR}/src/luna/ai/hce/weights.json)
+set(PRIORITIES_FILE ${CMAKE_SOURCE_DIR}/src/lunatuner/priorities.json)
 
 add_library(luna STATIC
         src/luna/types.cpp
@@ -100,6 +101,13 @@ add_custom_target(luna_hce
 
 add_dependencies(${PROJECT_NAME} luna_hce)
 
+# Same logic as above but for lunatuner
+add_custom_target(luna_weight_prios
+        COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${CMAKE_SOURCE_DIR}/src/lunatuner/main.cpp)
+
+add_dependencies(${PROJECT_NAME} luna_weight_prios)
+
+# Add executables
 add_executable(lunacli
         src/lunacli/main.cpp
         src/lunacli/uci.cpp
@@ -121,6 +129,8 @@ target_compile_definitions(lunacli PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FUL
 target_compile_definitions(lunatest PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FULL}\")
 
 target_compile_definitions(luna PUBLIC HCE_WEIGHTS_FILE=\"${HCE_WEIGHTS_FILE}\")
+
+target_compile_definitions(lunatuner PUBLIC PRIORITIES_FILE=\"${PRIORITIES_FILE}\")
 
 ##
 # Add external dependencies

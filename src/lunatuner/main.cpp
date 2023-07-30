@@ -1,6 +1,7 @@
 #include <lunachess.h>
 
 #include <popl/popl.h>
+#include <incbin/incbin.h>
 
 #include <algorithm>
 #include <random>
@@ -23,7 +24,7 @@ struct Settings {
     fs::path outPath;
     std::optional<fs::path> baseWeightsPath = std::nullopt;
     int threads  = 1;
-    double k     = 0.045;
+    double k     = 0.113;
     bool quiesce = false;
     int repeat   = 0;
     int step     = 4;
@@ -42,6 +43,8 @@ struct DataEntry {
 struct InputData {
     std::vector<DataEntry> entries;
 };
+
+INCTXT(_DefaultParamPriorities, PRIORITIES_FILE);
 
 static int quiescenceSearch(Position& pos,
                             Move* pv,
@@ -220,14 +223,14 @@ static std::tuple<int, double> tune(const Settings& settings,
                                    nlohmann::json flatWeightsJson,
                                    ThreadPool& threadPool,
                                    std::string parameter,
-                                   int step) {
+                                   int step,
+                                   double lowestError = INFINITY) {
     constexpr int MAX_BAD_ITERATIONS = 5;
     constexpr double MIN_ERR_DELTA = 0.000000001;
 
     int badIts = 0;
     int value = flatWeightsJson[parameter];
     int bestValue = value;
-    double lowestError = INFINITY;
 
     while (badIts < MAX_BAD_ITERATIONS) {
 
@@ -276,8 +279,20 @@ static int tuneParameter(const Settings& settings,
 
     // We tune in "both directions" since we don't know whether the best value for
     // the parameter is higher or lower than the current one.
-    auto [upValue, upError]     = tune(settings, inputData, flatWeightsJson, threadPool, parameter, settings.step);
-    auto [downValue, downError] = tune(settings, inputData, flatWeightsJson, threadPool, parameter, -settings.step);
+    auto [upValue, upError]     = tune(settings,
+                                                   inputData,
+                                                   flatWeightsJson,
+                                                   threadPool, parameter,
+                                                   settings.step,
+                                                   lowestErr);
+
+    auto [downValue, downError] = tune(settings,
+                                                  inputData,
+                                                  flatWeightsJson,
+                                                  threadPool,
+                                                  parameter,
+                                                  -settings.step,
+                                                  lowestErr);
 
     if (lowestErr < upError && lowestErr < downError) {
         // Our value was already tuned
@@ -422,13 +437,12 @@ static Settings processArgs(int argc, char* argv[]) {
 
 
         if (optPrioPath->is_set()) {
-            settings.paramPriorities = static_cast<std::unordered_map<std::string, int>>(
-                    nlohmann::json(utils::readFromFile(optPrioPath->value())).flatten()
-                    );
-
-            for (auto& pair: settings.paramPriorities) {
-                std::cout << pair.first << ": " << pair.second << std::endl;
-            }
+            settings.paramPriorities = nlohmann::json::parse(utils::readFromFile(optPrioPath->value()))
+                    .get<std::unordered_map<std::string, int>>();
+        }
+        else {
+            settings.paramPriorities = nlohmann::json::parse(std::string(g_DefaultParamPrioritiesData))
+                    .get<std::unordered_map<std::string, int>>();
         }
 
         return settings;
