@@ -323,9 +323,10 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         }
         else {
             // Forced checkmate found
-            int mateScore = var.score > 0 ? ai::MATE_SCORE : -ai::MATE_SCORE;
-            int pliesToMate = mateScore - var.score + 1;
-            std::cout << " score mate " << (pliesToMate + 1) / 2;
+            int sign        = var.score < 0 ? -1 : 1;
+            int mateScore   = ai::MATE_SCORE;
+            int pliesToMate = mateScore - std::abs(var.score);
+            std::cout << " score mate " << sign * (pliesToMate + 1) / 2;
         }
 
         // Is it lowerbound, upperbound, or exact (do nothing)?
@@ -344,13 +345,11 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
 
         const auto& tt = ctx.searcher.getTT();
         size_t hashFull = (tt.getCount() * 1000) / tt.getCapacity();
+
         std::cout << " hashfull " << hashFull;
-
-        std::cout << " nodes " << res.visitedNodes;
-        std::cout << " nps " << res.getNPS();
-
-        std::cout << " time " << deltaMs(Clock::now(), startTime);
-
+        std::cout << " nodes "    << res.visitedNodes;
+        std::cout << " nps "      << res.getNPS();
+        std::cout << " time "     << deltaMs(Clock::now(), startTime);
         std::cout << std::endl;
     };
 
@@ -634,7 +633,6 @@ static void cmdLoadweights(UCIContext& ctx, const CommandArgs& args) {
     try {
         nlohmann::json weightsJson = nlohmann::json::parse(utils::readFromFile(path));
 
-
         ai::HCEWeightTable* weights = new ai::HCEWeightTable(weightsJson);
         ctx.hce->setWeights(weights);
 
@@ -755,7 +753,6 @@ static std::unordered_map<std::string, Command> generateCommands() {
     cmds["perft"] = Command(cmdLunaPerft, 1, false);
     cmds["takeback"] = Command(cmdTakeback, 0, false);
     cmds["eval"] = Command(cmdEval, 0, false);
-//    cmds["tune"] = Command(cmdTune, 0, false);
     cmds["saveweights"] = Command(cmdSaveweights, 1);
     cmds["loadweights"] = Command(cmdLoadweights, 1);
 

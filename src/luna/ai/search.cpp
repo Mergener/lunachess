@@ -381,13 +381,6 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             }
         }
 
-        if (score >= FORCED_MATE_THRESHOLD) {
-            score--;
-        }
-        else if (score <= -FORCED_MATE_THRESHOLD) {
-            score++;
-        }
-
         m_Eval->undoMove();
         TRACE_POP();
 
@@ -430,7 +423,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // Either stalemate or checkmate
         if (isCheck) {
             TRACE_SET_SCORES(-MATE_SCORE, alpha, beta);
-            return -MATE_SCORE;
+            return -MATE_SCORE + ply;
         }
         TRACE_SET_SCORES(drawScore, alpha, beta);
         return drawScore;
