@@ -412,7 +412,9 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
         if (arg == "searchmoves") {
             // User wants to search only some specific moves
             i++;
-            for (Move move = Move(pos, args[i]); move != MOVE_INVALID && i < args.size(); i++) {
+            for (Move move = Move(pos, args[i]);
+                 move != MOVE_INVALID && i < args.size();
+                 move = Move(pos, args[++i])) {
                 searchMoves.add(move);
             }
         }

@@ -24,8 +24,9 @@ int main() {
 | |___| |_| | | | | (_| |
 \_____/\__,_|_| |_|\__,_|
 
- Version AB-)"
-        << LUNA_VERSION_NAME << std::endl;
+)"
+        << "  by Thomas Mergener" << std::endl
+        << "  Version " << LUNA_VERSION_NAME << std::endl;
 
         std::cout << std::endl << rang::fg::reset << rang::style::reset;
 
