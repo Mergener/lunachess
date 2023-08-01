@@ -1,0 +1,22 @@
+{
+  "material/1": 150,
+  "material/2": 140,
+  "material/3": 130,
+  "material/4": 120,
+  "material/5": 110,
+  "passedPawnScore/0": 100,
+  "passedPawnScore/1": 100,
+  "passedPawnScore/2": 100,
+  "passedPawnScore/3": 100,
+  "passedPawnScore/4": 100,
+  "blockingPawnsScore": 90,
+  "isolatedPawnScore": 90,
+  "backwardPawnScore": 90,
+  "kingPawnDistanceScore": 90,
+  "knightOutpostScore": 90,
+  "bishopPairScore": 90,
+  "rookOnOpenFile": 90,
+  "rookBehindPasser": 80,
+  "material/0": -99999,
+  "material/6": -99999
+}

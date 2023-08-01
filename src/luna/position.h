@@ -25,7 +25,6 @@ public:
 
     inline Piece getPieceAt(Square s) const { return m_Pieces[s]; }
     inline void setPieceAt(Square s, Piece p) {
-
         setPieceAt<true, true>(s, p);
     }
 
