@@ -6,6 +6,7 @@ namespace lunachess::ai {
 
 int HandCraftedEvaluator::getGamePhaseFactor() const {
     auto& pos = getPosition();
+
     constexpr int KNIGHT_VAL = GPF_PIECE_VALUE_TABLE[PT_KNIGHT];
     constexpr int BISHOP_VAL = GPF_PIECE_VALUE_TABLE[PT_BISHOP];
     constexpr int ROOK_VAL   = GPF_PIECE_VALUE_TABLE[PT_ROOK];
@@ -13,13 +14,13 @@ int HandCraftedEvaluator::getGamePhaseFactor() const {
 
     int nKnights = bits::popcount(pos.getBitboard(WHITE_KNIGHT) | pos.getBitboard(BLACK_KNIGHT));
     int nBishops = bits::popcount(pos.getBitboard(WHITE_BISHOP) | pos.getBitboard(BLACK_BISHOP));
-    int nRooks   = bits::popcount(pos.getBitboard(WHITE_ROOK) | pos.getBitboard(BLACK_ROOK));
-    int nQueens  = bits::popcount(pos.getBitboard(WHITE_QUEEN) | pos.getBitboard(BLACK_QUEEN));
+    int nRooks   = bits::popcount(pos.getBitboard(WHITE_ROOK)   | pos.getBitboard(BLACK_ROOK));
+    int nQueens  = bits::popcount(pos.getBitboard(WHITE_QUEEN)  | pos.getBitboard(BLACK_QUEEN));
 
     int total = nKnights * KNIGHT_VAL +
                 nBishops * BISHOP_VAL +
-                nRooks * ROOK_VAL +
-                nQueens * QUEEN_VAL;
+                nRooks   * ROOK_VAL   +
+                nQueens  * QUEEN_VAL;
 
     int ret = total;
     return ret;
@@ -60,11 +61,11 @@ int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
     total += getIsolatedPawnsScore(gpf, us) - getIsolatedPawnsScore(gpf, them);
     total += getKnightOutpostScore(gpf, us) - getKnightOutpostScore(gpf, them);
     total += getBlockingPawnsScore(gpf, us) - getBlockingPawnsScore(gpf, them);
-    total += getPassedPawnsScore(gpf, us, ourPassers) - getPassedPawnsScore(gpf, them, theirPassers);
     total += getBackwardPawnsScore(gpf, us) - getBackwardPawnsScore(gpf, them);
     total += getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
     total += getKingPawnDistanceScore(gpf, us) - getKingPawnDistanceScore(gpf, them);
     total += getRooksScore(gpf, us, ourPassers) - getRooksScore(gpf, them, theirPassers);
+    total += getPassedPawnsScore(gpf, us, ourPassers) - getPassedPawnsScore(gpf, them, theirPassers);
 
     return total;
 }

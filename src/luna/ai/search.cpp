@@ -93,9 +93,9 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     }
     // #----------------------------------------
 
+    int bestItScore = -HIGH_BETA;
     MoveCursor<true> moveCursor;
     Move move;
-    int bestItScore = -HIGH_BETA;
     while ((move = moveCursor.next(pos, m_MvOrderData, ply))) {
         if (move.getType() == MT_SIMPLE_CAPTURE &&
             !staticanalysis::hasGoodSEE(pos, move)) {
