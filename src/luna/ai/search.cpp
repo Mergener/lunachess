@@ -244,6 +244,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
         if (DO_NMP &&
             depth >= NULL_SEARCH_MIN_DEPTH &&
+            staticEval >= beta &&
             pieceCount > NULL_MOVE_MIN_PIECES) {
 
             // Null move pruning allowed
@@ -395,7 +396,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
         if constexpr (IS_ROOT) {
             // Update results best move.
-            if (score > bestItScore) {
+            if (score > alpha) {
                 m_Results.bestScore = score;
                 m_Results.bestMove  = move;
             }
