@@ -27,10 +27,10 @@ public:
 
     struct Entry {
         ui64 zobristKey = 0;
-        Move move = MOVE_INVALID;
-        i32 score = 0;
-        i32 staticEval = 0;
-        ui8 depth = 0;
+        Move move  = MOVE_INVALID;
+        i32  score = 0;
+        i32  staticEval = 0;
+        ui8  depth = 0;
         EntryType type = {};
     };
 
@@ -86,8 +86,6 @@ public:
 
     inline void clear() {
         // Simply resize to the same capacity.
-        // Calling calloc() seems to be slightly faster than memsetting the
-        // entire array to zero.
         resize(m_Capacity * sizeof(Bucket));
     }
 
@@ -99,9 +97,9 @@ public:
             std::free(m_Buckets);
         }
 
-        m_Count = 0;
+        m_Count    = 0;
         m_Capacity = hashSizeBytes / sizeof(Bucket);
-        m_Buckets = static_cast<Bucket*>(std::calloc(m_Capacity, sizeof(Bucket)));
+        m_Buckets  = static_cast<Bucket*>(std::calloc(m_Capacity, sizeof(Bucket)));
         if (m_Buckets == nullptr) {
             throw std::bad_alloc();
         }
@@ -118,9 +116,9 @@ public:
     }
 
 private:
-    Bucket* m_Buckets = nullptr;
+    Bucket* m_Buckets  = nullptr;
     size_t  m_Capacity = 0;
-    size_t  m_Count = 0;
+    size_t  m_Count    = 0;
 
     inline Bucket& getBucket(ui64 key) const {
         return m_Buckets[key % m_Capacity];
