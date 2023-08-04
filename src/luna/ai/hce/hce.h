@@ -45,9 +45,10 @@ public:
 private:
     const HCEWeightTable* m_Weights;
 
-    int evaluateClassic(const Position& pos) const;
+    int evaluateClassic(const Position& pos, Color us) const;
     int evaluateEndgame(const Position& pos, EndgameData egData) const;
     int evaluateKPK(const Position& pos, Color lhs) const;
+    int evaluateKBPK(const Position& pos, Color lhs) const;
     int evaluateKBNK(const Position& pos, Color lhs) const;
 
     int getMaterialScore(int gpf, Color c) const;

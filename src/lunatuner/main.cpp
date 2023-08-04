@@ -162,7 +162,6 @@ static void quiesceDataPositions(InputData& inputData, int threads) {
                         }
                         nQuiesced++;
                     }
-
                 }
             });
         }
@@ -226,7 +225,7 @@ static std::tuple<int, double> tune(const Settings& settings,
                                    int step,
                                    double lowestError = INFINITY) {
     constexpr int MAX_BAD_ITERATIONS = 5;
-    constexpr double MIN_ERR_DELTA = 0.000000001;
+    constexpr double MIN_ERR_DELTA = 0.0000001;
 
     int badIts = 0;
     int value = flatWeightsJson[parameter];

@@ -37,6 +37,7 @@ void initialize() {
     registerEndgame(EG_KR_K, buildEgMask(0, 0, 0, 1, 0), 0);
     registerEndgame(EG_KQ_K, buildEgMask(0, 0, 0, 0, 1), 0);
     registerEndgame(EG_KBB_K, buildEgMask(0, 0, 2, 0, 0), 0);
+    registerEndgame(EG_KBP_K, buildEgMask(1, 0, 1, 0, 0), 0);
     registerEndgame(EG_KBN_K, buildEgMask(0, 1, 1, 0, 0), 0);
 
     registerEndgame(EG_KR_KN,

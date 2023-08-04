@@ -33,7 +33,7 @@ int HandCraftedEvaluator::evaluate() const {
     EndgameData eg = endgame::identify(pos);
     if (eg.type == EG_UNKNOWN) {
         // Not a known endgame
-        return evaluateClassic(pos);
+        return evaluateClassic(pos, pos.getColorToMove());
     }
     if (eg.lhs == pos.getColorToMove()) {
         // Evaluate the endgame on our perspective
@@ -43,15 +43,14 @@ int HandCraftedEvaluator::evaluate() const {
     return -evaluateEndgame(pos, eg);
 }
 
-int HandCraftedEvaluator::evaluateClassic(const Position& pos) const {
+int HandCraftedEvaluator::evaluateClassic(const Position& pos, Color us) const {
     int total = 0;
-    Color us = pos.getColorToMove();
     Color them = getOppositeColor(us);
 
     int gpf = getGamePhaseFactor();
 
     // Some pre-computed values
-    Bitboard ourPassers = staticanalysis::getPassedPawns(pos, us);
+    Bitboard ourPassers   = staticanalysis::getPassedPawns(pos, us);
     Bitboard theirPassers = staticanalysis::getPassedPawns(pos, them);
 
     total += getMaterialScore(gpf, us) - getMaterialScore(gpf, them);
@@ -255,24 +254,25 @@ int HandCraftedEvaluator::getRooksScore(int gpf, Color c, Bitboard passers) cons
     const auto& pos = getPosition();
     int total = 0;
 
-    Bitboard occ = pos.getCompositeBitboard();
+    Bitboard occ      = pos.getCompositeBitboard();
     Bitboard ourRooks = pos.getBitboard(Piece(c, PT_ROOK));
     if (ourRooks == 0) {
         return 0;
     }
+    Bitboard ourPawns = pos.getBitboard(Piece(c, PT_PAWN));
 
-    int openFileScore = m_Weights->rookOnOpenFile.get(gpf);
+    int openFileScore     = m_Weights->rookOnOpenFile.get(gpf);
     int behindPasserScore = m_Weights->rookBehindPasser.get(gpf);
 
     for (Square s: ourRooks) {
-        BoardFile file = getFile(s);
-        FileState fileState = staticanalysis::getFileState(pos, file);
+        BoardFile file     = getFile(s);
+        Bitboard fileBB    = bbs::getFileBitboard(file);
+        Bitboard filePawns = ourPawns & fileBB;
 
-        if (fileState == FS_OPEN) {
+        if (filePawns == 0) {
             total += openFileScore;
         }
 
-        Bitboard fileBB = bbs::getFileBitboard(file);
         Bitboard rookFileAtks = bbs::getRookAttacks(s, occ) & fileBB;
 
         if ((rookFileAtks & passers) != 0) {
@@ -337,6 +337,9 @@ int HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egDat
         case EG_KQ_KQ:
             return getDrawScore();
 
+        case EG_KBP_K:
+            return evaluateKBPK(pos, egData.lhs);
+
         case EG_KP_K:
             return evaluateKPK(pos, egData.lhs);
 
@@ -345,7 +348,7 @@ int HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egDat
 
         default:
             // Not implemented endgame, resort to default evaluation:
-            return evaluateClassic(pos);
+            return evaluateClassic(pos, egData.lhs);
     }
 
 }
@@ -365,7 +368,53 @@ int HandCraftedEvaluator::evaluateKPK(const Position &pos, Color lhs) const {
         return queenValue - dist * 100;
     }
 
-    return evaluateClassic(pos);
+    return evaluateClassic(pos, lhs);
+}
+
+int HandCraftedEvaluator::evaluateKBPK(const Position& pos, Color lhs) const {
+    constexpr Bitboard A_H_FILES   = bbs::getFileBitboard(FL_A) | bbs::getFileBitboard(FL_H);
+
+    Bitboard pawnBB   = pos.getBitboard(Piece(lhs, PT_PAWN));
+    Square pawnSquare = *pawnBB.begin();
+    int winningScore  = (m_Weights->material[PT_BISHOP].eg + m_Weights->material[PT_PAWN].eg) * 2 +
+            (5 - stepsFromPromotion(pawnSquare, lhs)) * 400;
+
+    if (!A_H_FILES.contains(pawnBB)) {
+        // Winning for the side with the bishop
+        return winningScore;
+    }
+
+    // The pawn is on either the H or A file. Check if the promotion
+    // square is the same color as the bishop.
+    BoardFile pawnFile     = getFile(pawnSquare);
+    Bitboard bishopBB      = pos.getBitboard(Piece(lhs, PT_BISHOP));
+    Square promSquare      = getPromotionSquare(lhs, pawnFile);
+    Bitboard bishopComplex = (bbs::LIGHT_SQUARES & bishopBB)
+            ? bbs::LIGHT_SQUARES
+            : bbs::DARK_SQUARES;
+
+    if (bishopComplex.contains(promSquare)) {
+        // Winning for the side with the bishop
+        return winningScore;
+    }
+
+    // Pawn is not on the same color complex as the bishop.
+    Color rhs          = getOppositeColor(lhs);
+    Bitboard rhsKingBB = pos.getBitboard(Piece(rhs, PT_KING));
+    Bitboard drawBB    = rhsKingBB | (bbs::getKingAttacks(promSquare));
+    if (drawBB & rhsKingBB) {
+        // King is on the area that prevents the win, endgame is a draw.
+        return getDrawScore();
+    }
+
+    if (!endgame::isInsideTheSquare(pawnSquare, *rhsKingBB.begin(), lhs, pos.getColorToMove())) {
+        // King is not on the square, the pawn can just march along the way.
+        return winningScore;
+    }
+
+    // Uncovered scenarios, fallback to standard evaluation methods
+    return getMaterialScore(0, lhs)  - getMaterialScore(0, rhs) +
+           getPlacementScore(0, lhs) - getPlacementScore(0, rhs);
 }
 
 int HandCraftedEvaluator::evaluateKBNK(const Position &pos, Color lhs) const {

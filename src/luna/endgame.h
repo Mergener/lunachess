@@ -20,6 +20,7 @@ enum EndgameType {
     // 2 men endgames
     //
 
+    EG_KBP_K,
     EG_KBB_K,
     EG_KBN_K,
     EG_KR_KN,
