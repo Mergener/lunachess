@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "tests/movegen/perft.cpp"
+#include "tests/movegen/pseudolegal.cpp"
 #include "tests/endgame.cpp"
 #include "tests/staticanalysis/outposts.cpp"
 #include "tests/staticanalysis/backwardpawns.cpp"
@@ -17,13 +18,14 @@ std::unordered_map<std::string, std::vector<TestCase>> testGroups;
 
 void createTests() {
     testGroups = {
-        { "perft",   perftTests },
-        {"outposts", outpostTests },
-        {"backwardPawns", backwardPawnsTests },
-        {"blockingPawns", blockingPawnsTests },
-        {"connectedPawns", connectedPawnsTests },
-        {"passedPawns", passedPawnsTests },
-        { "endgame", endgameTests },
+        { "perft",          perftTests },
+        { "pseudoLegality", pseudoLegalityTests },
+        { "outposts",       outpostTests },
+        { "backwardPawns",  backwardPawnsTests },
+        { "blockingPawns",  blockingPawnsTests },
+        { "connectedPawns", connectedPawnsTests },
+        { "passedPawns",    passedPawnsTests },
+        { "endgame",        endgameTests },
     };
 }
 

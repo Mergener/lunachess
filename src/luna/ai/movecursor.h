@@ -12,13 +12,20 @@ namespace lunachess::ai {
 
 enum MoveCursorStage {
 
+    MCS_NOT_STARTED,
     MCS_HASH_MOVE,
     MCS_PROM_CAPTURES,
     MCS_PROMOTIONS,
-    MCS_CAPTURES,
-    MCS_QUIET
+    MCS_GOOD_CAPTURES,
+    MCS_EN_PASSANTS,
+    MCS_KILLERS,
+    MCS_BAD_CAPTURES,
+    MCS_QUIET,
+    MCS_END,
 
 };
+static_assert(MCS_BAD_CAPTURES > MCS_GOOD_CAPTURES, "Bad captures must come after good captures.");
+static_assert(MCS_QUIET > MCS_KILLERS, "Quiet moves must come after killer moves.");
 
 class MoveOrderingData {
 public:
@@ -29,7 +36,7 @@ public:
 
     inline bool isKillerMove(Move move, int ply) const {
         return move == m_Killers[ply][0]
-               || move == m_Killers[ply][1];
+            || move == m_Killers[ply][1];
     }
 
     inline void storeHistory(Move move, int depth) {
@@ -47,6 +54,12 @@ public:
     inline int getMoveHistory(Move move) const {
         return m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()];
     }
+
+    inline Move getKillerMove(int ply, int index) const {
+        return m_Killers[ply][index];
+    }
+
+    int scoreQuietMove(Move move, const Position& pos) const;
 
     inline void resetCountermoves() {
         std::memset(m_CounterMoves, 0, sizeof(m_CounterMoves));
@@ -76,46 +89,200 @@ private:
     int  m_History[CL_COUNT][SQ_COUNT][SQ_COUNT] = {};
 };
 
-int getQuietMoveScore(Move move, const Position& pos);
-
 template <bool NOISY_ONLY = false>
 class MoveCursor {
-    inline static constexpr MoveCursorStage LAST_STAGE =
-            NOISY_ONLY
-                ? MCS_CAPTURES
-                : MCS_QUIET;
-
 public:
     Move next(const Position& pos,
               const MoveOrderingData& moveOrderingData,
               int ply,
               Move hashMove = MOVE_INVALID) {
-
-        while (m_Iter == m_Moves.end()) {
-            if (m_Stage > LAST_STAGE) {
+        // We start by checking if we still have more moves to
+        // use from the current stage. If we don't, we need to
+        // advance to the next stage.
+        while (m_Remaining <= 0) {
+            if (m_Stage >= MCS_END) {
+                // We are done with this position.
                 return MOVE_INVALID;
             }
-            if (m_Stage == MCS_HASH_MOVE && hashMove != MOVE_INVALID) {
-                m_Stage = static_cast<MoveCursorStage>(m_Stage + 1);
-                return hashMove;
-            }
-            generate(pos, moveOrderingData, ply);
-            m_Stage = static_cast<MoveCursorStage>(m_Stage + 1);
+            advanceStage(pos, moveOrderingData, ply, hashMove);
         }
+        m_Remaining--;
 
-        // Prevent hashMove from being searched more than once
-        Move move = *m_Iter++;
-        if (move == hashMove || !pos.isMoveLegal(move)) {
-            return next(pos, moveOrderingData, ply, hashMove);
+        Move move;
+        switch (m_Stage) {
+            case MCS_HASH_MOVE:
+                return hashMove;
+
+            case MCS_QUIET:
+                move = nextQuiet(pos, moveOrderingData, ply);
+                break;
+
+            default:
+                move = *m_Iter++;
+                break;
+        }
+        if (move == MOVE_INVALID || !pos.isMoveLegal(move) || move == hashMove) {
+            // Illegal move, try the next one.
+            // The call to next is likely going to get
+            // tail-call optimized.
+            return next(pos, moveOrderingData, ply);
         }
 
         return move;
     }
 
 private:
+    MoveCursorStage m_Stage = MCS_NOT_STARTED;
     MoveList m_Moves;
     MoveList::Iterator m_Iter = m_Moves.begin();
-    MoveCursorStage m_Stage = MCS_HASH_MOVE;
+    MoveList::Iterator m_SimpleCapturesBegin;
+    int m_NGoodCaptures = 0;
+    int m_NBadCaptures  = 0;
+
+    /** Number of moves remaining in the current stage. */
+    int m_Remaining = 0;
+
+    void advanceStage(const Position& pos,
+                      const MoveOrderingData& moveOrderingData,
+                      int ply,
+                      Move hashMove = MOVE_INVALID) {
+        m_Stage = static_cast<MoveCursorStage>(m_Stage + 1);
+
+        switch (m_Stage) {
+            case MCS_HASH_MOVE:
+                m_Remaining = hashMove != MOVE_INVALID;
+                break;
+
+            case MCS_PROM_CAPTURES:
+                m_Iter      = m_Moves.end();
+                m_Remaining = movegen::generate<bits::makeMask<MT_PROMOTION_CAPTURE>(), PTM_ALL, true>(pos, m_Moves);
+                break;
+
+            case MCS_PROMOTIONS:
+                m_Iter      = m_Moves.end();
+                m_Remaining = movegen::generate<bits::makeMask<MT_SIMPLE_PROMOTION>(), PTM_ALL, true>(pos, m_Moves);
+                break;
+
+            case MCS_GOOD_CAPTURES:
+                m_Iter = m_Moves.end();
+                generateSimpleCaptures(pos, moveOrderingData);
+                m_Remaining = m_NGoodCaptures;
+                break;
+
+            case MCS_EN_PASSANTS:
+                m_Iter      = m_Moves.end();
+                m_Remaining = movegen::generate<bits::makeMask<MT_EN_PASSANT_CAPTURE>(), BIT(PT_PAWN), true>(pos, m_Moves);
+                break;
+
+            case MCS_KILLERS: {
+                if constexpr (NOISY_ONLY) {
+                    advanceStage(pos, moveOrderingData, hashMove);
+                    return;
+                }
+
+                m_Iter      = m_Moves.end();
+                m_Remaining = 0;
+                for (int i = 0; i < 2; ++i) {
+                    Move killer = moveOrderingData.getKillerMove(ply, i);
+
+                    if (pos.isMovePseudoLegal(killer)) {
+                        m_Remaining++;
+                        m_Moves.add(killer);
+                    }
+                }
+                break;
+            }
+
+            case MCS_BAD_CAPTURES:
+                m_Iter      = m_SimpleCapturesBegin + m_NGoodCaptures;
+                m_Remaining = m_NBadCaptures;
+                break;
+
+            case MCS_QUIET:
+                if constexpr (NOISY_ONLY) {
+                    advanceStage(pos, moveOrderingData, hashMove);
+                    return;
+                }
+
+                m_Iter      = m_Moves.end();
+                m_Remaining = generateQuietMoves(pos, moveOrderingData);
+                break;
+
+            default:
+                m_Remaining = 0;
+                break;
+        }
+    }
+
+    Move nextQuiet(const Position& pos,
+                   const MoveOrderingData& moveOrderingData,
+                   int ply) {
+        // Skip killer moves
+        while (moveOrderingData.isKillerMove(*m_Iter, ply) &&
+               m_Remaining > 0) {
+            m_Iter++;
+            m_Remaining--;
+        }
+        return *m_Iter++;
+    }
+
+    /**
+     * Generates simple captures, sorts them and sets m_NGoodCaptures, m_NBadCaptures
+     * and m_SimpleCapturesBegin.
+     */
+    void generateSimpleCaptures(const Position& pos,
+                                const MoveOrderingData& moveOrderingData) {
+        m_SimpleCapturesBegin = m_Moves.end();
+        movegen::generate<bits::makeMask<MT_SIMPLE_CAPTURE>(), PTM_ALL, true>(pos, m_Moves);
+
+        bool seeTable[SQ_COUNT][SQ_COUNT];
+        for (auto it = m_SimpleCapturesBegin; it != m_Moves.end(); ++it) {
+            Move m = *it;
+            if (staticanalysis::hasGoodSEE(pos, m)) {
+                seeTable[m.getSource()][m.getDest()] = true;
+                m_NGoodCaptures++;
+            }
+            else {
+                seeTable[m.getSource()][m.getDest()] = false;
+                m_NBadCaptures++;
+            }
+        }
+
+        // Sort the captures in see > mvv-lva order
+        utils::insertionSort(m_SimpleCapturesBegin, m_Moves.end(), [&seeTable](Move a, Move b) {
+            bool aHasGoodSEE = seeTable[a.getSource()][a.getDest()];
+            bool bHasGoodSEE = seeTable[b.getSource()][b.getDest()];
+            if (aHasGoodSEE && !bHasGoodSEE) {
+                return true;
+            }
+            if (!aHasGoodSEE && bHasGoodSEE) {
+                return false;
+            }
+
+            return compareMvvLva(a, b);
+        });
+    }
+
+    /** Generates and sorts quiet moves. Returns the number of generated quiet moves. */
+    int generateQuietMoves(const Position& pos,
+                           const MoveOrderingData& moveOrderingData) {
+        auto quietBegin = m_Moves.end();
+        int ret = movegen::generate<MTM_QUIET, PTM_ALL, true>(pos, m_Moves);
+
+        int scores[SQ_COUNT][SQ_COUNT];
+        for (auto it = quietBegin; it != m_Moves.end(); ++it) {
+            Move m = *it;
+            scores[m.getSource()][m.getDest()] = moveOrderingData.scoreQuietMove(m, pos);
+        }
+
+        utils::insertionSort(quietBegin, m_Moves.end(), [&scores](Move a, Move b) {
+            int aScore = scores[a.getSource()][a.getDest()];
+            int bScore = scores[b.getSource()][b.getDest()];
+            return aScore > bScore;
+        });
+
+        return ret;
+    }
 
     static bool compareMvvLva(Move a, Move b) {
         constexpr int MVV_LVA[PT_COUNT][PT_COUNT] {
@@ -131,113 +298,6 @@ private:
 
         return MVV_LVA[a.getSourcePiece().getType()][a.getDestPiece().getType()] >
                MVV_LVA[b.getSourcePiece().getType()][b.getDestPiece().getType()];
-    }
-
-    void generate(const Position& pos,
-                  const MoveOrderingData& moveOrderingData,
-                  int ply) {
-        auto stageBegin = m_Moves.end();
-
-        switch (m_Stage) {
-            case MCS_PROM_CAPTURES: {
-                movegen::generate<BIT(MT_PROMOTION_CAPTURE), PTM_ALL, true>(pos, m_Moves);
-                utils::insertionSort(m_Moves.begin(), m_Moves.end(), [this](Move a, Move b) {
-                    return compareMvvLva(a, b);
-                });
-                break;
-            }
-
-            case MCS_PROMOTIONS: {
-                movegen::generate<BIT(MT_SIMPLE_PROMOTION), PTM_ALL, true>(pos, m_Moves);
-                break;
-            }
-
-            case MCS_CAPTURES: {
-                movegen::generate<BIT(MT_SIMPLE_CAPTURE), PTM_ALL, true>(pos, m_Moves);
-
-                // Compute the SEE for each simple capture
-                bool seeTable[SQ_COUNT][SQ_COUNT];
-                for (auto it = stageBegin; it != m_Moves.end(); ++it) {
-                    Move m = *it;
-                    seeTable[m.getSource()][m.getDest()] = staticanalysis::hasGoodSEE(pos, m);
-                }
-
-                // Sort the captures in see > mvv-lva order
-                utils::insertionSort(stageBegin, m_Moves.end(), [&seeTable](Move a, Move b) {
-                    bool aHasGoodSEE = seeTable[a.getSource()][a.getDest()];
-                    bool bHasGoodSEE = seeTable[b.getSource()][b.getDest()];
-                    if (aHasGoodSEE && !bHasGoodSEE) {
-                        return true;
-                    }
-                    if (!aHasGoodSEE && bHasGoodSEE) {
-                        return false;
-                    }
-
-                    return compareMvvLva(a, b);
-                });
-
-                movegen::generate<BIT(MT_EN_PASSANT_CAPTURE), BIT(PT_PAWN), true>(pos, m_Moves);
-                break;
-            }
-
-            case MCS_QUIET: {
-                movegen::generate<MTM_QUIET, PTM_ALL, true>(pos, m_Moves);
-                bool checkTable[SQ_COUNT][SQ_COUNT];
-                for (auto it = stageBegin; it != m_Moves.end(); ++it) {
-                    Move m = *it;
-                    checkTable[m.getSource()][m.getDest()] = pos.givesCheck(m);
-                }
-
-                utils::insertionSort(stageBegin, m_Moves.end(), [this, &pos, &moveOrderingData, &checkTable, ply](Move a, Move b) {
-                    // Killer move heuristic
-                    bool aIsKiller = moveOrderingData.isKillerMove(a, ply);
-                    bool bIsKiller = moveOrderingData.isKillerMove(b, ply);
-                    if (aIsKiller && !bIsKiller) {
-                        return true;
-                    }
-                    else if (!aIsKiller && bIsKiller) {
-                        return false;
-                    }
-
-//                    // Checks
-//                    bool aGivesCheck = checkTable[a.getSource()][a.getDest()];
-//                    bool bGivesCheck = checkTable[b.getSource()][b.getDest()];
-//                    if (aGivesCheck && !bGivesCheck) {
-//                        return true;
-//                    }
-//                    if (!aGivesCheck && bGivesCheck) {
-//                        return false;
-//                    }
-
-                    // Countermove Heuristic
-                    Move lastMove = pos.getLastMove();
-                    bool aIsCountermove = moveOrderingData.isCounterMove(lastMove, a);
-                    bool bIsCountermove = moveOrderingData.isCounterMove(lastMove, b);
-                    if (aIsCountermove && !bIsCountermove) {
-                        return true;
-                    }
-                    else if (!aIsCountermove && bIsCountermove) {
-                        return false;
-                    }
-
-                    // History heuristic
-                    int aHist = moveOrderingData.getMoveHistory(a);
-                    int bHist = moveOrderingData.getMoveHistory(b);
-                    if (aHist > bHist) {
-                        return true;
-                    }
-                    if (aHist < bHist) {
-                        return false;
-                    }
-
-                    return getQuietMoveScore(a, pos) > getQuietMoveScore(b, pos);
-                });
-            }
-
-            default:
-                break;
-        }
-
     }
 };
 

@@ -91,10 +91,24 @@ static int getHotmapDelta(Move move) {
     return ret;
 }
 
-int getQuietMoveScore(Move move, const Position& pos) {
+int MoveOrderingData::scoreQuietMove(Move move, const Position& pos) const {
     int total = 0;
 
+    if (isCounterMove(pos.getLastMove(), move)) {
+        total += 50000000;
+    }
+
+    total += getMoveHistory(move) * 100;
     total += getHotmapDelta(move);
+
+//
+//    total += getHotmapDelta(move);
+//
+//    if (isCounterMove(pos.getLastMove(), move)) {
+//        total += 250;
+//    }
+//
+//    total += getMoveHistory(move);
 
     return total;
 }

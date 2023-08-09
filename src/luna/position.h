@@ -126,6 +126,8 @@ public:
         return !isSquareAttacked(kingSquare, us);
     }
 
+    bool isMovePseudoLegal(Move move) const;
+
     inline bool isMoveLegal(Move move) const {
         if (isCheck()) {
             return isMoveLegal<true>(move);
@@ -273,6 +275,9 @@ private:
     template <bool CHECK>
     bool isMoveLegal(Move move) const;
 
+    bool isMoveMovementValid(Move move) const;
+    bool isCastlesPseudoLegal(Square kingSquare, Color c, Side castlingSide) const;
+
     void refreshCastles();
 };
 
@@ -326,22 +331,24 @@ void Position::setPieceAt(Square s, Piece p) {
 
 template <bool CHECK>
 bool Position::isMoveLegal(Move move) const {
-    Color us = getColorToMove();
+    Color us       = getColorToMove();
     Square ourKing = getKingSquare(us);
     if (ourKing == SQ_INVALID) {
+        // Any pseudo legal move is legal with no king
+        // on the board.
         return true;
     }
 
-    Color them = getOppositeColor(us);
-    Bitboard occ = getCompositeBitboard();
-    Square src = move.getSource();
-    Square dest = move.getDest();
+    Color them     = getOppositeColor(us);
+    Bitboard occ   = getCompositeBitboard();
+    Square src     = move.getSource();
+    Square dest    = move.getDest();
     Piece srcPiece = move.getSourcePiece();
 
     // Regardless of the position being a check or not, pinned
     // pieces can only move alongside their pins.
     if (isPinned(src)) {
-        Square pinner = m_Pinner[src];
+        Square pinner    = m_Pinner[src];
         Bitboard between = bbs::getSquaresBetween(ourKing, pinner);
         between.add(pinner);
 
@@ -362,7 +369,7 @@ bool Position::isMoveLegal(Move move) const {
 
         Bitboard kingRankBB = bbs::getRankBitboard(getRank(ourKing));
 
-        Bitboard theirRooks = getBitboard(Piece(them, PT_ROOK));
+        Bitboard theirRooks  = getBitboard(Piece(them, PT_ROOK));
         Bitboard theirQueens = getBitboard(Piece(them, PT_QUEEN));
         Bitboard theirHorizontalAtks = bbs::getRookAttacks(ourKing, epOcc) & (theirRooks | theirQueens) & kingRankBB;
 

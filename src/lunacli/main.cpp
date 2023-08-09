@@ -14,8 +14,6 @@ int main() {
         std::cin.tie();
         std::cout << std::boolalpha;
 
-        lunachess::Position pos = lunachess::Position::getInitialPosition();
-
         std::cout << rang::fgB::cyan;
         std::cout << R"( _
 | |

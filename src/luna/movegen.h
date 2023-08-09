@@ -30,9 +30,9 @@ void generatePawnMoves(const Position &pos, MoveList &ml) {
     constexpr bool GEN_DOUBLE_PUSHES = ALLOWED_FLAGS & BIT(MT_DOUBLE_PUSH);
     constexpr bool GEN_EP = ALLOWED_FLAGS & BIT(MT_EN_PASSANT_CAPTURE);
 
-    Bitboard occ = pos.getCompositeBitboard();
+    Bitboard occ     = pos.getCompositeBitboard();
     Bitboard theirBB = pos.getBitboard(Piece(getOppositeColor(C), PT_NONE));
-    Bitboard pawns = pos.getBitboard(Piece(C, PT_PAWN));
+    Bitboard pawns   = pos.getBitboard(Piece(C, PT_PAWN));
 
     // Generate capture-promotions
     if constexpr (GEN_PROM_CAPT) {
@@ -132,11 +132,10 @@ void generatePawnMoves(const Position &pos, MoveList &ml) {
 
     // Generate pawn pushes
     if constexpr (GEN_SINGLE_PUSHES || GEN_DOUBLE_PUSHES) {
-        Bitboard promRankBB = bbs::getRankBitboard(PROM_RANK);
-
         // Pretend all squares in the promotion rank are occupied so that
         // we prevent "quiet" pushes to the promotion rank.
-        Bitboard pushOcc = occ | promRankBB;
+        Bitboard promRankBB = bbs::getRankBitboard(PROM_RANK);
+        Bitboard pushOcc    = occ | promRankBB;
 
         // Single pushes (prevent pushing to occupied squares)
         Bitboard pushBB = pawns.shifted<STEP_DIR>() & ~pushOcc;

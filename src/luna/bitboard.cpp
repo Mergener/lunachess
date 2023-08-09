@@ -174,6 +174,7 @@ static void generateBetweenBitboards() {
 }
 
 Bitboard g_PawnAttacks[64][2];
+Bitboard g_PawnPushes[64][2];
 
 static void generatePawnAttacks() {
     for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
@@ -184,6 +185,25 @@ static void generatePawnAttacks() {
             Bitboard sqBB = BIT(s);
             Bitboard bb = sqBB.shifted(leftCaptureDir) | sqBB.shifted(rightCaptureDir);
             g_PawnAttacks[s][c] = bb;
+        }
+    }
+}
+
+static void generatePawnPushes() {
+    for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
+        Direction stepDir     = getPawnStepDir(c);
+        BoardRank initialRank = getPawnInitialRank(c);
+
+        for (Square s = 0; s < 64; ++s) {
+            Bitboard sqBB  = BIT(s);
+            Bitboard bb    = sqBB.shifted(stepDir);
+            BoardRank rank = getRank(s);
+            if (rank == initialRank) {
+                // Add double pushes
+                bb |= bb.shifted(stepDir);
+            }
+
+            g_PawnPushes[s][c] = bb;
         }
     }
 }
@@ -320,6 +340,7 @@ void initialize() {
     // Movegen bitboards
     generateSliderBitboards();
     generatePawnAttacks();
+    generatePawnPushes();
     generateBetweenBitboards();
 
     // Static analysis bitboards

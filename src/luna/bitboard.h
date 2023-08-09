@@ -419,6 +419,11 @@ inline Bitboard getSliderAttacks(Square s, Bitboard occ, PieceType pt) {
     }
 }
 
+inline Bitboard getPawnPushes(Square s, Color c) {
+    extern Bitboard g_PawnPushes[64][2];
+    return g_PawnPushes[s][c];
+}
+
 /**
  * Returns a bitboard containing the squares in which a pawn
  * of color 'c' can attack from a square 's'. Note that pawn attacks
@@ -432,6 +437,37 @@ inline Bitboard getPawnAttacks(Square s, Color c) {
 inline Bitboard getPieceAttacks(Square s, Bitboard occ, Piece piece) {
     switch (piece.getType()) {
         case PT_PAWN:   return getPawnAttacks(s, piece.getColor()) & occ;
+        case PT_KNIGHT: return getKnightAttacks(s);
+        case PT_BISHOP: return getBishopAttacks(s, occ);
+        case PT_ROOK:   return getRookAttacks(s, occ);
+        case PT_QUEEN:  return getQueenAttacks(s, occ);
+        case PT_KING:   return getKingAttacks(s);
+        default:        return 0;
+    }
+}
+
+inline Bitboard getPieceMovements(Square s, Bitboard occ, Piece piece, Square enPassantSquare = SQ_INVALID) {
+    switch (piece.getType()) {
+        case PT_PAWN: {
+            if (enPassantSquare != SQ_INVALID) {
+                occ.add(enPassantSquare);
+            }
+
+            Bitboard pushes    = 0;
+            Color color        = piece.getColor();
+            Direction stepDir  = getPawnStepDir(color);
+            Square squareAhead = s + stepDir;
+
+            if (!occ.contains(squareAhead)) {
+                pushes.add(squareAhead);
+                if (!occ.contains(squareAhead + stepDir) &&
+                    getRank(s) == getPawnInitialRank(color)) {
+                    pushes.add(squareAhead + stepDir);
+                }
+            }
+
+            return pushes | (getPawnAttacks(s, piece.getColor()) & occ);
+        }
         case PT_KNIGHT: return getKnightAttacks(s);
         case PT_BISHOP: return getBishopAttacks(s, occ);
         case PT_ROOK:   return getRookAttacks(s, occ);

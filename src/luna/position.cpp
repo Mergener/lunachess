@@ -403,6 +403,169 @@ bool Position::colorHasSufficientMaterial(Color c) const {
     return false;
 }
 
+bool Position::isCastlesPseudoLegal(Square kingSquare, Color c, Side castlingSide) const {
+    if (!getCastleRights(c, castlingSide)) {
+        // No castling rights
+        return false;
+    }
+    constexpr Square KING_INI_SQRS[] = { SQ_E1, SQ_E8 };
+    if (kingSquare != KING_INI_SQRS[c]) {
+        return false;
+    }
+
+    Square rookSquare = getCastleRookSrcSquare(c, castlingSide);
+    if (getPieceAt(rookSquare) != Piece(c, PT_ROOK)) {
+        return false;
+    }
+
+    Bitboard theirAtks       = getAttacks(getOppositeColor(c));
+    Bitboard kingCastlePath  = bbs::getKingCastlePath(c, castlingSide);
+    if (theirAtks & kingCastlePath) {
+        // Castling path is being attacked, don't allow.
+        return false;
+    }
+
+    Bitboard occ = getCompositeBitboard();
+    Bitboard innerCastlePath = bbs::getInnerCastlePath(c, castlingSide);
+    if (innerCastlePath & occ) {
+        // There cannot be any pieces between the king and the rook.
+        return false;
+    }
+
+    return true;
+}
+
+bool Position::isMoveMovementValid(Move move) const {
+    Bitboard occ   = getCompositeBitboard();
+    Square src     = move.getSource();
+    Square dest    = move.getDest();
+    Piece srcPiece = move.getSourcePiece();
+    Bitboard pMvs  = bbs::getPieceMovements(src, occ, srcPiece, getEnPassantSquare());
+
+    return pMvs.contains(dest);
+}
+
+bool Position::isMovePseudoLegal(Move move) const {
+    Square src             = move.getSource();
+    Square dest            = move.getDest();
+    Piece srcPiece         = move.getSourcePiece();
+    Piece destPiece        = move.getDestPiece();
+    Color srcPieceColor    = srcPiece.getColor();
+    Color destPieceColor   = destPiece.getColor();
+    PieceType srcPieceType = srcPiece.getType();
+
+    if (src == dest) {
+        // Destination can't be equal to source.
+        return false;
+    }
+
+    if (srcPiece != getPieceAt(src)) {
+        // Source piece must match the piece at the source square.
+        return false;
+    }
+    if (srcPieceColor != getColorToMove()) {
+        // Source piece must have the color of the current player to move.
+        return false;
+    }
+    if (getPieceAt(dest) != destPiece) {
+        return false;
+    }
+
+    // Check if move is a capture that isn't en passant.
+    if (move.is<MTM_CAPTURE & ~(BIT(MT_EN_PASSANT_CAPTURE))>()) {
+        if (destPiece == PIECE_NONE) {
+            // Non en passant captures must have a destPiece.
+            return false;
+        }
+        if (destPieceColor == srcPieceColor) {
+            // We can only capture opposing pieces.
+            return false;
+        }
+    }
+    else {
+        if (destPiece != PIECE_NONE) {
+            // Non-captures (or en passants) cannot have 'dest' pieces.
+            return false;
+        }
+    }
+
+    // Do specific logic for special moves.
+    switch (move.getType()) {
+        case MT_CASTLES_LONG:
+            if (srcPieceType != PT_KING) {
+                // Castling can only be performed by a king.
+                return false;
+            }
+            return isCastlesPseudoLegal(src, srcPieceColor, SIDE_QUEEN);
+
+        case MT_CASTLES_SHORT:
+            if (srcPieceType != PT_KING) {
+                // Castling can only be performed by a king.
+                return false;
+            }
+            return isCastlesPseudoLegal(src, srcPieceColor, SIDE_KING);
+
+        case MT_PROMOTION_CAPTURE:
+        case MT_SIMPLE_PROMOTION:
+            if (srcPieceType != PT_PAWN) {
+                // Promotions can only be performed by a pawn.
+                return false;
+            }
+            if (getRank(dest) != getPromotionRank(srcPieceColor)) {
+                // Destination rank must be the pawn's promotion rank.
+                // Note that after this condition, 'isNormalMovePseudoLegal' is already going to cover
+                // the requirement for 'src' to be located on the 7th rank.
+                return false;
+            }
+
+            return isMoveMovementValid(move);
+
+        case MT_EN_PASSANT_CAPTURE:
+            if (srcPieceType != PT_PAWN) {
+                // En passant can only be performed by a pawn.
+                return false;
+            }
+            if (dest != getEnPassantSquare()) {
+                // Destination square must be the en passant square.
+                return false;
+            }
+            if (getPieceAt(dest - getPawnStepDir(srcPieceColor)) != Piece(getOppositeColor(srcPieceColor), PT_PAWN)) {
+                // There must be an enemy pawn to be captured in en passant.
+                return false;
+            }
+            return isMoveMovementValid(move);
+
+        case MT_DOUBLE_PUSH:
+            if (srcPieceType != PT_PAWN) {
+                // Double pushes can only be performed by a pawn.
+                return false;
+            }
+            if (destPiece != PIECE_NONE) {
+                // Pawn pushes cannot capture pieces
+                return false;
+            }
+
+            if (std::abs(getRank(src) - getRank(dest)) != 2) {
+                // Pawn didn't move two squares.
+                return false;
+            }
+
+            return isMoveMovementValid(move);
+
+        case MT_NORMAL:
+            if (srcPieceType == PT_PAWN && destPiece != PIECE_NONE) {
+                return false;
+            }
+            return isMoveMovementValid(move);
+
+        case MT_SIMPLE_CAPTURE:
+            return isMoveMovementValid(move);
+
+        default:
+            return false;
+    }
+}
+
 Square Position::getSmallestAttackerSquare(Square s, Color c) const {
     Bitboard pawns = staticanalysis::getPawnAttackers(*this, s, c);
     if (pawns != 0) {

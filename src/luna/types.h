@@ -186,7 +186,7 @@ inline constexpr BoardRank getPromotionRank(Color c) {
 template <Color C>
 constexpr BoardRank PAWN_INITIAL_RANK = C == CL_WHITE ? RANK_2 : RANK_7;
 
-inline constexpr BoardRank getPawnInitialRanks(Color c) {
+inline constexpr BoardRank getPawnInitialRank(Color c) {
     constexpr BoardRank INIT_RANKS[] = { PAWN_INITIAL_RANK<CL_WHITE>, PAWN_INITIAL_RANK<CL_BLACK> };
     return INIT_RANKS[c];
 }

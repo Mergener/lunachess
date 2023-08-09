@@ -81,7 +81,8 @@ public:
     static Move fromAlgebraic(const Position& pos, std::string_view m);
 
     inline Move(ui32 raw = 0)
-        : m_Data(raw) {}
+        : m_Data(raw) {
+    }
 
     Move(const Position& pos, std::string_view v);
 

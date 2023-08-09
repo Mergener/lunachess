@@ -3,6 +3,7 @@
 #include <map>
 
 #include "movegen.h"
+#include "ai/movecursor.h"
 
 namespace lunachess {
 

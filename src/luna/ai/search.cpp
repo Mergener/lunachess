@@ -242,9 +242,8 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
         constexpr int NULL_MOVE_MIN_PIECES  = 4;
 
-        if (DO_NMP &&
+        if (DO_NMP && staticEval >= beta   &&
             depth >= NULL_SEARCH_MIN_DEPTH &&
-            staticEval >= beta &&
             pieceCount > NULL_MOVE_MIN_PIECES) {
 
             // Null move pruning allowed
@@ -281,7 +280,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     for (Move move = bestMove;
          move != MOVE_INVALID;
-         move = moveCursor.next(pos, m_MvOrderData, ply)) {
+         move = moveCursor.next(pos, m_MvOrderData, ply, depth)) {
 
         if (IS_ROOT &&
             !m_RootMoves.contains(move)) {
@@ -340,19 +339,15 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // #----------------------------------------
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
         constexpr int FUTILITY_MARGIN = 2500;
-        if (!IS_ROOT && !moveGivesCheck && move.is<MTM_QUIET>()) {
-            if (fullIterationDepth == 1 && (staticEval + FUTILITY_MARGIN) < alpha) {
-                // Prune
-                m_Eval->undoMove();
-                TRACE_POP();
-                continue;
-            }
-            if (fullIterationDepth == 2 && (staticEval + FUTILITY_MARGIN * 2) < alpha) {
-                // Prune
-                m_Eval->undoMove();
-                TRACE_POP();
-                continue;
-            }
+        if (!IS_ROOT                &&
+            !moveGivesCheck         &&
+            move.is<MTM_QUIET>()    &&
+            fullIterationDepth <= 2 &&
+            (staticEval + FUTILITY_MARGIN * fullIterationDepth) < alpha) {
+            // Prune
+            m_Eval->undoMove();
+            TRACE_POP();
+            continue;
         }
         // #----------------------------------------
 
