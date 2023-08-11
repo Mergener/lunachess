@@ -21,7 +21,9 @@ namespace lunachess::ai {
 class SearchInterrupt {
 };
 
-constexpr int CHECK_TIME_NODE_INTERVAL = 1024;
+constexpr int CHECK_TIME_NODE_INTERVAL = 2048;
+static_assert((CHECK_TIME_NODE_INTERVAL & (CHECK_TIME_NODE_INTERVAL - 1)) == 0,
+        "CHECK_TIME_NODE_INTERVAL must be a power of 2");
 
 static std::array<std::array<int, MoveList::MAX_ELEMS>, MAX_SEARCH_DEPTH * 2> s_LMRReductions;
 
@@ -71,27 +73,27 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         alpha = standPat;
     }
 
-    // #----------------------------------------
-    // # DELTA PRUNING
-    // #----------------------------------------
-    int bigDelta = 10000;
-
-    // Check whether we have pawns that can be promoted
-    Bitboard promoters = pos.getColorToMove() == CL_WHITE
-                         ? bbs::getRankBitboard(RANK_7)
-                         : bbs::getRankBitboard(RANK_2);
-    promoters &= pos.getBitboard(Piece(pos.getColorToMove(), PT_PAWN));
-    if (promoters > 0) {
-        bigDelta += 9000;
-    }
-
-    if (standPat < alpha - bigDelta) {
-        // No material delta could improve our position enough, we can
-        // perform some pruning.
-        TRACE_SET_SCORES(alpha, alpha, beta);
-        return alpha;
-    }
-    // #----------------------------------------
+//    // #----------------------------------------
+//    // # DELTA PRUNING
+//    // #----------------------------------------
+//    int bigDelta = 10000;
+//
+//    // Check whether we have pawns that can be promoted
+//    Bitboard promoters = pos.getColorToMove() == CL_WHITE
+//                         ? bbs::getRankBitboard(RANK_7)
+//                         : bbs::getRankBitboard(RANK_2);
+//    promoters &= pos.getBitboard(Piece(pos.getColorToMove(), PT_PAWN));
+//    if (promoters > 0) {
+//        bigDelta += 9000;
+//    }
+//
+//    if (standPat < alpha - bigDelta) {
+//        // No material delta could improve our position enough, we can
+//        // perform some pruning.
+//        TRACE_SET_SCORES(alpha, alpha, beta);
+//        return alpha;
+//    }
+//    // #----------------------------------------
 
     int bestItScore = -HIGH_BETA;
     MoveCursor<true> moveCursor;
@@ -207,6 +209,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     if (depth <= 0) {
         return quiesce<TRACE>(ply, alpha, beta);
     }
+
     m_Results.visitedNodes++;
 
     bool isCheck = pos.isCheck();
@@ -214,18 +217,36 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // No TT entry found and we're not in check, we need to compute the static eval here.
         staticEval = m_Eval->evaluate();
         TRACE_SET_STATEVAL(staticEval);
+    }
 
-        // If we're in a line that is so much worse than our expected lowerbound,
-        // the chances of us improving our positions get increasingly lower the further we go.
-        // Reduce the depth.
-        int margin = 1200 + 800 * depth;
-        int evalPlusMargin = staticEval + margin;
-        if (IS_ZW && (evalPlusMargin < alpha) && depth > 5) {
-            int quiesceScore = quiesce<false>(ply, evalPlusMargin - 1, alpha);
-            if (quiesceScore < evalPlusMargin) {
-                TRACE_SET_SCORES(quiesceScore, alpha, beta);
-                depth = (depth * 2) / 3;
-            }
+    // #----------------------------------------
+    // # REVERSE FUTILITY PRUNING
+    // # (A.K.A STATIC NULL MOVE PRUNING)
+    // #----------------------------------------
+    // Prune if we have a position that is too good.
+    int rfpMargin = 500 + 700 * depth;
+    if (IS_ZW      &&
+        !isCheck   &&
+        depth <= 7 &&
+        alpha < FORCED_MATE_THRESHOLD &&
+        staticEval - rfpMargin > beta) {
+        TRACE_SET_SCORES(staticEval - rfpMargin, alpha, beta);
+        return staticEval - rfpMargin;
+    }
+
+    // If we're in a line that is so much worse than our expected lowerbound,
+    // the chances of us improving our positions get increasingly lower the further we go.
+    // Reduce the depth.
+    int margin = 1200 + 800 * depth;
+    int evalPlusMargin = staticEval + margin;
+    if (IS_ZW    &&
+        !isCheck &&
+        (evalPlusMargin < alpha) &&
+        depth > 5) {
+        int quiesceScore = quiesce<false>(ply, evalPlusMargin - 1, alpha);
+        if (quiesceScore < evalPlusMargin) {
+            TRACE_SET_SCORES(quiesceScore, alpha, beta);
+            depth = (depth * 2) / 3;
         }
     }
 
@@ -324,8 +345,8 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             }
         }
         // #----------------------------------------
-
         searchedMoves++;
+
         TRACE_PUSH(move);
         m_Eval->makeMove(move);
 
@@ -530,6 +551,13 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         // Perform iterative deepening, starting at depth 1
         for (int depth = 1; depth <= maxDepth; depth++) {
             if (m_TimeManager.timeIsUp() || m_ShouldStop) {
+                break;
+            }
+
+            if (settings.ourTimeControl.mode == TC_TOURNAMENT &&
+                m_RootMoves.size() == 1 &&
+                depth > 1) {
+                // After scoring the position, stop searching if we only have one legal move.
                 break;
             }
 
