@@ -64,6 +64,13 @@ struct HCEWeightTable {
     PieceSquareTable pawnPstEg;
     PieceSquareTable kingPstMg;
     PieceSquareTable kingPstEg;
+
+    PieceSquareTable knightPstMg;
+    PieceSquareTable knightPstEg;
+    PieceSquareTable bishopPstMg;
+    PieceSquareTable bishopPstEg;
+    PieceSquareTable rookPstMg;
+    PieceSquareTable rookPstEg;
     PieceSquareTable queenPstMg;
     PieceSquareTable queenPstEg;
 
@@ -76,13 +83,18 @@ struct HCEWeightTable {
     HCEWeight rookOnOpenFile;
     HCEWeight rookBehindPasser;
 };
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore,
                                    bishopMobilityScore, rookHorizontalMobilityScore,
                                    rookVerticalMobilityScore, pawnPstsMg, pawnPstEg,
-                                   kingPstMg, kingPstEg, queenPstMg, queenPstEg,
+                                   knightPstMg, knightPstEg, bishopPstMg, bishopPstEg,
+                                   rookPstMg, rookPstEg,
+                                   queenPstMg, queenPstEg,
+                                   kingPstMg, kingPstEg, kingAttackScore, kingPawnDistanceScore,
                                    knightOutpostScore, blockingPawnsScore,
                                    backwardPawnScore, passedPawnScore,
-                                   kingPawnDistanceScore, bishopPairScore, kingAttackScore, isolatedPawnScore);
+                                   bishopPairScore, isolatedPawnScore,
+                                   rookOnOpenFile, rookBehindPasser);
 
 const HCEWeightTable* getDefaultHCEWeights();
 void initializeDefaultHCEWeights();

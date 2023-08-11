@@ -44,10 +44,9 @@ int HandCraftedEvaluator::evaluate() const {
 }
 
 int HandCraftedEvaluator::evaluateClassic(const Position& pos, Color us) const {
-    int total = 0;
+    int total  = 0;
     Color them = getOppositeColor(us);
-
-    int gpf = getGamePhaseFactor();
+    int gpf    = getGamePhaseFactor();
 
     // Some pre-computed values
     Bitboard ourPassers   = staticanalysis::getPassedPawns(pos, us);
@@ -80,6 +79,18 @@ int HandCraftedEvaluator::getMaterialScore(int gpf, Color c) const {
     return total;
 }
 
+static int evaluatePST(Bitboard bb, Color c,
+                       const PieceSquareTable& mg,
+                       const PieceSquareTable& eg,
+                       int gpf) {
+    int total = 0;
+    for (auto s: bb) {
+        HCEWeight weight(mg.valueAt(s, c), eg.valueAt(s, c));
+        total += weight.get(gpf);
+    }
+    return total;
+}
+
 int HandCraftedEvaluator::getPlacementScore(int gpf, Color c) const {
     const auto& pos = getPosition();
     int total = 0;
@@ -90,20 +101,46 @@ int HandCraftedEvaluator::getPlacementScore(int gpf, Color c) const {
     const PieceSquareTable& kingMgPST = m_Weights->kingPstMg;
     const PieceSquareTable& kingEgPST = m_Weights->kingPstEg;
 
-    for (auto s: kingBB) {
-        HCEWeight weight(kingMgPST.valueAt(s, c), kingEgPST.valueAt(s, c));
-        total += weight.get(gpf);
+    total += evaluatePST(kingBB, c, kingMgPST, kingEgPST, gpf);
+
+    // Knights
+    {
+        Bitboard knightBB = pos.getBitboard(Piece(c, PT_KNIGHT));
+
+        const PieceSquareTable& knightMgPST = m_Weights->knightPstMg;
+        const PieceSquareTable& knightEgPST = m_Weights->knightPstEg;
+
+        total += evaluatePST(knightBB, c, knightMgPST, knightEgPST, gpf);
+    }
+
+    // Knights
+    {
+        Bitboard bishopBB = pos.getBitboard(Piece(c, PT_BISHOP));
+
+        const PieceSquareTable& bishopMgPST = m_Weights->bishopPstMg;
+        const PieceSquareTable& bishopEgPST = m_Weights->bishopPstEg;
+
+        total += evaluatePST(bishopBB, c, bishopMgPST, bishopEgPST, gpf);
+    }
+
+    // Rooks
+    {
+        Bitboard rookBB = pos.getBitboard(Piece(c, PT_ROOK));
+
+        const PieceSquareTable& rookMgPST = m_Weights->rookPstMg;
+        const PieceSquareTable& rookEgPST = m_Weights->rookPstEg;
+
+        total += evaluatePST(rookBB, c, rookMgPST, rookEgPST, gpf);
     }
 
     // Queens
-    Bitboard queenBB = pos.getBitboard(Piece(c, PT_KING));
+    {
+        Bitboard queenBB = pos.getBitboard(Piece(c, PT_QUEEN));
 
-    const PieceSquareTable& queenMgPST = m_Weights->queenPstMg;
-    const PieceSquareTable& queenEgPST = m_Weights->queenPstEg;
+        const PieceSquareTable& queenMgPST = m_Weights->queenPstMg;
+        const PieceSquareTable& queenEgPST = m_Weights->queenPstEg;
 
-    for (auto s: queenBB) {
-        HCEWeight weight(queenMgPST.valueAt(s, c), queenEgPST.valueAt(s, c));
-        total += weight.get(gpf);
+        total += evaluatePST(queenBB, c, queenMgPST, queenEgPST, gpf);
     }
 
     // Pawns
@@ -113,11 +150,7 @@ int HandCraftedEvaluator::getPlacementScore(int gpf, Color c) const {
     const PieceSquareTable& pawnMgPST = m_Weights->pawnPstsMg[kingsDistribution];
     const PieceSquareTable& pawnEgPST = m_Weights->pawnPstEg;
 
-    for (auto s: pawnBB) {
-        HCEWeight weight(pawnMgPST.valueAt(s, c), pawnEgPST.valueAt(s, c));
-
-        total += weight.get(gpf);
-    }
+    total += evaluatePST(pawnBB, c, pawnMgPST, pawnEgPST, gpf);
 
 
     return total;
@@ -287,9 +320,9 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color us) const {
     const auto& pos = getPosition();
     Color them = getOppositeColor(us);
 
-    int totalAttackPower = 0;
+    int totalAttackPower   = 0;
     Square theirKingSquare = pos.getKingSquare(getOppositeColor(us));
-    Bitboard occ = pos.getCompositeBitboard();
+    Bitboard occ           = pos.getCompositeBitboard();
 
     // Add attack power if our pieces can check the opponent's king
     constexpr int PIECE_CHK_POWER[] {
@@ -315,10 +348,10 @@ int HandCraftedEvaluator::getKingAttackScore(int gpf, Color us) const {
     // Add attack power if our queen can "touch" the opponent's
     // king without being captured
     constexpr int QUEENS_TOUCH_POWER = 15;
-    Bitboard theirKingAtks = bbs::getKingAttacks(theirKingSquare);
-    Bitboard ourQueensAttacks = pos.getAttacks(us, PT_QUEEN);
+    Bitboard theirKingAtks      = bbs::getKingAttacks(theirKingSquare);
+    Bitboard ourQueensAttacks   = pos.getAttacks(us, PT_QUEEN);
     Bitboard ourOpponentAttacks = staticanalysis::getDefendedSquares(pos, them, PT_QUEEN);
-    Bitboard queenTouchSquares = theirKingAtks & ourQueensAttacks & (~ourOpponentAttacks) &
+    Bitboard queenTouchSquares  = theirKingAtks & ourQueensAttacks & (~ourOpponentAttacks) &
             staticanalysis::getDefendedSquares(pos, us, PT_ROOK);
 
     if (queenTouchSquares != 0) {
@@ -357,7 +390,7 @@ int HandCraftedEvaluator::evaluateKPK(const Position &pos, Color lhs) const {
     int queenValue = m_Weights->material[PT_QUEEN].get(0);
 
     Color rhs = getOppositeColor(lhs);
-    Square pawnSquare = *pos.getBitboard(Piece(lhs, PT_PAWN)).begin();
+    Square pawnSquare      = *pos.getBitboard(Piece(lhs, PT_PAWN)).begin();
     Square enemyKingSquare = pos.getKingSquare(rhs);
 
     if (!endgame::isInsideTheSquare(pawnSquare, enemyKingSquare, lhs, pos.getColorToMove())) {
