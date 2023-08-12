@@ -91,24 +91,50 @@ static int getHotmapDelta(Move move) {
     return ret;
 }
 
+static int getMoveDangerScore(Move move, const Position& pos) {
+    // Applies a penalty when moving a piece to a square where it can be
+    // captured by an opponent piece of lesser value.
+    constexpr int PENALTY[] { 0, 100, 250, 280, 400, 700, 0 };
+    Piece p     = move.getSourcePiece();
+    Square dest = move.getDest();
+    int penalty = -PENALTY[p.getType()];
+    Color them  = getOppositeColor(p.getColor());
+
+    switch (p.getType()) {
+        case PT_QUEEN:
+            if (pos.getAttacks(them, PT_ROOK).contains(dest)) {
+                return penalty;
+            }
+
+        case PT_ROOK:
+            if (pos.getAttacks(them, PT_BISHOP).contains(dest) |
+                pos.getAttacks(them, PT_KNIGHT).contains(dest)) {
+                return penalty;
+            }
+
+        case PT_BISHOP:
+        case PT_KNIGHT:
+            if (pos.getAttacks(them, PT_PAWN).contains(dest)) {
+                return penalty;
+            }
+
+        default:
+            break;
+    }
+
+    return 0;
+}
+
 int MoveOrderingData::scoreQuietMove(Move move, const Position& pos) const {
     int total = 0;
 
     if (isCounterMove(pos.getLastMove(), move)) {
-        total += 50000000;
+        total += 5000;
     }
 
-    total += getMoveHistory(move) * 100;
+    total += getMoveHistory(move) * 10;
     total += getHotmapDelta(move);
-
-//
-//    total += getHotmapDelta(move);
-//
-//    if (isCounterMove(pos.getLastMove(), move)) {
-//        total += 250;
-//    }
-//
-//    total += getMoveHistory(move);
+    total += getMoveDangerScore(move, pos);
 
     return total;
 }
