@@ -347,6 +347,13 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // #----------------------------------------
         searchedMoves++;
 
+        if (IS_ZW      &&
+            depth <= 3 &&
+            !isCheck   &&
+            !staticanalysis::hasGoodSEE(pos, move, -depth + 1)) {
+            continue;
+        }
+
         TRACE_PUSH(move);
         m_Eval->makeMove(move);
 
