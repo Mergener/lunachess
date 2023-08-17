@@ -181,6 +181,9 @@ void Position::undoNullMove() {
 }
 
 void Position::makeMove(Move move) {
+    LUNA_ASSERT(isMovePseudoLegal(move),
+                "Move must be pseudo legal. (tried making move " << move << " -- raw " << move.getRaw() << " -- in position " << toFen() << ")");
+
     // Push current status
     m_PrevStatuses.push_back(m_Status);
 
@@ -467,7 +470,7 @@ bool Position::isMovePseudoLegal(Move move) const {
         // Source piece must have the color of the current player to move.
         return false;
     }
-    if (getPieceAt(dest) != destPiece) {
+    if (destPiece != getPieceAt(dest)) {
         return false;
     }
 

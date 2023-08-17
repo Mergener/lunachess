@@ -72,6 +72,10 @@ Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPiece
         else if (delta < -1) {
             type = MT_CASTLES_LONG;
         }
+
+        if (getDestPiece() != PIECE_NONE) {
+            type = MT_SIMPLE_CAPTURE;
+        }
     }
     else if (getDestPiece() != PIECE_NONE) {
         // Certain capture

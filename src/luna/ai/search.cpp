@@ -295,6 +295,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     int bestItScore     = -HIGH_BETA;
     int searchedMoves   = 0;
     int searchedDepth   = 0;
+    bool hasLegalMoves  = false;
 
     MoveCursor moveCursor;
     Move bestMove = moveCursor.next(pos, m_MvOrderData, ply, hashMove);
@@ -302,7 +303,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     for (Move move = bestMove;
          move != MOVE_INVALID;
          move = moveCursor.next(pos, m_MvOrderData, ply, depth)) {
-
+        hasLegalMoves = true;
         if (IS_ROOT &&
             !m_RootMoves.contains(move)) {
             // Don't search for unrequested moves
@@ -455,7 +456,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         shouldSearchPV = false;
     }
 
-    if (searchedMoves == 0) {
+    if (!hasLegalMoves) {
         // Either stalemate or checkmate
         if (isCheck) {
             TRACE_SET_SCORES(-MATE_SCORE, alpha, beta);

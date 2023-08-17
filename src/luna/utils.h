@@ -93,6 +93,9 @@ template <typename T>
 std::vector<Chunk> splitIntoChunks(const std::vector<T>& v, int nChunks) {
     std::vector<Chunk> chunks;
     int size = v.size();
+    if (size == 0) {
+        return chunks;
+    }
     int chunkSize = size / nChunks;
     int remaining = size % nChunks;
 
