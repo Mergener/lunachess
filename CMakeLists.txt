@@ -9,7 +9,7 @@ set(LUNA_VERSION_MINOR "0")
 set(LUNA_VERSION_PATCH "0")
 
 # If set to 0, this is interpreted as a non-dev patch.
-set(LUNA_DEV_PATCH "2")
+set(LUNA_DEV_PATCH "3")
 
 set(LUNA_VERSION_FULL ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH})
 if (LUNA_DEV_PATCH GREATER 0)
@@ -128,7 +128,7 @@ set_target_properties(lunacli PROPERTIES OUTPUT_NAME ${LUNA_OUT_NAME})
 target_compile_definitions(lunacli PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FULL}\")
 target_compile_definitions(lunatest PUBLIC LUNA_VERSION_NAME=\"${LUNA_VERSION_FULL}\")
 
-target_compile_definitions(luna PUBLIC HCE_WEIGHTS_FILE=\"${HCE_WEIGHTS_FILE}\")
+target_compile_definitions(luna PUBLIC "HCE_WEIGHTS_FILE=\"${HCE_WEIGHTS_FILE}\"")
 
 target_compile_definitions(lunatuner PUBLIC PRIORITIES_FILE=\"${PRIORITIES_FILE}\")
 
