@@ -60,6 +60,11 @@ def main():
                     board = game.board()
 
                     # Get game termination
+                    if game.headers.get("Termination"):
+                        # This game was ended by something other than the
+                        # result on the board. Break.
+                        continue
+                    
                     result_str = game.headers.get("Result")
                     if result_str == "*":
                         continue # Unfinished game
