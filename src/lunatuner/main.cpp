@@ -24,10 +24,11 @@ struct Settings {
     fs::path outPath;
     std::optional<fs::path> baseWeightsPath = std::nullopt;
     int threads  = 1;
-    double k     = 0.113;
+    double k     = 0.033;
     bool quiesce = false;
     int repeat   = 0;
-    int step     = 4;
+    int step     = 3;
+    size_t maxPos = 1000000000;
 
     std::unordered_map<std::string, int> paramPriorities;
 };
@@ -82,7 +83,7 @@ static int quiescenceSearch(Position& pos,
 
         if (score > alpha) {
             alpha = score;
-            *pv = move;
+            *pv   = move;
         }
     }
 
@@ -103,7 +104,7 @@ static void quiescePosition(Position& pos) {
     }
 }
 
-static InputData parseData(fs::path dataFilePath) {
+static InputData parseData(fs::path dataFilePath, size_t maxPositions) {
     try {
         std::cout << "Parsing data from " << dataFilePath << std::endl;
         std::ifstream stream(dataFilePath);
@@ -112,17 +113,19 @@ static InputData parseData(fs::path dataFilePath) {
         InputData inputData;
 
         std::string line;
-        while (std::getline(stream, line)) {
+        size_t nPositions = 0;
+        while (std::getline(stream, line) && nPositions < maxPositions) {
             std::vector<std::string_view> tokens;
             strutils::split(line, tokens, ",");
 
-            std::string_view fen = tokens[0];
+            std::string_view fen     = tokens[0];
             std::string_view evalStr = tokens[1];
 
-            double eval = std::stod(std::string(evalStr));
+            double eval  = std::stod(std::string(evalStr));
             Position pos = Position::fromFen(fen).value();
 
             inputData.entries.emplace_back(std::move(pos), eval);
+            nPositions++;
         }
 
         std::cout << "Succesfully parsed data from " << dataFilePath << std::endl;
@@ -201,12 +204,12 @@ static double squaredErrorSum(const HCEWeightTable& weights,
 static double computeMSE(ThreadPool& threadPool,
                          const HCEWeightTable& weights,
                          const InputData& inputData,
-                         int threads, double k) {
+                         double k) {
     double sum = 0;
-    auto chunks = utils::splitIntoChunks(inputData.entries, threads);
+    auto chunks = utils::splitIntoChunks(inputData.entries, inputData.entries.size() / 1000);
     std::vector<std::future<double>> partialErrors;
     for (auto chunk: chunks) {
-        partialErrors.push_back(threadPool.submit([&]() {
+        partialErrors.emplace_back(threadPool.submit([&inputData, &weights, chunk, k]() {
             return squaredErrorSum(weights, inputData, chunk.firstIdx, chunk.lastIdx, k);
         }));
     }
@@ -214,25 +217,24 @@ static double computeMSE(ThreadPool& threadPool,
     for (auto& err: partialErrors) {
         sum += err.get();
     }
-    return sum / inputData.entries.size();
+    return sum / static_cast<double>(inputData.entries.size());
 }
 
 static std::tuple<int, double> tune(const Settings& settings,
-                                   const InputData& inputData,
-                                   nlohmann::json flatWeightsJson,
-                                   ThreadPool& threadPool,
-                                   std::string parameter,
-                                   int step,
-                                   double lowestError = INFINITY) {
-    constexpr int MAX_BAD_ITERATIONS = 5;
-    constexpr double MIN_ERR_DELTA = 0.0000001;
+                                    const InputData& inputData,
+                                    nlohmann::json flatWeightsJson,
+                                    ThreadPool& threadPool,
+                                    std::string parameter,
+                                    int step,
+                                    double lowestError = INFINITY) {
+    constexpr int MAX_BAD_ITERATIONS = 4;
+    constexpr double MIN_ERR_DELTA   = 0.0000001;
 
-    int badIts = 0;
-    int value = flatWeightsJson[parameter];
+    int badIts    = 0;
+    int value     = flatWeightsJson[parameter];
     int bestValue = value;
 
     while (badIts < MAX_BAD_ITERATIONS) {
-
         // Tune the parameter
         value += step;
 
@@ -241,16 +243,15 @@ static std::tuple<int, double> tune(const Settings& settings,
 
         auto unflattened = flatWeightsJson.unflatten();
         HCEWeightTable weights(unflattened);
-        double avgError = computeMSE(threadPool, weights,
-                                     inputData,
-                                     settings.threads,
-                                     settings.k);
+        double mse = computeMSE(threadPool, weights,
+                                inputData,
+                                settings.k);
 
-        double delta = lowestError - avgError;
+        double delta = lowestError - mse;
         if (delta >= MIN_ERR_DELTA) {
-            bestValue = value;
-            lowestError = avgError;
-            badIts = 0;
+            bestValue   = value;
+            lowestError = mse;
+            badIts      = 0;
         }
         else {
             badIts++;
@@ -273,12 +274,12 @@ static int tuneParameter(const Settings& settings,
 
     ThreadPool threadPool(settings.threads);
     double lowestErr = computeMSE(threadPool, flatWeightsJson.unflatten(),
-                                  inputData, settings.threads,
+                                  inputData,
                                   settings.k);
 
     // We tune in "both directions" since we don't know whether the best value for
     // the parameter is higher or lower than the current one.
-    auto [upValue, upError]     = tune(settings,
+    auto [upValue, upError] = tune(settings,
                                                    inputData,
                                                    flatWeightsJson,
                                                    threadPool, parameter,
@@ -298,6 +299,7 @@ static int tuneParameter(const Settings& settings,
         return initialValue;
     }
 
+    // Figure out whether we want to go up or down.
     int bestValue;
     if (downError < upError) {
         bestValue = downValue;
@@ -316,10 +318,10 @@ static int tuneParameter(const Settings& settings,
     return bestValue;
 }
 
-static void tune(Settings& settings) {
+static void tuneEvaluator(Settings& settings) {
     std::cout << "Initializing tuning process" << std::endl;
 
-    InputData inputData = parseData(settings.tunerDataPath);
+    InputData inputData = parseData(settings.tunerDataPath, settings.maxPos);
     if (settings.quiesce) {
         quiesceDataPositions(inputData, settings.threads);
     }
@@ -372,7 +374,7 @@ static void tune(Settings& settings) {
             // Tune each weight individually and save it on the flatWeights again.
             // By doing this we're making sure the following weights will take into consideration
             // the tuning that was done to the ones before them.
-            int newValue = tuneParameter(settings, inputData, flatWeights, param);
+            int newValue = tuneParameter(settings, inputData, nlohmann::json(flatWeights), param);
             std::cout << ++nTunedParams << " of " << parameters.size() << " parameters tuned." << std::endl;
             flatWeights[param] = newValue;
 
@@ -384,6 +386,7 @@ static void tune(Settings& settings) {
         }
 
         std::cout << "Tuning finished. Saving at " << fs::absolute(settings.outPath) << std::endl;
+        it++;
     } while (it <= settings.repeat);
 }
 
@@ -456,7 +459,7 @@ int main(int argc, char* argv[]) {
     lunachess::initializeEverything();
 
     Settings settings = processArgs(argc, argv);
-    tune(settings);
+    tuneEvaluator(settings);
 
     return 0;
 }
