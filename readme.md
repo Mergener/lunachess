@@ -10,9 +10,8 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Staged movegen
 
 - Search features
-  - Principal Variation Search
+  - Principal Variation Search w/ QSearch
   - Iterative deepening with Transposition Tables
-  - Quiescence search
   - SEE + MVV-LVA ordering for captures
   - Killer move heuristic
   - Late Move Reductions
@@ -24,12 +23,14 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Check extensions
   - Singular extensions
   - Countermove heuristic
+  - SEE Pruning
   
 - Evaluation features
   - Tapered eval 
   - Material
   - Mobility
-  - Pawn/King/Queen PSTs
+  - Tapered Non-pawns PSTs
+  - Tapered Pawn PSTs w/ King Buckets
   - King safety
   - Passed pawns
   - Isolated pawns
