@@ -73,27 +73,27 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         alpha = standPat;
     }
 
-//    // #----------------------------------------
-//    // # DELTA PRUNING
-//    // #----------------------------------------
-//    int bigDelta = 10000;
-//
-//    // Check whether we have pawns that can be promoted
-//    Bitboard promoters = pos.getColorToMove() == CL_WHITE
-//                         ? bbs::getRankBitboard(RANK_7)
-//                         : bbs::getRankBitboard(RANK_2);
-//    promoters &= pos.getBitboard(Piece(pos.getColorToMove(), PT_PAWN));
-//    if (promoters > 0) {
-//        bigDelta += 9000;
-//    }
-//
-//    if (standPat < alpha - bigDelta) {
-//        // No material delta could improve our position enough, we can
-//        // perform some pruning.
-//        TRACE_SET_SCORES(alpha, alpha, beta);
-//        return alpha;
-//    }
-//    // #----------------------------------------
+    // #----------------------------------------
+    // # DELTA PRUNING
+    // #----------------------------------------
+    int bigDelta = 16000;
+
+    // Check whether we have pawns that can be promoted
+    Bitboard promoters = pos.getColorToMove() == CL_WHITE
+                         ? bbs::getRankBitboard(RANK_7)
+                         : bbs::getRankBitboard(RANK_2);
+    promoters &= pos.getBitboard(Piece(pos.getColorToMove(), PT_PAWN));
+    if (promoters > 0) {
+        bigDelta += 16000;
+    }
+
+    if (standPat < alpha - bigDelta) {
+        // No material delta could improve our position enough, we can
+        // perform some pruning.
+        TRACE_SET_SCORES(alpha, alpha, beta);
+        return alpha;
+    }
+    // #----------------------------------------
 
     int bestItScore = -HIGH_BETA;
     MoveCursor<true> moveCursor;
