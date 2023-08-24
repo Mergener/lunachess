@@ -27,7 +27,7 @@ struct UCIContext {
 
     // UCI settings
     bool debugMode = false;
-    int multiPvCount = 1;
+    i32 multiPvCount = 1;
 
     // Internal state
     UCIState state = IDLE;
@@ -46,11 +46,11 @@ struct UCIContext {
 using UCICommandFunction = std::function<void(UCIContext&, const CommandArgs&)>;
 
 struct Command {
-    int minExpectedArgs = 0;
+    i32 minExpectedArgs = 0;
     bool exactArgsCount = true;
     UCICommandFunction function;
 
-    Command(UCICommandFunction func, int minExpectedArgs, bool exactArgsCount = true)
+    Command(UCICommandFunction func, i32 minExpectedArgs, bool exactArgsCount = true)
             : function(func), minExpectedArgs(minExpectedArgs), exactArgsCount(exactArgsCount) {}
 
     Command() = default;
@@ -128,7 +128,7 @@ static void cmdIsready(UCIContext& ctx, const CommandArgs& args) {
 
 static void processOption(UCIContext& ctx, std::string_view option, std::string_view value) {
     if (option == "MultiPV") {
-        int count;
+        i32 count;
         if (strutils::tryParseInteger(value, count)) {
             ctx.multiPvCount = count;
         }
@@ -170,7 +170,7 @@ static void cmdSetoption(UCIContext& ctx, const CommandArgs& args) {
     }
     // Luna not busy, allow option to set
     // Parse parameters
-    for (int i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i) {
         if (args[i] != "name") {
             // Unexpected
             continue;
@@ -252,11 +252,11 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
         return;
     }
 
-    int movesArgsIdx = -1;
+    i32 movesArgsIdx = -1;
 
     // FEN argument given, process it
     std::stringstream fenStream;
-    for (int i = 1; i < args.size(); ++i) {
+    for (size_t i = 1; i < args.size(); ++i) {
         if (args[i] == "moves") {
             // From beyond here, the fen string has ended and the user
             // has provided moves to be played on the position.
@@ -286,7 +286,7 @@ static void cmdPosition(UCIContext& ctx, const CommandArgs& args) {
     playMovesAfterPos(ctx, args.cbegin() + movesArgsIdx, args.cend());
 }
 
-static bool readTime(std::string_view sv, int& dest) {
+static bool readTime(std::string_view sv, i32& dest) {
     bool success = strutils::tryParseInteger(sv, dest);
     if (!success) {
         // Invalid depth value
@@ -310,7 +310,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
     }
 
     TimePoint startTime = Clock::now();
-    searchSettings.onPvFinish = [startTime, &ctx](const ai::SearchResults& res, int pv) {
+    searchSettings.onPvFinish = [startTime, &ctx](const ai::SearchResults& res, i32 pv) {
         const ai::SearchedVariation& var = res.searchedVariations[pv];
 
         std::cout << "info depth " << res.searchedDepth;
@@ -323,9 +323,9 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         }
         else {
             // Forced checkmate found
-            int sign        = var.score < 0 ? -1 : 1;
-            int mateScore   = ai::MATE_SCORE;
-            int pliesToMate = mateScore - std::abs(var.score);
+            i32 sign        = var.score < 0 ? -1 : 1;
+            i32 mateScore   = ai::MATE_SCORE;
+            i32 pliesToMate = mateScore - std::abs(var.score);
             std::cout << " score mate " << sign * (pliesToMate + 1) / 2;
         }
 
@@ -406,7 +406,7 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
     ai::SearchSettings searchSettings;
 
     // Parse arguments
-    for (int i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i) {
         const auto arg = args[i];
 
         if (arg == "searchmoves") {
@@ -420,7 +420,7 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
         }
         else if (arg == "depth") {
             // User wants to limit the search depth to a specific value
-            int depth;
+            i32 depth;
             bool succ = strutils::tryParseInteger(args[++i], depth);
             if (succ && depth >= 1) {
                 searchSettings.maxDepth = depth;
@@ -480,7 +480,7 @@ static void cmdGo(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static void cmdLunaPerft(UCIContext& ctx, const CommandArgs& args) {
-    int depth;
+    i32 depth;
     if (!strutils::tryParseInteger(args[0], depth)) {
         errorWrongArg("perft", args[0]);
         return;
@@ -528,7 +528,7 @@ static void cmdDoMoves(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
-    int n;
+    i32 n;
 
     if (!args.empty()) {
         n = strutils::tryParseInteger(args[0], n) ? n : 1;
@@ -537,7 +537,7 @@ static void cmdTakeback(UCIContext& ctx, const CommandArgs& args) {
         n = 1;
     }
 
-    for (int i = 0; i < n; ++i) {
+    for (i32 i = 0; i < n; ++i) {
         ctx.pos.undoMove();
     }
 
@@ -566,8 +566,8 @@ static void cmdGetfen(UCIContext& ctx, const CommandArgs& args) {
     std::cout << ctx.pos.toFen() << std::endl;
 }
 
-static int doEval(UCIContext& ctx, int depth) {
-    int eval = 0;
+static i32 doEval(UCIContext& ctx, i32 depth) {
+    i32 eval = 0;
     if (depth == 0) {
         auto& evaluator = ctx.searcher.getEvaluator();
         evaluator.setPosition(ctx.pos);
@@ -592,7 +592,7 @@ static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
         std::cerr << "Too many arguments for eval." << std::endl;
         return;
     }
-    int depth = 0;
+    i32 depth = 0;
     if (args.size() == 1) {
         if (!strutils::tryParseInteger(args[0], depth)) {
             errorWrongArg("eval", args[0]);
@@ -604,7 +604,7 @@ static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
     Position& pos = ctx.pos;
     Bitboard pieces = pos.getCompositeBitboard();
 
-    int currentEval = doEval(ctx, depth);
+    i32 currentEval = doEval(ctx, depth);
 
     for (Square s: pieces) {
         Piece p = pos.getPieceAt(s);
@@ -613,10 +613,10 @@ static void cmdEval(UCIContext& ctx, const CommandArgs& args) {
         }
 
         pos.setPieceAt(s, PIECE_NONE);
-        int evalWithoutPiece = doEval(ctx, depth);
+        i32 evalWithoutPiece = doEval(ctx, depth);
         pos.setPieceAt(s, p);
 
-        int delta = currentEval - evalWithoutPiece;
+        i32 delta = currentEval - evalWithoutPiece;
 
         pst.valueAt(s, CL_WHITE) = delta;
     }
@@ -823,7 +823,7 @@ static void inputThreadMain(UCIContext& ctx) {
     }
 }
 
-int uciMain() {
+i32 uciMain() {
     std::shared_ptr<UCIContext> ctx = std::make_shared<UCIContext>();
 
     inputThreadMain(*ctx);

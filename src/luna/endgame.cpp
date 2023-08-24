@@ -7,13 +7,13 @@
 
 namespace lunachess::endgame {
 
-static constexpr int MAX_PIECES = 11;
+static constexpr i32 MAX_PIECES = 11;
 
 static EndgameData s_Endgames[BIT(8)][BIT(8)];
 
-static constexpr ui64 buildEgMask(int nPawns, int nKnights,
-                                  int nBishops, int nRooks,
-                                  int nQueens) {
+static constexpr ui64 buildEgMask(i32 nPawns, i32 nKnights,
+                                  i32 nBishops, i32 nRooks,
+                                  i32 nQueens) {
     ui64 mask = 0;
 
     mask |= nPawns    & BITMASK(3);
@@ -64,7 +64,7 @@ void initialize() {
 EndgameData identify(const Position& pos) {
     EndgameData ret;
     Bitboard occ = pos.getCompositeBitboard();
-    int pieceCount = occ.count() - 2; // Discard kings
+    i32 pieceCount = occ.count() - 2; // Discard kings
     if (pieceCount > MAX_PIECES) {
         return ret;
     }
@@ -90,7 +90,7 @@ EndgameData identify(const Position& pos) {
 bool isInsideTheSquare(Square pawnSquare, Square enemyKingSquare,
                        Color pawnColor, Color colorToMove) {
     Square promSquare = getPromotionSquare(pawnColor, getFile(pawnSquare));
-    int tempoPenalty = colorToMove != pawnColor ? 1 : 0;
+    i32 tempoPenalty = colorToMove != pawnColor ? 1 : 0;
     return (std::min(5, getChebyshevDistance(pawnSquare, promSquare)) >=
            getChebyshevDistance(enemyKingSquare, promSquare) - tempoPenalty);
 }

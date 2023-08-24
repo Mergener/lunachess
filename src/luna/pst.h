@@ -13,7 +13,7 @@ class PieceSquareTable {
 public:
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(PieceSquareTable, m_Values);
 
-    inline int& valueAt(Square s, Color pov) {
+    inline i32& valueAt(Square s, Color pov) {
         return m_Values[squareToIdx(s, pov)];
     }
 
@@ -25,11 +25,11 @@ public:
         std::fill(m_Values.begin(), m_Values.end(), 0);
     }
 
-    inline PieceSquareTable(const std::array<int, SQ_COUNT>& values)
+    inline PieceSquareTable(const std::array<i32, SQ_COUNT>& values)
             : m_Values(values) {
     }
 
-    inline PieceSquareTable(const std::initializer_list<int>& values) {
+    inline PieceSquareTable(const std::initializer_list<i32>& values) {
         size_t i;
         auto it = values.begin();
         for (i = 0; i < values.size() && i < SQ_COUNT; ++i) {
@@ -40,7 +40,7 @@ public:
         std::fill(m_Values.begin() + i, m_Values.end(), 0);
     }
 
-    inline PieceSquareTable& operator=(const std::initializer_list<int>& values) {
+    inline PieceSquareTable& operator=(const std::initializer_list<i32>& values) {
         size_t i;
         auto it = values.begin();
         for (i = 0; i < values.size() && i < SQ_COUNT; ++i) {
@@ -54,8 +54,8 @@ public:
     }
 
 
-    using Iterator = int*;
-    using ConstIterator = const int*;
+    using Iterator = i32*;
+    using ConstIterator = const i32*;
 
     inline Iterator begin() { return &m_Values[0]; }
     inline Iterator end() { return &m_Values[SQ_COUNT]; }
@@ -63,7 +63,7 @@ public:
     inline ConstIterator cend() const { return &m_Values[SQ_COUNT]; }
 
 private:
-    std::array<int, SQ_COUNT> m_Values;
+    std::array<i32, SQ_COUNT> m_Values;
 
     inline static Square squareToIdx(Square s, Color c) {
         return c == CL_WHITE ? mirrorVertically(s) : s;

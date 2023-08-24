@@ -21,22 +21,22 @@ namespace lunachess::ai {
 class SearchInterrupt {
 };
 
-constexpr int CHECK_TIME_NODE_INTERVAL = 2048;
+constexpr i32 CHECK_TIME_NODE_INTERVAL = 2048;
 static_assert((CHECK_TIME_NODE_INTERVAL & (CHECK_TIME_NODE_INTERVAL - 1)) == 0,
         "CHECK_TIME_NODE_INTERVAL must be a power of 2");
 
-static std::array<std::array<int, MoveList::MAX_ELEMS>, MAX_SEARCH_DEPTH * 2> s_LMRReductions;
+static std::array<std::array<i32, MoveList::MAX_ELEMS>, MAX_SEARCH_DEPTH * 2> s_LMRReductions;
 
 void initializeSearchParameters() {
-    for (int depth = 0; depth < s_LMRReductions.size(); ++depth) {
+    for (i32 depth = 0; depth < s_LMRReductions.size(); ++depth) {
         auto& lmrPerMove = s_LMRReductions[depth];
-        for (int m = 0; m < lmrPerMove.size(); ++m) {
-            lmrPerMove[m] = static_cast<int>(1.25 + std::log(depth) * std::log(m) * 100 / 267);
+        for (i32 m = 0; m < lmrPerMove.size(); ++m) {
+            lmrPerMove[m] = static_cast<i32>(1.25 + std::log(depth) * std::log(m) * 100 / 267);
         }
     }
 }
 
-static int getLMRReduction(int depth, int moveIndex) {
+static i32 getLMRReduction(i32 depth, i32 moveIndex) {
     return s_LMRReductions[depth][moveIndex];
 }
 
@@ -49,7 +49,7 @@ void AlphaBetaSearcher::interruptSearchIfNecessary() {
 }
 
 template <bool TRACE>
-int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
+i32 AlphaBetaSearcher::quiesce(i32 ply, i32 alpha, i32 beta) {
     TRACE_DEPTH(0);
 
     const Position& pos = m_Eval->getPosition();
@@ -57,7 +57,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
 
     interruptSearchIfNecessary();
 
-    int standPat = m_Eval->evaluate();
+    i32 standPat = m_Eval->evaluate();
     TRACE_SET_STATEVAL(standPat);
 
     if (standPat >= beta) {
@@ -76,7 +76,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     // #----------------------------------------
     // # DELTA PRUNING
     // #----------------------------------------
-    int bigDelta = 16000;
+    i32 bigDelta = 16000;
 
     // Check whether we have pawns that can be promoted
     Bitboard promoters = pos.getColorToMove() == CL_WHITE
@@ -95,7 +95,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
     }
     // #----------------------------------------
 
-    int bestItScore = -HIGH_BETA;
+    i32 bestItScore = -HIGH_BETA;
     MoveCursor<true> moveCursor;
     Move move;
     while ((move = moveCursor.next(pos, m_MvOrderData, ply))) {
@@ -109,7 +109,7 @@ int AlphaBetaSearcher::quiesce(int ply, int alpha, int beta) {
         TRACE_PUSH(move);
         m_Eval->makeMove(move);
 
-        int score = -quiesce<TRACE>(ply + 1, -beta, -alpha);
+        i32 score = -quiesce<TRACE>(ply + 1, -beta, -alpha);
 
         m_Eval->undoMove();
         TRACE_POP();
@@ -140,8 +140,8 @@ bool AlphaBetaSearcher::isBadCapture(Move move) const {
 }
 
 template <bool TRACE, AlphaBetaSearcher::SearchFlags FLAGS>
-int AlphaBetaSearcher::pvs(int depth, int ply,
-                           int alpha, int beta,
+i32 AlphaBetaSearcher::pvs(i32 depth, i32 ply,
+                           i32 alpha, i32 beta,
                            Move moveToSkip) {
     constexpr bool IS_ROOT = BIT_INTERSECTS(FLAGS, ROOT);
     constexpr bool IS_ZW   = BIT_INTERSECTS(FLAGS, ZW);
@@ -162,9 +162,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     interruptSearchIfNecessary();
 
     // Setup some important variables
-    int staticEval          = 0; // Used for some pruning/reduction techniques
-    const int originalDepth = depth;
-    const int originalAlpha = alpha;
+    i32 staticEval          = 0; // Used for some pruning/reduction techniques
+    const i32 originalDepth = depth;
+    const i32 originalAlpha = alpha;
     Move hashMove           = MOVE_INVALID; // Move extracted from TT
     ui64 posKey             = pos.getZobrist();
 
@@ -175,6 +175,15 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     bool foundInTT = m_TT.probe(posKey, ttEntry);
     if (foundInTT) {
+        LUNA_ASSERT(pos.isMovePseudoLegal(ttEntry.move),
+                    "TT move must pass pseudo-legality check. (got non pseudo-legal "
+                    << ttEntry.move << " in position "
+                    << pos.toFen() <<  ")");
+
+        LUNA_ASSERT(pos.isMoveLegal(ttEntry.move),
+                    "TT move must be legal. (got illegal "
+                    << ttEntry.move << " in position " << pos.toFen() <<  ")");
+
         staticEval = ttEntry.staticEval;
         TRACE_SET_STATEVAL(ttEntry.staticEval);
 
@@ -224,7 +233,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     // # (A.K.A STATIC NULL MOVE PRUNING)
     // #----------------------------------------
     // Prune if we have a position that is too good.
-    int rfpMargin = 500 + 700 * depth;
+    i32 rfpMargin = 500 + 700 * depth;
     if (IS_ZW      &&
         !isCheck   &&
         depth <= 7 &&
@@ -237,31 +246,31 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     // If we're in a line that is so much worse than our expected lowerbound,
     // the chances of us improving our positions get increasingly lower the further we go.
     // Reduce the depth.
-    int margin = 1200 + 800 * depth;
-    int evalPlusMargin = staticEval + margin;
+    i32 margin = 1200 + 800 * depth;
+    i32 evalPlusMargin = staticEval + margin;
     if (IS_ZW    &&
         !isCheck &&
         (evalPlusMargin < alpha) &&
         depth > 5) {
-        int quiesceScore = quiesce<false>(ply, evalPlusMargin - 1, alpha);
+        i32 quiesceScore = quiesce<false>(ply, evalPlusMargin - 1, alpha);
         if (quiesceScore < evalPlusMargin) {
             TRACE_SET_SCORES(quiesceScore, alpha, beta);
             depth = (depth * 2) / 3;
         }
     }
 
-    int drawScore = m_Eval->getDrawScore();
+    i32 drawScore = m_Eval->getDrawScore();
 
     if (IS_ZW && !isCheck) {
-        int pieceCount = pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count();
+        i32 pieceCount = pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count();
 
         // #----------------------------------------
         // # NULL MOVE PRUNING
         // #----------------------------------------
         // Prune if making a null move fails high
-        constexpr int NULL_SEARCH_DEPTH_RED = 2;
-        constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
-        constexpr int NULL_MOVE_MIN_PIECES  = 4;
+        constexpr i32 NULL_SEARCH_DEPTH_RED = 2;
+        constexpr i32 NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
+        constexpr i32 NULL_MOVE_MIN_PIECES  = 4;
 
         if (DO_NMP && staticEval >= beta   &&
             depth >= NULL_SEARCH_MIN_DEPTH &&
@@ -271,7 +280,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             TRACE_PUSH(MOVE_INVALID);
             m_Eval->makeNullMove();
 
-            int score = -pvs<TRACE, SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED - 1, ply + 1, -beta, -beta + 1);
+            i32 score = -pvs<TRACE, SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED - 1, ply + 1, -beta, -beta + 1);
             if (score >= beta) {
                 TRACE_POP();
                 m_Eval->undoNullMove();
@@ -292,9 +301,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     // Finally, do the search
     bool shouldSearchPV = true;
-    int bestItScore     = -HIGH_BETA;
-    int searchedMoves   = 0;
-    int searchedDepth   = 0;
+    i32 bestItScore     = -HIGH_BETA;
+    i32 searchedMoves   = 0;
+    i32 searchedDepth   = 0;
     bool hasLegalMoves  = false;
 
     MoveCursor moveCursor;
@@ -316,7 +325,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
         // The highest depth we're going to search during this iteration.
         // Used in PV nodes or researches after fail highs.
-        int fullIterationDepth = depth;
+        i32 fullIterationDepth = depth;
 
         // #----------------------------------------
         // # SINGULAR EXTENSIONS
@@ -333,9 +342,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             ttEntry.score < FORCED_MATE_THRESHOLD &&
             (ttEntry.type == TranspositionTable::EXACT || ttEntry.type == TranspositionTable::LOWERBOUND) &&
             move == hashMove) {
-            int seBeta = std::min(beta, ttEntry.score);
+            i32 seBeta = std::min(beta, ttEntry.score);
 
-            int score = pvs<TRACE, ZW>((depth - 1) / 2, ply + 1, seBeta - 1, seBeta, hashMove);
+            i32 score = pvs<TRACE, ZW>((depth - 1) / 2, ply + 1, seBeta - 1, seBeta, hashMove);
             if (score < seBeta) {
                 // We have a singular move. Search it with extended depth
                 extendedSingular = true;
@@ -367,7 +376,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // # FUTILITY PRUNING
         // #----------------------------------------
         // Prune frontier/pre-frontier nodes with no chance of improving evaluation.
-        constexpr int FUTILITY_MARGIN = 2500;
+        constexpr i32 FUTILITY_MARGIN = 2500;
         if (!IS_ROOT                &&
             !moveGivesCheck         &&
             move.is<MTM_QUIET>()    &&
@@ -380,7 +389,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         }
         // #----------------------------------------
 
-        int iterationDepth = fullIterationDepth;
+        i32 iterationDepth = fullIterationDepth;
 
         // #----------------------------------------
         // # LATE MOVE REDUCTIONS
@@ -393,13 +402,13 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 !moveGivesCheck    &&
                 searchedMoves >= 2 &&
                 (move.is<MTM_QUIET>() || (isBadCapture(move)))) {
-                int reduction   = getLMRReduction(iterationDepth, searchedMoves);
+                i32 reduction   = getLMRReduction(iterationDepth, searchedMoves);
                 iterationDepth -= std::max(0, reduction);
             }
         }
         // #----------------------------------------
 
-        int score;
+        i32 score;
         if (shouldSearchPV) {
             // Perform PVS. First move of the list is always PVS.
             score = -pvs<TRACE>(iterationDepth - 1, ply + 1, -beta, -alpha);
@@ -496,7 +505,7 @@ static void filterMoves(MoveList &ml, std::function<bool(Move)> filter) {
         return;
     }
 
-    for (int i = ml.size() - 1; i >= 0; i--) {
+    for (i32 i = ml.size() - 1; i >= 0; i--) {
         auto move = ml[i];
         if (!filter(move)) {
             ml.removeAt(i);
@@ -520,13 +529,13 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         m_Eval->setPosition(argPos);
 
         const Position& pos = m_Eval->getPosition();
-        int drawScore       = m_Eval->getDrawScore();
-        int maxDepth        = std::min(MAX_SEARCH_DEPTH, settings.maxDepth);
+        i32 drawScore       = m_Eval->getDrawScore();
+        i32 maxDepth        = std::min(MAX_SEARCH_DEPTH, settings.maxDepth);
 
         // Try to generate moves in the position before we search
         movegen::generate(pos, m_RootMoves);
         if (m_RootMoves.size() == 0) {
-            int score = pos.isCheck()
+            i32 score = pos.isCheck()
                         ? -MATE_SCORE // Checkmate
                         : drawScore;  // Stalemate
 
@@ -557,7 +566,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         m_TT.clear();
 
         // Perform iterative deepening, starting at depth 1
-        for (int depth = 1; depth <= maxDepth; depth++) {
+        for (i32 depth = 1; depth <= maxDepth; depth++) {
             if (m_TimeManager.timeIsUp() || m_ShouldStop) {
                 break;
             }
@@ -571,7 +580,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
 
             // Caller might be asking for a multi-pv search. Search the number of pvs requested
             // or until all moves were searched
-            for (int multipv = 0; multipv < settings.multiPvCount && m_RootMoves.size() > 0; ++multipv) {
+            for (i32 multipv = 0; multipv < settings.multiPvCount && m_RootMoves.size() > 0; ++multipv) {
                 if (m_TimeManager.timeIsUp() || m_ShouldStop) {
                     break;
                 }
@@ -583,14 +592,14 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                 try {
                     TranspositionTable::Entry ttEntry;
 
-                    constexpr int ASPIRATION_WINDOWS_MIN_DEPTH = 3;
-                    constexpr int MAX_ASPIRATION_ITERATIONS = 3;
+                    constexpr i32 ASPIRATION_WINDOWS_MIN_DEPTH = 3;
+                    constexpr i32 MAX_ASPIRATION_ITERATIONS = 3;
 
-                    int alpha;
-                    int beta;
+                    i32 alpha;
+                    i32 beta;
 
-                    int score;
-                    int lastScore = m_Results.bestScore;
+                    i32 score;
+                    i32 lastScore = m_Results.bestScore;
                     if (depth < ASPIRATION_WINDOWS_MIN_DEPTH) {
                         // By default, perform a full window search
                         alpha = -HIGH_BETA;
@@ -603,7 +612,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                         beta  = lastScore + 500;
                     }
 
-                    for (int aspirationIt = 0; aspirationIt <= MAX_ASPIRATION_ITERATIONS; ++aspirationIt) {
+                    for (i32 aspirationIt = 0; aspirationIt <= MAX_ASPIRATION_ITERATIONS; ++aspirationIt) {
                         if (aspirationIt == MAX_ASPIRATION_ITERATIONS) {
                             // We tried many aspiration windows that didn't work, let's go with
                             // the full window.
@@ -656,7 +665,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     }
 
                     // Undo all moves
-                    for (int i = 0; i < pv.moves.size(); ++i) {
+                    for (size_t i = 0; i < pv.moves.size(); ++i) {
                         TRACE_POP();
                         m_Eval->undoMove();
                     }

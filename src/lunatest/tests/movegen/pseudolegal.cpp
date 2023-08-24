@@ -6,7 +6,7 @@
 
 namespace lunachess::tests {
 
-static void testPseudoLegal(Position& pos, int depth) {
+static void testPseudoLegal(Position& pos, i32 depth) {
     if (depth <= 0) {
         return;
     }
@@ -30,9 +30,9 @@ static void testPseudoLegal(Position& pos, int depth) {
 
 struct PseudoLegalityTest {
     std::string fen;
-    int depth;
+    i32 depth;
 
-    PseudoLegalityTest(std::string_view fen, int depth)
+    PseudoLegalityTest(std::string_view fen, i32 depth)
             : fen(fen),
               depth(depth) {
     }

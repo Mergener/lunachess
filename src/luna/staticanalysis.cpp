@@ -52,7 +52,7 @@ static Square getLeastValueAttacker(const Position& pos, Bitboard atks, Bitboard
     return SQ_INVALID;
 }
 
-bool hasGoodSEE(const Position& pos, Move move, int threshold) {
+bool hasGoodSEE(const Position& pos, Move move, i32 threshold) {
     if (move.getDestPiece().getType() != PT_NONE &&
         getPiecePointValue(move.getDestPiece().getType()) > getPiecePointValue(move.getSourcePiece().getType())) {
         return true;
@@ -64,12 +64,12 @@ bool hasGoodSEE(const Position& pos, Move move, int threshold) {
 
     // Initial totalGain is the value of the piece at the target square
     // being captured.
-    int totalGain = getPiecePointValue(move.getDestPiece().getType());
+    i32 totalGain = getPiecePointValue(move.getDestPiece().getType());
 
     // The type of the piece that is now standing on the
     // target square -- the trophy piece.
     PieceType trophyPT = move.getSourcePiece().getType();
-    int nextGain = getPiecePointValue(trophyPT);
+    i32 nextGain = getPiecePointValue(trophyPT);
 
     // The source square of the trophy piece
     Square atkSqr = move.getSource();
@@ -80,7 +80,7 @@ bool hasGoodSEE(const Position& pos, Move move, int threshold) {
     // Since the first capture is made by 'us', sign starts at 1.
     // When simulating further captures, this sign is toggled and multiplied
     // by the point value to simulate the losses of material.
-    int sign = 1;
+    i32 sign = 1;
 
     atks.remove(atkSqr);
     occ.remove(atkSqr);
@@ -126,12 +126,12 @@ bool hasGoodSEE(const Position& pos, Move move, int threshold) {
     return totalGain >= threshold;
 }
 
-int guardValue(const Position& pos, Square s, Color us) {
-    constexpr int CAPTURE_STRENGTH[] = { 0, 9, 6, 5, 2, 1, 1 };
+i32 guardValue(const Position& pos, Square s, Color us) {
+    constexpr i32 CAPTURE_STRENGTH[] = { 0, 9, 6, 5, 2, 1, 1 };
 
     bool attacked = false;
     bool defended = false;
-    int gv = 0;
+    i32 gv = 0;
     Bitboard atks = getAllAttackersSEE(pos, s);
 
     for (Square atk : atks) {

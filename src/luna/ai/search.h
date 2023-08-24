@@ -20,10 +20,10 @@
 
 namespace lunachess::ai {
 
-constexpr int MAX_SEARCH_DEPTH = 128;
-constexpr int FORCED_MATE_THRESHOLD = 25000000;
-constexpr int MATE_SCORE = 30000000;
-constexpr int HIGH_BETA = 1000000000;
+constexpr i32 MAX_SEARCH_DEPTH = 128;
+constexpr i32 FORCED_MATE_THRESHOLD = 25000000;
+constexpr i32 MATE_SCORE = 30000000;
+constexpr i32 HIGH_BETA = 1000000000;
 
 struct SearchedVariation {
     /**
@@ -34,7 +34,7 @@ struct SearchedVariation {
     std::vector<Move> moves;
 
     /** The score of the variation. */
-    int score = 0;
+    i32 score = 0;
 
     /** Determines whether the score was a lowerbound, upperbound or an exact value. */
     TranspositionTable::EntryType type = TranspositionTable::EXACT;
@@ -42,13 +42,13 @@ struct SearchedVariation {
 
 struct SearchResults {
     /** How many plies ahead were searched */
-    int searchedDepth = 0;
+    i32 searchedDepth = 0;
 
     /** The best move found in the position */
     Move bestMove = MOVE_INVALID;
 
     /** The score of the position. */
-    int bestScore = 0;
+    i32 bestScore = 0;
 
     /** The number of visited nodes, including quiescence search nodes. */
     ui64 visitedNodes = 0;
@@ -109,8 +109,8 @@ struct SearchSettings {
     //
     // General settings
     //
-    int multiPvCount = 1;
-    int maxDepth = MAX_SEARCH_DEPTH;
+    i32 multiPvCount = 1;
+    i32 maxDepth = MAX_SEARCH_DEPTH;
 
     /**
      * Predicate that must return true only to moves that should be searched in the root node.
@@ -128,7 +128,7 @@ struct SearchSettings {
     // Event handlers
     //
     std::function<void(const SearchResults&)> onDepthFinish;
-    std::function<void(const SearchResults&, int pvIdx)> onPvFinish;
+    std::function<void(const SearchResults&, i32 pvIdx)> onPvFinish;
 
     bool trace = false;
 };
@@ -190,10 +190,10 @@ private:
     };
 
     template <bool TRACE, SearchFlags FLAGS = NO_SEARCH_FLAGS>
-    int pvs(int depth, int ply, int alpha, int beta, Move moveToSkip = MOVE_INVALID);
+    i32 pvs(i32 depth, i32 ply, i32 alpha, i32 beta, Move moveToSkip = MOVE_INVALID);
 
     template <bool TRACE>
-    int quiesce(int ply, int alpha, int beta);
+    i32 quiesce(i32 ply, i32 alpha, i32 beta);
 
     /**
      * Checks whether the current search should stop, either if its time

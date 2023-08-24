@@ -57,7 +57,7 @@ public:
 
     inline ui64 getZobrist() const { return m_Status.zobrist; }
 
-    inline int getPlyCount() const { return m_PlyCount; }
+    inline i32 getPlyCount() const { return m_PlyCount; }
 
     /**
      * Returns a bitboard of all occupied squares.
@@ -98,7 +98,7 @@ public:
 
     inline bool is50MoveRuleDraw() const { return m_Status.fiftyMoveCounter >= 100; }
 
-    inline bool isDraw(int maxPositionAppearances = 3) const {
+    inline bool isDraw(i32 maxPositionAppearances = 3) const {
         return is50MoveRuleDraw() || isRepetitionDraw(maxPositionAppearances) || isInsufficientMaterialDraw();
     }
 
@@ -112,7 +112,7 @@ public:
     /**
      *  Returns true if the position is a draw by repetition.
      */
-    bool isRepetitionDraw(int maxAppearances = 3) const;
+    bool isRepetitionDraw(i32 maxAppearances = 3) const;
 
     /**
      * Returns true if the position is legal. A position is legal
@@ -238,17 +238,17 @@ private:
     struct Status {
         Move lastMove = MOVE_INVALID;
         ui64 zobrist = 5454;
-        int fiftyMoveCounter = 0;
+        i32 fiftyMoveCounter = 0;
         CastlingRightsMask castleRights = CR_NONE;
         Bitboard attacks[PT_COUNT][CL_COUNT];
-        int nCheckers = 0;
+        i32 nCheckers = 0;
         Square epSquare = SQ_INVALID;
     };
     Status m_Status;
 
     std::vector<Status> m_PrevStatuses;
     std::array<Piece, 64> m_Pieces;
-    int m_PlyCount = 0;
+    i32 m_PlyCount = 0;
     Bitboard m_BBs[PT_COUNT][CL_COUNT];
     Bitboard m_Composite = 0;
 

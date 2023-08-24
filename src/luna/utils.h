@@ -35,7 +35,7 @@ inline bool randomBool() {
     return random(0, 2);
 }
 
-inline bool randomChance(int chancePct) {
+inline bool randomChance(i32 chancePct) {
     return random(1, 101) <= chancePct;
 }
 
@@ -59,7 +59,7 @@ inline std::string readFromFile(std::filesystem::path path) {
     return buffer.str();
 }
 
-template <typename T> int sign(T val) {
+template <typename T> i32 sign(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
@@ -85,24 +85,24 @@ void insertionSort(TIter begin, TIter end, TCompar comp) {
 }
 
 struct Chunk {
-    int firstIdx;
-    int lastIdx; // inclusive
+    i32 firstIdx;
+    i32 lastIdx; // inclusive
 };
 
 template <typename T>
-std::vector<Chunk> splitIntoChunks(const std::vector<T>& v, int nChunks) {
+std::vector<Chunk> splitIntoChunks(const std::vector<T>& v, i32 nChunks) {
     std::vector<Chunk> chunks;
-    int size = v.size();
+    i32 size = v.size();
     if (size == 0) {
         return chunks;
     }
-    int chunkSize = size / nChunks;
-    int remaining = size % nChunks;
+    i32 chunkSize = size / nChunks;
+    i32 remaining = size % nChunks;
 
-    int startIdx = 0;
-    for (int i = 0; i < nChunks; ++i) {
-        int currentChunkSize = chunkSize + (i < remaining ? 1 : 0);
-        int endIdx = startIdx + currentChunkSize - 1;
+    i32 startIdx = 0;
+    for (i32 i = 0; i < nChunks; ++i) {
+        i32 currentChunkSize = chunkSize + (i < remaining ? 1 : 0);
+        i32 endIdx = startIdx + currentChunkSize - 1;
         chunks.push_back({startIdx, endIdx});
         startIdx = endIdx + 1;
     }

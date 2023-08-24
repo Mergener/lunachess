@@ -9,19 +9,19 @@ namespace lunachess::tests {
 
 struct PerftTest {
     std::string fen;
-    std::vector<int> expectedNodes;
+    std::vector<i32> expectedNodes;
 
-    PerftTest(std::string_view fen, const std::initializer_list<int> &expectedNodes)
+    PerftTest(std::string_view fen, const std::initializer_list<i32> &expectedNodes)
             : fen(fen),
               expectedNodes(expectedNodes) {
     }
 
     void operator()() {
         Position pos = Position::fromFen(fen).value();
-        for (int i = 0; i < expectedNodes.size(); ++i) {
-            constexpr int MAX_DEPTH = 5;
-            int expected = expectedNodes[i];
-            int depth = i + 1;
+        for (size_t i = 0; i < expectedNodes.size(); ++i) {
+            constexpr i32 MAX_DEPTH = 5;
+            i32 expected = expectedNodes[i];
+            i32 depth = i + 1;
             if (depth > MAX_DEPTH) {
                 break;
             }

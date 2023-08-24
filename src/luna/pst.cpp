@@ -13,7 +13,7 @@ std::ostream& operator<<(std::ostream& stream, const PieceSquareTable& hotmap) {
         stream << std::endl;
         stream << getRankIdentifier(r) << " |";
         for (BoardFile f = FL_A; f < FL_COUNT; ++f) {
-            int valueAt = hotmap.valueAt(getSquare(f, r), CL_WHITE);
+            i32 valueAt = hotmap.valueAt(getSquare(f, r), CL_WHITE);
             stream << std::setw(6)
                    << std::fixed
                    << std::setprecision(2)

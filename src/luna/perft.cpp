@@ -7,11 +7,11 @@
 
 namespace lunachess {
 
-int promotions = 0;
-int enPassants = 0;
+i32 promotions = 0;
+i32 enPassants = 0;
 
 template <bool PSEUDO_LEGAL, bool ALG_NOTATION, bool LOG>
-static ui64 perftInternal(Position& pos, int depth) {
+static ui64 perftInternal(Position& pos, i32 depth) {
     MoveList moves;
 
     ui64 n;
@@ -58,7 +58,7 @@ static ui64 perftInternal(Position& pos, int depth) {
     return ret;
 }
 
-ui64 perft(const Position& pos, int depth, bool log, bool pseudoLegal, bool algNotation) {
+ui64 perft(const Position& pos, i32 depth, bool log, bool pseudoLegal, bool algNotation) {
     Position repl = pos;
 
     ui64 ret;

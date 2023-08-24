@@ -279,7 +279,7 @@ void Position::handleSpecialMove(Move move) {
 
         case MT_EN_PASSANT_CAPTURE: {
             // En passant capture
-            int pushDir = getPawnStepDir(move.getSourcePiece().getColor());
+            i32 pushDir = getPawnStepDir(move.getSourcePiece().getColor());
             Square captureSq = move.getDest() - pushDir;
             LUNA_ASSERT(getPieceAt(captureSq).getType() == PT_PAWN,
                         "Expects the captured en passant piece to be a pawn (got "
@@ -291,7 +291,7 @@ void Position::handleSpecialMove(Move move) {
         case MT_DOUBLE_PUSH: {
             // Pawn double push -- set the en passant square to the square right behind the
             // pawn that just got pushed
-            int pushDir = getPawnStepDir(move.getSourcePiece().getColor());
+            i32 pushDir = getPawnStepDir(move.getSourcePiece().getColor());
             setEnPassantSquare(move.getDest() - pushDir);
             break;
         }
@@ -366,8 +366,8 @@ void Position::setEnPassantSquare(Square s) {
     }
 }
 
-bool Position::isRepetitionDraw(int maxAppearances) const {
-    int appearances = 1;
+bool Position::isRepetitionDraw(i32 maxAppearances) const {
+    i32 appearances = 1;
 
     for (auto it = m_PrevStatuses.crbegin(); it != m_PrevStatuses.crend(); ++it) {
         const auto& status = *it;
@@ -709,7 +709,7 @@ std::string Position::toFen() const {
 
     // Write piece placements
     for (BoardRank r = RANK_COUNT - 1; r >= RANK_1; --r) {
-        int emptyCount = 0;
+        i32 emptyCount = 0;
 
         for (BoardFile f = FL_A; f < FL_COUNT; ++f) {
             Square s = getSquare(f, r);
@@ -962,7 +962,7 @@ std::optional<Position> Position::fromFen(std::string_view fen) {
                 return std::nullopt;
             }
 
-            int halfmoveClock = 0;
+            i32 halfmoveClock = 0;
             do {
                 halfmoveClock *= 10;
                 halfmoveClock += fen[i] - '0';
@@ -984,7 +984,7 @@ std::optional<Position> Position::fromFen(std::string_view fen) {
                 return std::nullopt;
             }
 
-            int fullMoveNumber = 0;
+            i32 fullMoveNumber = 0;
             do {
                 fullMoveNumber *= 10;
                 fullMoveNumber += fen[i] - '0';
@@ -1008,7 +1008,7 @@ std::ostream& operator<<(std::ostream& stream, const Position& pos) {
     stream << "    A B C D E F G H" << std::endl;
 
     for (BoardRank r = RANK_8; r >= RANK_1; r--) {
-        stream << static_cast<int>(r) + 1 << " [";
+        stream << static_cast<i32>(r) + 1 << " [";
 
         for (BoardFile f = FL_A; f <= FL_H; f++) {
             Square s = getSquare(f, r);

@@ -11,8 +11,8 @@ public:
      * Returns the score, in millipawns and in the current color to move's perspective,
      * for the current evaluation position.
      */
-    virtual int evaluate() const = 0;
-    virtual int getDrawScore() const = 0;
+    virtual i32 evaluate() const = 0;
+    virtual i32 getDrawScore() const = 0;
 
     inline const Position& getPosition() const { return m_Pos; }
 

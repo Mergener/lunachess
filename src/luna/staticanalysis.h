@@ -25,9 +25,9 @@ namespace staticanalysis {
  *
  * For more information: https://www.chessprogramming.org/Static_Exchange_Evaluation
  */
-bool hasGoodSEE(const Position& pos, Move move, int threshold = 0);
+bool hasGoodSEE(const Position& pos, Move move, i32 threshold = 0);
 
-int guardValue(const Position& pos, Square s, Color pov);
+i32 guardValue(const Position& pos, Square s, Color pov);
 
 /**
  * Returns true if a pawn on the given square is a passer.

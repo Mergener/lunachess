@@ -456,9 +456,9 @@ void generateAll(const Position& pos, MoveList& ml) {
  * @return The number of generated moves.
  */
 template<MoveTypeMask ALLOWED_MOVE_TYPES = MTM_ALL, PieceTypeMask ALLOWED_PIECE_TYPES = PTM_ALL, bool PSEUDO_LEGAL = false>
-int generate(const Position &pos, MoveList &ml) {
+i32 generate(const Position &pos, MoveList &ml) {
     MoveList moves;
-    int initialCount = ml.size();
+    i32 initialCount = ml.size();
     if (pos.getColorToMove() == CL_WHITE) {
         // Generate moves with white pieces
         utils::generateAll<CL_WHITE,

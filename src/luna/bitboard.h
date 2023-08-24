@@ -58,20 +58,20 @@ public:
         return m_BB & other.m_BB;
     }
 
-    inline constexpr Bitboard operator<<(int n) const {
+    inline constexpr Bitboard operator<<(i32 n) const {
         return m_BB << n;
     }
 
-    inline Bitboard& operator<<=(int n) {
+    inline Bitboard& operator<<=(i32 n) {
         m_BB <<= n;
         return *this;
     }
 
-    inline constexpr Bitboard operator>>(int n) const  {
+    inline constexpr Bitboard operator>>(i32 n) const  {
         return m_BB >> n;
     }
 
-    inline Bitboard& operator>>=(int n) {
+    inline Bitboard& operator>>=(i32 n) {
         m_BB >>= n;
         return *this;
     }
@@ -118,7 +118,7 @@ public:
     }
 
     /** Returns the amount of squares in this bitboard. O(1) operation. */
-    inline int count() const {
+    inline i32 count() const {
         return bits::popcount(m_BB);
         /*return (bitboardsBitCount[m_BB & 0xff]
                 + bitboardsBitCount[(m_BB >> 8) & 0xff]
@@ -197,7 +197,7 @@ public:
 private:
     ui64 m_BB;
 
-    static int bitboardsBitCount[];
+    static i32 bitboardsBitCount[];
     friend void bbs::generatePopCount();
 };
 
@@ -297,7 +297,7 @@ constexpr Bitboard ROOK_MASKS[] {
 
 };
 
-constexpr int BISHOP_SHIFTS[] {
+constexpr i32 BISHOP_SHIFTS[] {
 
         58, 59, 59, 59, 59, 59, 59, 58,
         59, 59, 59, 59, 59, 59, 59, 59,
@@ -310,7 +310,7 @@ constexpr int BISHOP_SHIFTS[] {
 
 };
 
-constexpr int ROOK_SHIFTS[] {
+constexpr i32 ROOK_SHIFTS[] {
 
         52, 53, 53, 53, 53, 53, 53, 52,
         53, 54, 54, 54, 54, 54, 54, 53,

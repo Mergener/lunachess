@@ -87,14 +87,14 @@ const char* getDirectionName(Direction d) {
     }
 }
 
-int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
-int g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
+i32 g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
+i32 g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
 
 void initializeDistances() {
     for (Square a = 0; a < SQ_COUNT; ++a) {
         for (Square b = 0; b < SQ_COUNT; ++b) {
-            int fileDist = std::abs(getFile(a) - getFile(b));
-            int rankDist = std::abs(getRank(a) - getRank(b));
+            i32 fileDist = std::abs(getFile(a) - getFile(b));
+            i32 rankDist = std::abs(getRank(a) - getRank(b));
             g_ManhattanDistances[a][b] = fileDist + rankDist;
             g_ChebyshevDistances[a][b] = std::max(fileDist, rankDist);
         }

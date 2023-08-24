@@ -33,7 +33,7 @@ std::ostream& operator<<(std::ostream& stream, Bitboard b) {
     return stream;
 }
 
-int Bitboard::bitboardsBitCount[256];
+i32 Bitboard::bitboardsBitCount[256];
 
 namespace bbs {
 
@@ -49,8 +49,8 @@ static Bitboard generateSliderAttacks(Square s, Direction dir, Bitboard occ) {
 
         s += dir;
 
-        int fileDelta = std::abs(getFile(s) - prevFile);
-        int rankDelta = std::abs(getRank(s) - prevRank);
+        i32 fileDelta = std::abs(getFile(s) - prevFile);
+        i32 rankDelta = std::abs(getRank(s) - prevRank);
 
         if ((dir == DIR_EAST || dir == DIR_WEST) &&
             rankDelta != 0) {
@@ -135,8 +135,8 @@ static void generateBetweenBitboards() {
             BoardFile bFile = getFile(b);
             BoardRank bRank = getRank(b);
 
-            int deltaX = bFile - aFile;
-            int deltaY = bRank - aRank; 
+            i32 deltaX = bFile - aFile;
+            i32 deltaY = bRank - aRank;
             // Note that deltaY is guaranteed to be >=0
             // This premise allows us to not check for deltaY < 0 in
             // the conditionals below.
@@ -210,7 +210,7 @@ static void generatePawnPushes() {
 
 void generatePopCount() {
     Bitboard::bitboardsBitCount[0] = 0;
-    for (int i = 0; i < 256; i++)
+    for (i32 i = 0; i < 256; i++)
     {
         Bitboard::bitboardsBitCount[i] = (i & 1) + Bitboard::bitboardsBitCount[i / 2];
     }
@@ -219,7 +219,7 @@ void generatePopCount() {
 static void generateSliderBitboards() {
     for (Square s = 0; s < 64; ++s) {
         // Generate bishop attacks
-        int bishopShift = BISHOP_SHIFTS[s];
+        i32 bishopShift = BISHOP_SHIFTS[s];
         ui64 bishopEntries = (C64(1) << (64 - bishopShift));
 
         for (ui64 i = 0; i < bishopEntries; ++i) {
@@ -229,7 +229,7 @@ static void generateSliderBitboards() {
         }
 
         // Generate rook attacks
-        int rookShift = ROOK_SHIFTS[s];
+        i32 rookShift = ROOK_SHIFTS[s];
         ui64 rookEntries = (C64(1) << (64 - rookShift));
 
         for (ui64 i = 0; i < rookEntries; ++i) {
@@ -250,14 +250,14 @@ static void generateFileContestantsBitboard() {
     // in files adjacent to the knight's file and in ranks in which an opponent's pawn
     // could still march their way towards 'sq'.
     for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
-        int rankDir = c == CL_WHITE ? 1 : -1;
+        i32 rankDir = c == CL_WHITE ? 1 : -1;
 
         for (Square sq = 0; sq < 64; ++sq) {
 
             Bitboard bb = 0;
 
             BoardFile file = getFile(sq);
-            for (int f = file - 1; f <= file + 1; f += 2) {
+            for (i32 f = file - 1; f <= file + 1; f += 2) {
                 if (f < 0 || f > 7) {
                     continue;
                 }
@@ -299,7 +299,7 @@ static void generatePasserBlockerBitboards() {
     std::memset(g_PasserBlockers, 0, sizeof(g_PasserBlockers));
 
     for (Color c = CL_WHITE; c < CL_COUNT; ++c) {
-        int rankStep = c == CL_WHITE ? 1 : -1;
+        i32 rankStep = c == CL_WHITE ? 1 : -1;
         BoardRank promRank, initialRank;
 
         if (c == CL_WHITE) {

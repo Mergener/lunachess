@@ -22,7 +22,7 @@ private:
     i64 m_OriginalTargetTime;
     TimeControl m_Tc;
     Move m_BestItMove;
-    int m_ItMoveReps;
+    i32 m_ItMoveReps;
 };
 
 }

@@ -77,27 +77,27 @@ static PieceSquareTable s_MvOrderHotmaps[PT_COUNT] = {
         }
 };
 
-static int getHotmapDelta(Move move) {
+static i32 getHotmapDelta(Move move) {
     Piece srcPiece = move.getSourcePiece();
     Color us = srcPiece.getColor();
 
     const PieceSquareTable& hotmap = s_MvOrderHotmaps[srcPiece.getType()];
 
-    int dstVal = hotmap.valueAt(move.getDest(), us);
-    int srcVal = hotmap.valueAt(move.getSource(), us);
+    i32 dstVal = hotmap.valueAt(move.getDest(), us);
+    i32 srcVal = hotmap.valueAt(move.getSource(), us);
 
-    int ret = dstVal - srcVal;
+    i32 ret = dstVal - srcVal;
 
     return ret;
 }
 
-static int getMoveDangerScore(Move move, const Position& pos) {
+static i32 getMoveDangerScore(Move move, const Position& pos) {
     // Applies a penalty when moving a piece to a square where it can be
     // captured by an opponent piece of lesser value.
-    constexpr int PENALTY[] { 0, 100, 250, 280, 400, 700, 0 };
+    constexpr i32 PENALTY[] { 0, 100, 250, 280, 400, 700, 0 };
     Piece p     = move.getSourcePiece();
     Square dest = move.getDest();
-    int penalty = -PENALTY[p.getType()];
+    i32 penalty = -PENALTY[p.getType()];
     Color them  = getOppositeColor(p.getColor());
 
     switch (p.getType()) {
@@ -125,8 +125,8 @@ static int getMoveDangerScore(Move move, const Position& pos) {
     return 0;
 }
 
-int MoveOrderingData::scoreQuietMove(Move move, const Position& pos) const {
-    int total = 0;
+i32 MoveOrderingData::scoreQuietMove(Move move, const Position& pos) const {
+    i32 total = 0;
 
     if (isCounterMove(pos.getLastMove(), move)) {
         total += 5000;

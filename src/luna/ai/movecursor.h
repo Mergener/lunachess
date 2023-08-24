@@ -29,17 +29,17 @@ static_assert(MCS_QUIET > MCS_KILLERS, "Quiet moves must come after killer moves
 
 class MoveOrderingData {
 public:
-    inline void storeKillerMove(Move move, int ply) {
+    inline void storeKillerMove(Move move, i32 ply) {
         m_Killers[ply][1] = m_Killers[ply][0];
         m_Killers[ply][0] = move;
     }
 
-    inline bool isKillerMove(Move move, int ply) const {
+    inline bool isKillerMove(Move move, i32 ply) const {
         return move == m_Killers[ply][0]
             || move == m_Killers[ply][1];
     }
 
-    inline void storeHistory(Move move, int depth) {
+    inline void storeHistory(Move move, i32 depth) {
         m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] += depth*depth;
     }
 
@@ -51,15 +51,15 @@ public:
         return m_CounterMoves[lastMove.getSource()][lastMove.getDest()] == counterMove;
     }
 
-    inline int getMoveHistory(Move move) const {
+    inline i32 getMoveHistory(Move move) const {
         return m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()];
     }
 
-    inline Move getKillerMove(int ply, int index) const {
+    inline Move getKillerMove(i32 ply, i32 index) const {
         return m_Killers[ply][index];
     }
 
-    int scoreQuietMove(Move move, const Position& pos) const;
+    i32 scoreQuietMove(Move move, const Position& pos) const;
 
     inline void resetCountermoves() {
         std::memset(m_CounterMoves, 0, sizeof(m_CounterMoves));
@@ -86,7 +86,7 @@ public:
 private:
     Move m_Killers[128][2];
     Move m_CounterMoves[SQ_COUNT][SQ_COUNT];
-    int  m_History[CL_COUNT][SQ_COUNT][SQ_COUNT] = {};
+    i32  m_History[CL_COUNT][SQ_COUNT][SQ_COUNT] = {};
 };
 
 template <bool NOISY_ONLY = false>
@@ -94,7 +94,7 @@ class MoveCursor {
 public:
     Move next(const Position& pos,
               const MoveOrderingData& moveOrderingData,
-              int ply,
+              i32 ply,
               Move hashMove = MOVE_INVALID) {
         // We start by checking if we still have more moves to
         // use from the current stage. If we don't, we need to
@@ -135,16 +135,16 @@ private:
     MoveCursorStage m_Stage = MCS_NOT_STARTED;
     MoveList m_Moves;
     MoveList::Iterator m_Iter = m_Moves.begin();
-    MoveList::Iterator m_SimpleCapturesBegin;
-    int m_NGoodCaptures = 0;
-    int m_NBadCaptures  = 0;
+    MoveList::Iterator m_SimpleCapturesBegin = m_Moves.begin();
+    i32 m_NGoodCaptures = 0;
+    i32 m_NBadCaptures  = 0;
 
     /** Number of moves remaining in the current stage. */
-    int m_Remaining = 0;
+    i32 m_Remaining = 0;
 
     void advanceStage(const Position& pos,
                       const MoveOrderingData& moveOrderingData,
-                      int ply,
+                      i32 ply,
                       Move hashMove = MOVE_INVALID) {
         m_Stage = static_cast<MoveCursorStage>(m_Stage + 1);
 
@@ -182,7 +182,7 @@ private:
 
                 m_Iter      = m_Moves.end();
                 m_Remaining = 0;
-                for (int i = 0; i < 2; ++i) {
+                for (i32 i = 0; i < 2; ++i) {
                     Move killer = moveOrderingData.getKillerMove(ply, i);
 
                     if (pos.isMovePseudoLegal(killer)) {
@@ -216,7 +216,7 @@ private:
 
     Move nextQuiet(const Position& pos,
                    const MoveOrderingData& moveOrderingData,
-                   int ply) {
+                   i32 ply) {
         // Skip killer moves
         while (moveOrderingData.isKillerMove(*m_Iter, ply) &&
                m_Remaining > 0) {
@@ -264,20 +264,20 @@ private:
     }
 
     /** Generates and sorts quiet moves. Returns the number of generated quiet moves. */
-    int generateQuietMoves(const Position& pos,
+    i32 generateQuietMoves(const Position& pos,
                            const MoveOrderingData& moveOrderingData) {
         auto quietBegin = m_Moves.end();
-        int ret = movegen::generate<MTM_QUIET, PTM_ALL, true>(pos, m_Moves);
+        i32 ret = movegen::generate<MTM_QUIET, PTM_ALL, true>(pos, m_Moves);
 
-        int scores[SQ_COUNT][SQ_COUNT];
+        i32 scores[SQ_COUNT][SQ_COUNT];
         for (auto it = quietBegin; it != m_Moves.end(); ++it) {
             Move m = *it;
             scores[m.getSource()][m.getDest()] = moveOrderingData.scoreQuietMove(m, pos);
         }
 
         utils::insertionSort(quietBegin, m_Moves.end(), [&scores](Move a, Move b) {
-            int aScore = scores[a.getSource()][a.getDest()];
-            int bScore = scores[b.getSource()][b.getDest()];
+            i32 aScore = scores[a.getSource()][a.getDest()];
+            i32 bScore = scores[b.getSource()][b.getDest()];
             return aScore > bScore;
         });
 
@@ -285,7 +285,7 @@ private:
     }
 
     static bool compareMvvLva(Move a, Move b) {
-        constexpr int MVV_LVA[PT_COUNT][PT_COUNT] {
+        constexpr i32 MVV_LVA[PT_COUNT][PT_COUNT] {
                 /*         x-    xP    xN    xB    xR    xQ    xK  */
                 /* -- */ { 0,    0,    0,    0,    0,    0,    0   },
                 /* Px */ { 0,   105,  205,  305,  405,  505,  9999 },

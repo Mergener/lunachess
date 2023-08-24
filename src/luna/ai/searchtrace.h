@@ -11,7 +11,7 @@
 
 namespace lunachess::ai {
 
-constexpr int MAX_CHILDREN_PER_NODE = 256;
+constexpr i32 MAX_CHILDREN_PER_NODE = 256;
 
 enum SearchTreeFlags: ui8 {
 
@@ -26,14 +26,14 @@ class SearchTree {
     friend std::ostream& operator<<(std::ostream& stream, const SearchTree& tree);
 
 public:
-    inline explicit SearchTree(Position rootPos, int expectedNodeCount = 24000)
+    inline explicit SearchTree(Position rootPos, i32 expectedNodeCount = 24000)
         : m_RootPos(std::move(rootPos)), m_Nodes(expectedNodeCount) {}
 
     inline const Position& getRootPosition() {
         return m_RootPos;
     }
 
-    inline int getNodeCount() const {
+    inline i32 getNodeCount() const {
         return m_Nodes.size();
     }
 
@@ -57,7 +57,7 @@ private:
     Position m_RootPos;
     std::vector<Node> m_Nodes;
 
-    void serializeNode(std::ostream& stream, const Node& node, Position& pos, int indent = 0) const;
+    void serializeNode(std::ostream& stream, const Node& node, Position& pos, i32 indent = 0) const;
 
 };
 
@@ -69,7 +69,7 @@ public:
      * Starts constructing a new tree. The expected depth serves as a hint
      * to preallocate memory for nodes.
      */
-    void newTree(const Position& rootPos, int expectedDepth);
+    void newTree(const Position& rootPos, i32 expectedDepth);
     inline std::shared_ptr<SearchTree> finishTree() {
         return std::move(m_SearchTree);
     }

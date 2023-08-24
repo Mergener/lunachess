@@ -15,18 +15,18 @@ namespace lunachess {
  * @tparam T The type of values to be stored.
  * @tparam CAPACITY The capacity of elements in the array.
  */
-template <typename T, int CAPACITY>
+template <typename T, i32 CAPACITY>
 class StaticList {
 public:
-    inline static constexpr int MAX_ELEMS = CAPACITY;
+    inline static constexpr i32 MAX_ELEMS = CAPACITY;
 
     using TVal = T;
     using Iterator = TVal*;
     using ConstIterator = const TVal*;
 
-    inline void insert(const TVal& val, int index) {
+    inline void insert(const TVal& val, i32 index) {
         LUNA_ASSERT(index <= m_Size && index >= 0, "Index out of bounds.");
-        for (int i = m_Size; i > index; --i) {
+        for (i32 i = m_Size; i > index; --i) {
             (*this)[i] = (*this)[i - 1];
         }
         (*this)[index] = val;
@@ -34,7 +34,7 @@ public:
     }
 
     inline void insert(const TVal& val, Iterator it) {
-        int index = it - begin();
+        i32 index = it - begin();
         insert(val, index);
     }
 
@@ -47,7 +47,7 @@ public:
 
     template <typename TIter>
     inline void addRange(TIter srcBegin, TIter srcEnd) {
-        int delta = srcEnd - srcBegin;
+        i32 delta = srcEnd - srcBegin;
         LUNA_ASSERT(delta + m_Size <= capacity(), "Cannot add range beyond capacity.");
         std::copy(srcBegin, srcEnd, end());
         m_Size += delta;
@@ -63,7 +63,7 @@ public:
         m_Size--;
     }
 
-    inline void removeAt(int index) {
+    inline void removeAt(i32 index) {
         LUNA_ASSERT(m_Size > 0, "Trying to remove when empty.");
         LUNA_ASSERT(index < m_Size && index >= 0, "Index out of bounds.");
 
@@ -71,13 +71,13 @@ public:
             std::destroy_at((*this)[index]);
         }
         m_Size--;
-        for (int i = index; i < m_Size; ++i) {
+        for (i32 i = index; i < m_Size; ++i) {
             (*this)[i] = (*this)[i + 1];
         }
     }
 
-    inline int indexOf(const TVal& val) const {
-        for (int i = 0; i < m_Size; ++i) {
+    inline i32 indexOf(const TVal& val) const {
+        for (i32 i = 0; i < m_Size; ++i) {
             if ((*this)[i] == val) {
                 return i;
             }
@@ -91,7 +91,7 @@ public:
     }
 
     inline bool remove(const TVal& val) {
-        int idx = indexOf(val);
+        i32 idx = indexOf(val);
 
         if (idx != -1) {
             removeAt(idx);
@@ -110,11 +110,11 @@ public:
         m_Size = 0;
     }
 
-    inline TVal& operator[](int index) { return *std::launder(reinterpret_cast<T*>(&m_Arr[index])); }
-    inline const TVal& operator[](int index) const { return *std::launder(reinterpret_cast<const T*>(&m_Arr[index])); }
+    inline TVal& operator[](i32 index) { return *std::launder(reinterpret_cast<T*>(&m_Arr[index])); }
+    inline const TVal& operator[](i32 index) const { return *std::launder(reinterpret_cast<const T*>(&m_Arr[index])); }
 
-    inline int size() const { return m_Size; }
-    inline constexpr int capacity() const { return CAPACITY; }
+    inline i32 size() const { return m_Size; }
+    inline constexpr i32 capacity() const { return CAPACITY; }
 
     //
     // Iterators
@@ -127,13 +127,13 @@ public:
 
 private:
     std::aligned_storage_t<sizeof(TVal), alignof(TVal)> m_Arr[CAPACITY];
-    int m_Size = 0;
+    i32 m_Size = 0;
 };
 
-template <typename T, int CAPACITY>
+template <typename T, i32 CAPACITY>
 std::ostream& operator<<(std::ostream& stream, const StaticList<T, CAPACITY>& l) {
     stream << "['";
-    for (int i = 0; i < l.size() - 1; ++i) {
+    for (i32 i = 0; i < l.size() - 1; ++i) {
         stream << l[i] << "', '";
     }
     if (l.size() > 0) {

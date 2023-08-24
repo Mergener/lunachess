@@ -73,8 +73,8 @@ enum PieceTypes {
 
 };
 
-inline constexpr int getPiecePointValue(PieceType pt) {
-    constexpr int PT_VALUES[PT_COUNT] {
+inline constexpr i32 getPiecePointValue(PieceType pt) {
+    constexpr i32 PT_VALUES[PT_COUNT] {
         0, 1, 3, 3, 5, 9, 99999
     };
     return PT_VALUES[pt];
@@ -202,10 +202,10 @@ inline char getRankIdentifier(BoardRank r) {
 enum CastlingRightsMask {
 
 	CR_NONE = 0,
-	CR_WHITE_OO = (1 << (static_cast<int>(CL_WHITE) * 2 + static_cast<int>(SIDE_KING))),
-	CR_WHITE_OOO = (1 << (static_cast<int>(CL_WHITE) * 2 + static_cast<int>(SIDE_QUEEN))),
-	CR_BLACK_OO = (1 << (static_cast<int>(CL_BLACK) * 2 + static_cast<int>(SIDE_KING))),
-	CR_BLACK_OOO = (1 << (static_cast<int>(CL_BLACK) * 2 + static_cast<int>(SIDE_QUEEN))),
+	CR_WHITE_OO = (1 << (static_cast<i32>(CL_WHITE) * 2 + static_cast<i32>(SIDE_KING))),
+	CR_WHITE_OOO = (1 << (static_cast<i32>(CL_WHITE) * 2 + static_cast<i32>(SIDE_QUEEN))),
+	CR_BLACK_OO = (1 << (static_cast<i32>(CL_BLACK) * 2 + static_cast<i32>(SIDE_KING))),
+	CR_BLACK_OOO = (1 << (static_cast<i32>(CL_BLACK) * 2 + static_cast<i32>(SIDE_QUEEN))),
 	CR_ALL = CR_WHITE_OO | CR_WHITE_OOO | CR_BLACK_OO | CR_BLACK_OOO
 
 };
@@ -298,7 +298,7 @@ enum Squares {
 
 };
 
-#define ASSERT_VALID_SQUARE(s) LUNA_ASSERT(static_cast<ui8>(s) >= 0, "Invalid square. (got " << int(s) << ")")
+#define ASSERT_VALID_SQUARE(s) LUNA_ASSERT(static_cast<ui8>(s) >= 0, "Invalid square. (got " << i32(s) << ")")
 
 void initializeDistances();
 
@@ -311,7 +311,7 @@ inline constexpr BoardRank getRank(Square s) {
 }
 
 inline constexpr Square getSquare(BoardFile file, BoardRank rank) {
-	return static_cast<Square>(static_cast<int>(rank * 8) + static_cast<int>(file));
+	return static_cast<Square>(static_cast<i32>(rank * 8) + static_cast<i32>(file));
 }
 
 inline constexpr Square getPromotionSquare(Color c, BoardFile f) {
@@ -368,18 +368,18 @@ inline constexpr Square getCastleRookDestSquare(Color color, Side side) {
     return CASTLE_ROOK_SQ[color][side];
 }
 
-inline int getChebyshevDistance(Square a, Square b) {
-    extern int g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
+inline i32 getChebyshevDistance(Square a, Square b) {
+    extern i32 g_ChebyshevDistances[SQ_COUNT][SQ_COUNT];
     return g_ChebyshevDistances[a][b];
 }
 
-inline int getManhattanDistance(Square a, Square b) {
-    extern int g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
+inline i32 getManhattanDistance(Square a, Square b) {
+    extern i32 g_ManhattanDistances[SQ_COUNT][SQ_COUNT];
     return g_ManhattanDistances[a][b];
 }
 
-inline constexpr int getCenterManhattanDistance(Square s) {
-    constexpr int CENTER_MANHATTAN_DISTANCE[] = {
+inline constexpr i32 getCenterManhattanDistance(Square s) {
+    constexpr i32 CENTER_MANHATTAN_DISTANCE[] = {
         6, 5, 4, 3, 3, 4, 5, 6,
         5, 4, 3, 2, 2, 3, 4, 5,
         4, 3, 2, 1, 1, 2, 3, 4,
@@ -392,8 +392,8 @@ inline constexpr int getCenterManhattanDistance(Square s) {
     return CENTER_MANHATTAN_DISTANCE[s];
 }
 
-inline int stepsFromPromotion(Square s, Color c) {
-    constexpr int STEPS_FROM_PROMOTION[2][64] { {
+inline i32 stepsFromPromotion(Square s, Color c) {
+    constexpr i32 STEPS_FROM_PROMOTION[2][64] { {
             0, 0, 0, 0, 0, 0, 0, 0,
             5, 5, 5, 5, 5, 5, 5, 5,
             5, 5, 5, 5, 5, 5, 5, 5,
@@ -430,8 +430,8 @@ enum TimeControlMode {
 };
 
 struct TimeControl {
-    int time = 0;
-    int increment = 0;
+    i32 time = 0;
+    i32 increment = 0;
     TimeControlMode mode = TC_INFINITE;
 
 	inline constexpr TimeControl() = default;
@@ -439,7 +439,7 @@ struct TimeControl {
 	inline TimeControl(TimeControl&& other) = default;
 	inline TimeControl& operator=(const TimeControl& other) = default;
 
-	inline constexpr TimeControl(int time, int increment, TimeControlMode mode)
+	inline constexpr TimeControl(i32 time, i32 increment, TimeControlMode mode)
 		: time(time), increment(increment), mode(mode) {}
 };
 

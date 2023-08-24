@@ -5,7 +5,7 @@
 
 namespace lunachess {
 
-ui64 perft(const Position& pos, int depth, bool log = true, bool pseudoLegal = false, bool algNotation = false);
+ui64 perft(const Position& pos, i32 depth, bool log = true, bool pseudoLegal = false, bool algNotation = false);
 
 } // lunachess
 

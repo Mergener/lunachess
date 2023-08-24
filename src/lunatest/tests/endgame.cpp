@@ -19,7 +19,7 @@ struct EndgameTest {
         EndgameData egData = endgame::identify(pos);
 
         LUNA_ASSERT(egData.type == expectedEG.type,
-                    "Expected endgame type " << int(expectedEG.type) << ", got " << int(egData.type));
+                    "Expected endgame type " << i32(expectedEG.type) << ", got " << i32(egData.type));
 
         if (expectedEG.lhs != CL_ANY) {
             LUNA_ASSERT(egData.lhs == expectedEG.lhs,

@@ -14,18 +14,18 @@ void createTests();
 class AssertionFailure {
 public:
     std::string testGroup;
-    int caseIndex;
+    i32 caseIndex;
     std::string assertMessage;
     std::string assertFunction;
     std::string assertFile;
-    int assertLine;
+    i32 assertLine;
 
     AssertionFailure(std::string testGroup,
-                     int caseIndex,
+                     i32 caseIndex,
                      std::string assertMessage,
                      std::string assertFunction,
                      std::string assertFile,
-                     int assertLine)
+                     i32 assertLine)
      : testGroup(std::move(testGroup)),
        caseIndex(caseIndex),
        assertMessage(std::move(assertMessage)),
@@ -35,15 +35,15 @@ public:
 };
 
 struct TestContext {
-    int nTests = 0;
-    int nTestsPassed = 0;
+    i32 nTests = 0;
+    i32 nTestsPassed = 0;
 
     std::string currentTestName;
-    int currentTestCase;
+    i32 currentTestCase;
     std::vector<AssertionFailure> assertionFailures;
 };
 
-int testMain() {
+i32 testMain() {
     TERMINAL_COLOR_DEFAULT();
     createTests();
 
@@ -62,7 +62,7 @@ int testMain() {
 
     // We store assertion failures at the context to log them only
     // after running all tests.
-    debug::setAssertFailHandler([&ctx](const char* fileName, const char* funcName, int line, std::string_view msg) {
+    debug::setAssertFailHandler([&ctx](const char* fileName, const char* funcName, i32 line, std::string_view msg) {
         ctx.assertionFailures.emplace_back(ctx.currentTestName, ctx.currentTestCase, std::string(msg), funcName, fileName, line);
     });
 
@@ -73,7 +73,7 @@ int testMain() {
 
     std::cout << "\nRunning tests..." << std::endl;
     std::cout << std::endl;
-    int i = 0; // Used to count how many tests have been executed so far
+    i32 i = 0; // Used to count how many tests have been executed so far
     for (const auto& pair: testGroups) {
         TERMINAL_ERASE_LINE();
         std::cout << i << " of " << testGroups.size() << " tests finished...";
@@ -86,7 +86,7 @@ int testMain() {
             std::cout << " (running test group '" << ctx.currentTestName << "')";
             std::cout.flush();
 
-            for (int j = 0; j < group.size(); ++j) {
+            for (i32 j = 0; j < group.size(); ++j) {
                 ctx.currentTestCase = j;
                 group[j]();
             }
@@ -118,7 +118,7 @@ int testMain() {
     }
     // Not all tests passed :(
     TERMINAL_COLOR_ASSERTFAIL();
-    int nTestFails = ctx.nTests - ctx.nTestsPassed;
+    i32 nTestFails = ctx.nTests - ctx.nTestsPassed;
     std::cout << nTestFails << " of " << ctx.nTests << " tests passed. " << std::endl;
     TERMINAL_COLOR_DEFAULT();
 
@@ -163,7 +163,7 @@ int main() {
         std::cout << "Running lunatest with Luna " << LUNA_VERSION_NAME << "."
                   << std::endl;
 
-        int ret = lunachess::tests::testMain();
+        i32 ret = lunachess::tests::testMain();
 
         TERMINAL_COLOR_RESET();
 

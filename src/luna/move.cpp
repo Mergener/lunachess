@@ -36,7 +36,7 @@ Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPiece
         // Pawn moves
         if (getFile(getSource()) == getFile(getDest())) {
             // Pawn push
-            int delta = std::abs(getRank(getDest()) - getRank(getSource()));
+            i32 delta = std::abs(getRank(getDest()) - getRank(getSource()));
             if (delta == 2) {
                 type = MT_DOUBLE_PUSH;
             }
@@ -63,7 +63,7 @@ Move::Move(const Position& pos, Square src, Square dst, PieceType promotionPiece
     }
     else if (getSourcePiece().getType() == PT_KING) {
         // Check if castles
-        int delta = getFile(getDest()) - getFile(getSource());
+        i32 delta = getFile(getDest()) - getFile(getSource());
         if (delta > 1) {
             // Source piece is a king and is more than 1 file away from its original square,
             // it is castles move.
@@ -112,7 +112,7 @@ std::string Move::toAlgebraic(const Position& pos) const {
     }
 
     char ret[32];
-    int idx = 0;
+    i32 idx = 0;
 
     Piece srcPiece = getSourcePiece();
     Square src = getSource();

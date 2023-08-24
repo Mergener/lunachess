@@ -4,16 +4,16 @@
 
 namespace lunachess::ai {
 
-void SearchTracer::newTree(const Position& pos, int expectedDepth) {
+void SearchTracer::newTree(const Position& pos, i32 expectedDepth) {
     // Reference position for Luna 1.0 dev-5:
     // r1b2rk1/1pp2p1p/2np1np1/pB2b1q1/4P3/NP3N2/P1PB1PPP/2RQ1K1R b - - 4 11
-    constexpr int DEPTH_SIZE_TABLE[] {
+    constexpr i32 DEPTH_SIZE_TABLE[] {
         1, 250, 450, 1300, 2100, 5000, 11000,
         25000, 50000, 90000, 165000, 275000, 450000,
         875000, 1550000,
     };
 
-    int expectedNodes = DEPTH_SIZE_TABLE[std::min(expectedDepth, int(sizeof(DEPTH_SIZE_TABLE)/sizeof(*DEPTH_SIZE_TABLE)))];
+    i32 expectedNodes = DEPTH_SIZE_TABLE[std::min(expectedDepth, i32(sizeof(DEPTH_SIZE_TABLE)/sizeof(*DEPTH_SIZE_TABLE)))];
     m_SearchTree = std::make_shared<SearchTree>(pos, expectedNodes);
 
     // Add root node
@@ -65,17 +65,17 @@ std::ostream& operator<<(std::ostream& stream, const SearchTree& tree) {
 }
 
 struct Indent {
-    inline Indent(int i): indent(i) {}
+    inline Indent(i32 i): indent(i) {}
 
-    int indent;
+    i32 indent;
 };
 inline std::ostream& operator<<(std::ostream& stream, Indent indent) {
-//    int width = stream.width();
-    int width = 2;
+//    i32 width = stream.width();
+    i32 width = 2;
     if (width == 0) {
         return stream;
     }
-    for (int i = 0; i < indent.indent * width; ++i) {
+    for (i32 i = 0; i < indent.indent * width; ++i) {
         stream << ' ';
     }
     return stream;
@@ -112,13 +112,13 @@ inline std::ostream& operator<<(std::ostream& stream, const Field<T>& field) {
     return stream;
 }
 
-void SearchTree::serializeNode(std::ostream& stream, const Node& node, Position& pos, int indent) const {
+void SearchTree::serializeNode(std::ostream& stream, const Node& node, Position& pos, i32 indent) const {
     stream << "{" << '\n';
     indent++;
 
     // Get best move
     stream << Indent(indent) << Field("fen", pos.toFen()) << '\n';
-    stream << Indent(indent) << Field<int>("requestedDepth", node.requestedDepth) << '\n';
+    stream << Indent(indent) << Field<i32>("requestedDepth", node.requestedDepth) << '\n';
     stream << Indent(indent) << Field("score", node.score) << '\n';
     stream << Indent(indent) << Field("staticEval", node.staticEval) << '\n';
     stream << Indent(indent) << Field("alpha", node.alpha) << '\n';

@@ -12,14 +12,14 @@ namespace lunachess::ai {
 /**
  * Defines the value of each piece for determining the GPF of a position.
  */
-inline constexpr int GPF_PIECE_VALUE_TABLE[] = {
+inline constexpr i32 GPF_PIECE_VALUE_TABLE[] = {
         0, 1, 3, 3, 5, 10, 0
 };
 
 /**
  * The GPF of the standard opening position.
  */
-inline constexpr int OPENING_GPF =
+inline constexpr i32 OPENING_GPF =
         GPF_PIECE_VALUE_TABLE[PT_KNIGHT] * 2 * 2 +
         GPF_PIECE_VALUE_TABLE[PT_BISHOP] * 2 * 2 +
         GPF_PIECE_VALUE_TABLE[PT_ROOK] * 2 * 2 +
@@ -27,17 +27,17 @@ inline constexpr int OPENING_GPF =
 
 struct HCEWeight {
     /** The middlegame weight. */
-    int mg;
+    i32 mg;
 
     /** The endgame weight. */
-    int eg;
+    i32 eg;
 
     /** Interpolates the middlegame and endgame weights based on a given GPF. */
-    inline int get(int gamePhaseFactor) const {
+    inline i32 get(i32 gamePhaseFactor) const {
         return (mg * gamePhaseFactor) / OPENING_GPF + (eg * (OPENING_GPF - gamePhaseFactor)) / OPENING_GPF;
     }
 
-    inline HCEWeight(int mg, int eg)
+    inline HCEWeight(i32 mg, i32 eg)
             : mg(mg), eg(eg) {}
 
     HCEWeight() = default;
@@ -58,7 +58,7 @@ struct HCEWeightTable {
     std::array<HCEWeight, 7> rookHorizontalMobilityScore;
     std::array<HCEWeight, 7> rookVerticalMobilityScore;
     std::array<HCEWeight, 5> passedPawnScore;
-    std::array<int, 60> kingAttackScore;
+    std::array<i32, 60> kingAttackScore;
 
     std::array<PieceSquareTable, 4> pawnPstsMg;
     PieceSquareTable pawnPstEg;
