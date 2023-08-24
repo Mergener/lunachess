@@ -22,6 +22,7 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Aspiration Windows
   - Check extensions
   - Singular extensions
+  - Static null move pruning
   - Countermove heuristic
   - SEE Pruning
   
