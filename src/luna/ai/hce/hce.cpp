@@ -52,18 +52,26 @@ i32 HandCraftedEvaluator::evaluateClassic(const Position& pos, Color us) const {
     Bitboard ourPassers   = staticanalysis::getPassedPawns(pos, us);
     Bitboard theirPassers = staticanalysis::getPassedPawns(pos, them);
 
-    total += getMaterialScore(gpf, us) - getMaterialScore(gpf, them);
-    total += getMobilityScore(gpf, us) - getMobilityScore(gpf, them);
-    total += getPlacementScore(gpf, us) - getPlacementScore(gpf, them);
-    total += getKingAttackScore(gpf, us) - getKingAttackScore(gpf, them);
-    total += getIsolatedPawnsScore(gpf, us) - getIsolatedPawnsScore(gpf, them);
-    total += getKnightOutpostScore(gpf, us) - getKnightOutpostScore(gpf, them);
-    total += getBlockingPawnsScore(gpf, us) - getBlockingPawnsScore(gpf, them);
-    total += getBackwardPawnsScore(gpf, us) - getBackwardPawnsScore(gpf, them);
-    total += getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
-    total += getKingPawnDistanceScore(gpf, us) - getKingPawnDistanceScore(gpf, them);
-    total += getRooksScore(gpf, us, ourPassers) - getRooksScore(gpf, them, theirPassers);
-    total += getPassedPawnsScore(gpf, us, ourPassers) - getPassedPawnsScore(gpf, them, theirPassers);
+    i32 material = getMaterialScore(gpf, us) - getMaterialScore(gpf, them) +
+                   getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
+
+    i32 pawns = getBlockingPawnsScore(gpf, us) - getBlockingPawnsScore(gpf, them) +
+                getBackwardPawnsScore(gpf, us) - getBackwardPawnsScore(gpf, them) +
+                getPassedPawnsScore(gpf, us, ourPassers) - getPassedPawnsScore(gpf, them, theirPassers) +
+                getIsolatedPawnsScore(gpf, us) - getIsolatedPawnsScore(gpf, them);
+
+    i32 activity = getPlacementScore(gpf, us) - getPlacementScore(gpf, them) +
+                   getMobilityScore(gpf, us) - getMobilityScore(gpf, them) +
+                   getKingPawnDistanceScore(gpf, us) - getKingPawnDistanceScore(gpf, them) +
+                   getRooksScore(gpf, us, ourPassers) - getRooksScore(gpf, them, theirPassers) +
+                   getKnightOutpostScore(gpf, us) - getKnightOutpostScore(gpf, them);
+
+    i32 kingSafety = getKingAttackScore(gpf, us) - getKingAttackScore(gpf, them);
+
+    total += material / (1 + (std::abs(material) - 1024) / 16384);
+    total += pawns;
+    total += activity;
+    total += (kingSafety * kingSafety) >> 8;
 
     return total;
 }
@@ -325,29 +333,25 @@ i32 HandCraftedEvaluator::getKingAttackScore(i32 gpf, Color us) const {
     Bitboard occ           = pos.getCompositeBitboard();
 
     // Add attack power if our pieces can check the opponent's king
-    constexpr i32 PIECE_CHK_POWER[] {
-            0, 2, 6, 6, 6, 8, 10
-    };
-
     for (PieceType pt: { PT_PAWN, PT_KNIGHT, PT_BISHOP, PT_ROOK, PT_QUEEN }) {
         Bitboard theirDefendedSquares = staticanalysis::getDefendedSquares(pos, them, pt);
         Piece p(us, pt);
         Bitboard pieceBB = pos.getBitboard(p);
         Bitboard atksFromKing = bbs::getPieceAttacks(theirKingSquare, occ, p);
+        i32 checkPower = m_Weights->checkPowerScore[pt].get(gpf);
 
         for (Square s: pieceBB) {
             Bitboard atks = bbs::getPieceAttacks(s, occ, p) & (~theirDefendedSquares);
 
             // Compute checks
             if ((atksFromKing & atks) != 0 && p.getType() != PT_KING) {
-                totalAttackPower += PIECE_CHK_POWER[p.getType()];
+                totalAttackPower += checkPower;
             }
         }
     }
 
     // Add attack power if our queen can "touch" the opponent's
     // king without being captured
-    constexpr i32 QUEENS_TOUCH_POWER = 15;
     Bitboard theirKingAtks      = bbs::getKingAttacks(theirKingSquare);
     Bitboard ourQueensAttacks   = pos.getAttacks(us, PT_QUEEN);
     Bitboard ourOpponentAttacks = staticanalysis::getDefendedSquares(pos, them, PT_QUEEN);
@@ -355,10 +359,10 @@ i32 HandCraftedEvaluator::getKingAttackScore(i32 gpf, Color us) const {
             staticanalysis::getDefendedSquares(pos, us, PT_ROOK);
 
     if (queenTouchSquares != 0) {
-        totalAttackPower += QUEENS_TOUCH_POWER;
+        totalAttackPower += m_Weights->queenTouchPowerScore.get(gpf);
     }
 
-    return m_Weights->kingAttackScore[std::min(size_t(totalAttackPower), m_Weights->kingAttackScore.size() - 1)];
+    return totalAttackPower;
 }
 
 i32 HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) const {

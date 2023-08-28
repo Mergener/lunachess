@@ -58,7 +58,6 @@ struct HCEWeightTable {
     std::array<HCEWeight, 7> rookHorizontalMobilityScore;
     std::array<HCEWeight, 7> rookVerticalMobilityScore;
     std::array<HCEWeight, 5> passedPawnScore;
-    std::array<i32, 60> kingAttackScore;
 
     std::array<PieceSquareTable, 4> pawnPstsMg;
     PieceSquareTable pawnPstEg;
@@ -82,6 +81,9 @@ struct HCEWeightTable {
     HCEWeight bishopPairScore;
     HCEWeight rookOnOpenFile;
     HCEWeight rookBehindPasser;
+
+    std::array<HCEWeight, PT_COUNT> checkPowerScore;
+    HCEWeight queenTouchPowerScore;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore,
@@ -90,11 +92,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore
                                    knightPstMg, knightPstEg, bishopPstMg, bishopPstEg,
                                    rookPstMg, rookPstEg,
                                    queenPstMg, queenPstEg,
-                                   kingPstMg, kingPstEg, kingAttackScore, kingPawnDistanceScore,
+                                   kingPstMg, kingPstEg, kingPawnDistanceScore,
                                    knightOutpostScore, blockingPawnsScore,
                                    backwardPawnScore, passedPawnScore,
                                    bishopPairScore, isolatedPawnScore,
-                                   rookOnOpenFile, rookBehindPasser);
+                                   rookOnOpenFile, rookBehindPasser,
+                                   checkPowerScore, queenTouchPowerScore);
 
 const HCEWeightTable* getDefaultHCEWeights();
 void initializeDefaultHCEWeights();
