@@ -24,10 +24,10 @@ struct Settings {
     fs::path outPath;
     std::optional<fs::path> baseWeightsPath = std::nullopt;
     int threads  = 1;
-    double k     = 0.033;
+    double k     = 0.120;
     bool quiesce = false;
     int repeat   = 0;
-    int step     = 3;
+    int step     = 2;
     size_t maxPos = 1000000000;
 
     std::unordered_map<std::string, int> paramPriorities;
@@ -228,7 +228,7 @@ static std::tuple<int, double> tune(const Settings& settings,
                                     int step,
                                     double lowestError = INFINITY) {
     constexpr int MAX_BAD_ITERATIONS = 4;
-    constexpr double MIN_ERR_DELTA   = 0.0000001;
+    constexpr double MIN_ERR_DELTA   = 0.00000001;
 
     int badIts    = 0;
     int value     = flatWeightsJson[parameter];
