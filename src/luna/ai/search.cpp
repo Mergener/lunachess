@@ -213,7 +213,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             LUNA_ASSERT(pos.isMoveLegal(hashMove),
                         "Hash move " << hashMove << " is not legal.");
 
-            if (ttEntry.depth >= depth) {
+            if (!IS_ROOT && ttEntry.depth >= depth) {
                 // We always accept higher or equal depth TT scores unless they're
                 // mate scores. This mate score condition is a temporary workaround
                 // for situations in which Luna repeats moves and ends up drawing mating positions
