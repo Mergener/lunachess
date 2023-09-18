@@ -205,6 +205,7 @@ static void cmdSetoption(UCIContext& ctx, const CommandArgs& args) {
 }
 
 static void cmdUcinewgame(UCIContext& ctx, const CommandArgs& args) {
+    ctx.searcher.getTT().clear();
 }
 
 static void playMovesAfterPos(UCIContext& ctx,
@@ -313,7 +314,9 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
     searchSettings.onPvFinish = [startTime, &ctx](const ai::SearchResults& res, int pv) {
         const ai::SearchedVariation& var = res.searchedVariations[pv];
 
-        std::cout << "info depth " << res.searchedDepth;
+        std::cout << "info depth " << res.depth;
+
+        std::cout << " seldepth " << res.selDepth;
 
         std::cout << " multipv " << pv + 1;
 
@@ -363,7 +366,7 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
                     namespace fs = std::filesystem;
                     std::cout << "Saving traced tree..." << std::endl;
 
-                    fs::path outPath = "trace_depth-" + strutils::toString(res.searchedDepth) + ".json";
+                    fs::path outPath = "trace_depth-" + strutils::toString(res.depth) + ".json";
                     std::ofstream traceResult(outPath);
                     traceResult.exceptions(std::ios::badbit | std::ios::failbit);
 

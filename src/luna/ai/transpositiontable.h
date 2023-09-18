@@ -36,12 +36,53 @@ public:
 
 private:
 
-    struct Bucket {
-        Entry entry;
-        bool valid = false;
+    class Bucket {
+    public:
+        inline ui8 getGeneration() const {
+            return m_Data >> 1;
+        }
+
+        inline void setGeneration(ui8 val) {
+            m_Data = (m_Data & 1) | (val << 1);
+        }
+
+        inline bool isValid() const {
+            return m_Data & 1;
+        }
+
+        inline void setValid(bool valid) {
+            if (valid) {
+                m_Data |= 1;
+            }
+            else {
+                m_Data &= ~1;
+            }
+        }
+
+        inline Entry& getEntry() {
+            return m_Entry;
+        }
+
+        inline void setEntry(const Entry& entry) {
+            m_Entry = entry;
+        }
+
+        inline void replace(const Entry& entry, ui16 gen) {
+            setValid(true);
+            setGeneration(gen);
+            setEntry(entry);
+        }
+
+    private:
+        Entry m_Entry;
+        ui8   m_Data;
     };
 
 public:
+    inline void newGeneration() {
+        m_Gen++;
+    }
+
     inline size_t getCapacity() const {
         return m_Capacity;
     }
@@ -65,8 +106,8 @@ public:
      */
     inline bool probe(ui64 posKey, Entry& entry) const {
         Bucket& bucket = getBucket(posKey);
-        if (bucket.valid && bucket.entry.zobristKey == posKey) {
-            entry = bucket.entry;
+        if (bucket.isValid() && bucket.getEntry().zobristKey == posKey) {
+            entry = bucket.getEntry();
             return true;
         }
         return false;
@@ -77,7 +118,8 @@ public:
     }
 
     inline void remove(ui64 posKey) {
-        getBucket(posKey).valid = false;
+        getBucket(posKey).setValid(false);
+        m_Count--;
     }
 
     inline void remove(const Position& pos) {
@@ -85,14 +127,18 @@ public:
     }
 
     inline void clear() {
-        // Simply resize to the same capacity.
         resize(m_Capacity * sizeof(Bucket));
+    }
+
+    inline void prefetch(ui64 key) {
+        __builtin_prefetch(&getBucket(key));
     }
 
     /**
      * Resizes the transposition table. Deletes all entries.
      */
     inline void resize(size_t hashSizeBytes) {
+        m_Gen = 0;
         if (m_Buckets != nullptr) {
             std::free(m_Buckets);
         }
@@ -119,6 +165,7 @@ private:
     Bucket* m_Buckets  = nullptr;
     size_t  m_Capacity = 0;
     size_t  m_Count    = 0;
+    ui8     m_Gen      = 0;
 
     inline Bucket& getBucket(ui64 key) const {
         return m_Buckets[key % m_Capacity];

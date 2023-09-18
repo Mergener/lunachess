@@ -9,7 +9,7 @@ set(LUNA_VERSION_MINOR "0")
 set(LUNA_VERSION_PATCH "0")
 
 # If set to 0, this is interpreted as a non-dev patch.
-set(LUNA_DEV_PATCH "3")
+set(LUNA_DEV_PATCH "4")
 
 set(LUNA_VERSION_FULL ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH})
 if (LUNA_DEV_PATCH GREATER 0)
@@ -139,7 +139,7 @@ add_subdirectory("ext")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC requires some flags in order for threads and <filesystem> to work.
-    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc --static")
+    set(CMAKE_CXX_FLAGS "-march=native -pthread -static-libstdc++ -static-libgcc --static")
     target_link_libraries(luna PUBLIC stdc++fs)
 endif()
 

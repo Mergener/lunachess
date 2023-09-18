@@ -38,16 +38,20 @@ void TimeManager::onNewDepth(const SearchResults& res) {
         m_TargetTime = 0;
     }
 
-    if (res.searchedDepth < 2) {
+    if (res.depth < 2) {
         // Always search to depth 2, at least.
         return;
     }
 
     if (res.bestMove == m_BestItMove) {
-        m_ItMoveReps++;
-        if (m_ItMoveReps >= 11) {
-            m_TargetTime /= 2;
-            m_ItMoveReps = 0;
+        // Cached results may have several repetitions that don't really
+        // count.
+        if (!res.cached) {
+            m_ItMoveReps++;
+            if (m_ItMoveReps >= 11) {
+                m_TargetTime /= 2;
+                m_ItMoveReps = 0;
+            }
         }
     }
     else {

@@ -41,8 +41,11 @@ struct SearchedVariation {
 };
 
 struct SearchResults {
-    /** How many plies ahead were searched */
-    int searchedDepth = 0;
+    /** The requested depth of this search. */
+    int depth = 0;
+
+    /** How many plies ahead were searched at max (excluding quiescence search). */
+    int selDepth = 0;
 
     /** The best move found in the position */
     Move bestMove = MOVE_INVALID;
@@ -55,6 +58,9 @@ struct SearchResults {
 
     /** When the search started */
     TimePoint searchStart;
+
+    /** Whether the results of this search were found on cache (TT). */
+    bool cached = false;
 
     /**
      * Following the iterative deepening algorithm, a search is done depth-by-depth,
