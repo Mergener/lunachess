@@ -96,6 +96,8 @@ public:
 
     inline Move getLastMove() const { return m_Status.lastMove; }
 
+    inline i32 get50MoveRulePlyCounter() const { return m_Status.fiftyMoveCounter; }
+
     inline bool is50MoveRuleDraw() const { return m_Status.fiftyMoveCounter >= 100; }
 
     inline bool isDraw(int maxPositionAppearances = 3) const {

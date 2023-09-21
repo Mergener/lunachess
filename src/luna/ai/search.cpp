@@ -140,20 +140,20 @@ bool AlphaBetaSearcher::isBadCapture(Move move) const {
 }
 
 static i32 convertSearchScoreToTT(i32 searchScore, i32 ply) {
-    if (searchScore >= MATE_SCORE) {
+    if (searchScore >= FORCED_MATE_THRESHOLD) {
         return searchScore + ply;
     }
-    if (searchScore <= -MATE_SCORE) {
+    if (searchScore <= -FORCED_MATE_THRESHOLD) {
         return searchScore - ply;
     }
     return searchScore;
 }
 
 static i32 convertTTScoreToSearch(i32 ttScore, i32 ply) {
-    if (ttScore >= MATE_SCORE) {
+    if (ttScore >= FORCED_MATE_THRESHOLD) {
         return ttScore - ply;
     }
-    if (ttScore <= -MATE_SCORE) {
+    if (ttScore <= -FORCED_MATE_THRESHOLD) {
         return ttScore + ply;
     }
     return ttScore;
@@ -218,8 +218,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 // mate scores. This mate score condition is a temporary workaround
                 // for situations in which Luna repeats moves and ends up drawing mating positions
                 // when she finds mate scores in TT entries.
-                if (ttEntry.type == TranspositionTable::EXACT &&
-                    std::abs(ttEntry.score) < MATE_SCORE) {
+                if (ttEntry.type == TranspositionTable::EXACT) {
                     m_Results.visitedNodes++;
 
                     TRACE_UPDATE_BEST_MOVE(ttEntry.move);
@@ -600,6 +599,19 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         // Try to generate moves in the position before we search
         m_RootMoves.clear();
         movegen::generate(pos, m_RootMoves);
+
+        // Filter out undesired moves (usually as specified by UCI 'searchmoves')
+        filterMoves(m_RootMoves, settings.moveFilter);
+
+        // Setup results object
+        m_Results.visitedNodes = 1;
+        m_Results.searchStart  = Clock::now();
+        m_Results.selDepth     = 0;
+        m_Results.bestMove     = m_RootMoves[0];
+        m_Results.searchedVariations.clear();
+        m_Results.searchedVariations.resize(settings.multiPvCount);
+
+        // Check for stalemate/checkmate position
         if (m_RootMoves.size() == 0) {
             int score = pos.isCheck()
                         ? -MATE_SCORE // Checkmate
@@ -612,24 +624,10 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
             return std::move(m_Results);
         }
 
-        // Filter out undesired moves (usually as specified by UCI 'searchmoves')
-        filterMoves(m_RootMoves, settings.moveFilter);
-
-        // Setup results object
-        m_Results.visitedNodes = 1;
-        m_Results.searchStart  = Clock::now();
-        m_Results.selDepth = 0;
-
-        // Last search results could have been filled with a previous search
-        m_Results.searchedVariations.clear();
-
-        m_Results.bestMove = m_RootMoves[0];
-        m_Results.searchedVariations.resize(settings.multiPvCount);
-
         // Notify the time manager that we're starting a search
         m_TimeManager.start(settings.ourTimeControl);
 
-        // Perform iterative deepening, starting at depth
+        // Perform iterative deepening, starting at depth 1
         for (int depth = 1; depth <= maxDepth; depth++) {
             if (m_TimeManager.timeIsUp() || m_ShouldStop) {
                 break;

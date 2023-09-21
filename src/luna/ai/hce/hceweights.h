@@ -82,6 +82,14 @@ struct HCEWeightTable {
     HCEWeight bishopPairScore;
     HCEWeight rookOnOpenFile;
     HCEWeight rookBehindPasser;
+
+    std::array<HCEWeight, PT_COUNT> pieceCheckPower;
+    std::array<HCEWeight, PT_COUNT> tropismPower;
+    HCEWeight queenTouchPower;
+
+    HCEWeight tempoScore;
+
+    std::array<HCEWeight, 9> bishopPawnColorComplexScore;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore,
@@ -94,7 +102,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore
                                    knightOutpostScore, blockingPawnsScore,
                                    backwardPawnScore, passedPawnScore,
                                    bishopPairScore, isolatedPawnScore,
-                                   rookOnOpenFile, rookBehindPasser);
+                                   rookOnOpenFile, rookBehindPasser,
+                                   pieceCheckPower, tropismPower, queenTouchPower,
+                                   tempoScore, bishopPawnColorComplexScore);
 
 const HCEWeightTable* getDefaultHCEWeights();
 void initializeDefaultHCEWeights();

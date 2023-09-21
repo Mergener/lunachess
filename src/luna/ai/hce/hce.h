@@ -32,11 +32,11 @@ public:
      *
      * This value is used to interpolate middlegame and endgame scores.
      */
-    int getGamePhaseFactor() const;
+    i32 getGamePhaseFactor() const;
 
-    int evaluate() const override;
+    i32 evaluate() const override;
 
-    inline int getDrawScore() const override { return 0; }
+    inline i32 getDrawScore() const override { return 0; }
 
     inline HandCraftedEvaluator(const HCEWeightTable* weights = getDefaultHCEWeights())
         : m_Weights(weights) {
@@ -45,24 +45,35 @@ public:
 private:
     const HCEWeightTable* m_Weights;
 
-    int evaluateClassic(const Position& pos, Color us) const;
-    int evaluateEndgame(const Position& pos, EndgameData egData) const;
-    int evaluateKPK(const Position& pos, Color lhs) const;
-    int evaluateKBPK(const Position& pos, Color lhs) const;
-    int evaluateKBNK(const Position& pos, Color lhs) const;
+    // Evaluation functions
+    i32 evaluateClassic(const Position& pos, Color us) const;
+    i32 evaluateEndgame(const Position& pos, EndgameData egData) const;
+    i32 evaluateKPK(const Position& pos, Color lhs) const;
+    i32 evaluateKBPK(const Position& pos, Color lhs) const;
+    i32 evaluateKBNK(const Position& pos, Color lhs) const;
 
-    int getMaterialScore(int gpf, Color c) const;
-    int getMobilityScore(int gpf, Color c) const;
-    int getPlacementScore(int gpf, Color c) const;
-    int getKnightOutpostScore(int gpf, Color c) const;
-    int getBlockingPawnsScore(int gpf, Color c) const;
-    int getIsolatedPawnsScore(int gpf, Color c) const;
-    int getPassedPawnsScore(int gpf, Color c, Bitboard passers) const;
-    int getBackwardPawnsScore(int gpf, Color c) const;
-    int getKingPawnDistanceScore(int gpf, Color c) const;
-    int getBishopPairScore(int gpf, Color c) const;
-    int getKingAttackScore(int gpf, Color us) const;
-    int getRooksScore(int gpf, Color c, Bitboard passers) const;
+    // Evaluation features
+    i32 getMaterialScore(i32 gpf, Color c) const;
+    i32 getMobilityScore(i32 gpf, Color c) const;
+    i32 getPlacementScore(i32 gpf, Color c) const;
+    i32 getKnightOutpostScore(i32 gpf, Color c) const;
+    i32 getBlockingPawnsScore(i32 gpf, Color c) const;
+    i32 getIsolatedPawnsScore(i32 gpf, Color c) const;
+    i32 getPassedPawnsScore(i32 gpf, Color c, Bitboard passers) const;
+    i32 getBackwardPawnsScore(i32 gpf, Color c) const;
+    i32 getKingPawnDistanceScore(i32 gpf, Color c) const;
+    i32 getBishopPairScore(i32 gpf, Color c) const;
+    i32 getKingAttackScore(i32 gpf, Color us) const;
+    i32 getRooksScore(i32 gpf, Color c, Bitboard passers) const;
+    i32 getBishopPawnComplexScore(i32 gpf, Color c) const;
+
+    // King-attack related functions
+    i32 getCheckPower(i32 gpf, Color us) const;
+    i32 getQueenTouchPower(i32 gpf, Color us) const;
+    i32 getTropismPower(i32 gpf, Color us) const;
+
+    // Scaling functions
+    i32 scaleRule50(i32 score) const;
 
 public:
     inline const HCEWeightTable& getWeights() const {
