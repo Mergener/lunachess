@@ -465,14 +465,12 @@ int generate(const Position &pos, MoveList &ml) {
                            ALLOWED_MOVE_TYPES,
                            ALLOWED_PIECE_TYPES,
                            PSEUDO_LEGAL>(pos, moves);
-
     } else {
         // Generate moves with black pieces
         utils::generateAll<CL_BLACK,
                 ALLOWED_MOVE_TYPES,
                 ALLOWED_PIECE_TYPES,
                 PSEUDO_LEGAL>(pos, moves);
-    }
 
     for (auto move: moves) {
         if (PSEUDO_LEGAL || pos.isMoveLegal(move)) {

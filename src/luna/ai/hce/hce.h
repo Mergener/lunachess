@@ -65,15 +65,11 @@ private:
     i32 getBishopPairScore(i32 gpf, Color c) const;
     i32 getKingAttackScore(i32 gpf, Color us) const;
     i32 getRooksScore(i32 gpf, Color c, Bitboard passers) const;
-    i32 getBishopPawnComplexScore(i32 gpf, Color c) const;
 
     // King-attack related functions
     i32 getCheckPower(i32 gpf, Color us) const;
     i32 getQueenTouchPower(i32 gpf, Color us) const;
     i32 getTropismPower(i32 gpf, Color us) const;
-
-    // Scaling functions
-    i32 scaleRule50(i32 score) const;
 
 public:
     inline const HCEWeightTable& getWeights() const {

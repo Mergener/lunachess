@@ -91,7 +91,7 @@ static void displayOption(UCIContext& ctx, std::string_view optName,
 }
 
 static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
-    std::cout << "id name LunaChess" << std::endl;
+    std::cout << "id name Luna " << LUNA_VERSION_NAME << std::endl;
     std::cout << "id author Thomas Mergener" << std::endl;
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
     displayOption(ctx, "Hash", "spin", strutils::toString(ai::TranspositionTable::DEFAULT_SIZE_MB), "1", "1048576");
@@ -106,8 +106,6 @@ static void cmdQuit(UCIContext& ctx, const CommandArgs& args) {
         ctx.workThread->join();
     }
     ctx.state = STOPPING;
-
-//    std::exit(0);
 }
 
 static void cmdDebug(UCIContext& ctx, const CommandArgs& args) {

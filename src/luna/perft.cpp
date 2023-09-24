@@ -7,9 +7,6 @@
 
 namespace lunachess {
 
-int promotions = 0;
-int enPassants = 0;
-
 template <bool PSEUDO_LEGAL, bool ALG_NOTATION, bool LOG>
 static ui64 perftInternal(Position& pos, int depth) {
     MoveList moves;

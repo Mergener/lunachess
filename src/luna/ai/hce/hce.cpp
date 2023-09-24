@@ -66,17 +66,8 @@ i32 HandCraftedEvaluator::evaluateClassic(const Position& pos, Color us) const {
     total += getKingPawnDistanceScore(gpf, us) - getKingPawnDistanceScore(gpf, them);
     total += getRooksScore(gpf, us, ourPassers) - getRooksScore(gpf, them, theirPassers);
     total += getPassedPawnsScore(gpf, us, ourPassers) - getPassedPawnsScore(gpf, them, theirPassers);
-//    total += getBishopPawnComplexScore(gpf, us) - getBishopPawnComplexScore(gpf, them);
 
     return total;
-}
-
-i32 HandCraftedEvaluator::scaleRule50(i32 score) const {
-    i64 score64       = score;
-    i64 invRule50     = 100 - (getPosition().get50MoveRulePlyCounter() >> 2);
-    i64 rule50Squared = invRule50 * invRule50;
-    i64 result        = (rule50Squared * score64) / 10000;
-    return static_cast<i32>(result);
 }
 
 i32 HandCraftedEvaluator::getMaterialScore(i32 gpf, Color c) const {
@@ -386,35 +377,6 @@ i32 HandCraftedEvaluator::getKingAttackScore(i32 gpf, Color us) const {
     size_t idx = std::min(size_t(totalAttackPower) >> 4, m_Weights->kingAttackScore.size() - 1);
 
     return m_Weights->kingAttackScore[idx];
-}
-
-i32 HandCraftedEvaluator::getBishopPawnComplexScore(i32 gpf, Color c) const {
-    i32 total = 0;
-
-    Bitboard occ        = getPosition().getCompositeBitboard();
-    Bitboard ourPieces  = getPosition().getBitboard(Piece(c, PT_NONE));
-    Bitboard ourPawns   = getPosition().getBitboard(Piece(c, PT_PAWN));
-    Bitboard ourBishops = getPosition().getBitboard(Piece(c, PT_BISHOP));
-
-    std::array<std::pair<Bitboard, Bitboard>, 2> bishopPawnComplex = {
-        std::pair { bbs::LIGHT_SQUARES & ourPawns, bbs::LIGHT_SQUARES & ourBishops },
-        std::pair { bbs::DARK_SQUARES & ourPawns, bbs::DARK_SQUARES & ourBishops },
-    };
-
-    for (auto& complex: bishopPawnComplex) {
-        auto [pawns, bishops] = complex;
-
-        for (Square s: bishops) {
-            // Compute bishop mobility
-            size_t mobility        = bits::popcount(bbs::getBishopAttacks(s, occ) & (~ourPieces));
-            size_t mobilityClipped = std::min(mobility, bishopPawnComplex.size() - 1);
-
-            i32 score = pawns.count() * m_Weights->bishopPawnColorComplexScore[mobilityClipped].get(gpf);
-            total += score;
-        }
-    }
-
-    return total;
 }
 
 i32 HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egData) const {
