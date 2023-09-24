@@ -14,7 +14,7 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Iterative deepening with Transposition Tables
   - SEE + MVV-LVA ordering for captures
   - Killer move heuristic
-  - Late Move Reductions
+  - Late move reductions
   - History heuristic
   - Null move pruning
   - Futility pruning
@@ -25,6 +25,8 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - Static null move pruning
   - Countermove heuristic
   - SEE Pruning
+  - Razoring
+  - Internal iterative deepening
   
 - Evaluation features
   - Tapered eval 
@@ -49,6 +51,8 @@ It currently supports [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interf
   - `/lunacli` - Command line application that runs Luna beneath a UCI protocol layer.
 
   - `/lunatest` - Executable for unit tests.
+
+  - `/lunatuner` - Tuner application for evaluation parameters.
 
 - `/ext` - External dependencies.
 
