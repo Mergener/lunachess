@@ -4,12 +4,12 @@ project(luna)
 ##
 # Luna version numbers
 ##
-set(LUNA_VERSION_MAJOR "2")
+set(LUNA_VERSION_MAJOR "3")
 set(LUNA_VERSION_MINOR "0")
 set(LUNA_VERSION_PATCH "0")
 
 # If set to 0, this is interpreted as a non-dev patch.
-set(LUNA_DEV_PATCH "0")
+set(LUNA_DEV_PATCH "1")
 
 set(LUNA_VERSION_FULL ${LUNA_VERSION_MAJOR}.${LUNA_VERSION_MINOR}.${LUNA_VERSION_PATCH})
 if (LUNA_DEV_PATCH GREATER 0)
@@ -89,7 +89,7 @@ add_library(luna STATIC
         src/luna/ai/movecursor.cpp
         src/luna/ai/movecursor.h
         src/luna/ai/searchtrace.cpp
-        src/luna/ai/searchtrace.h)
+        src/luna/ai/searchtrace.h src/luna/ai/searchparams.cpp src/luna/ai/searchparams.h)
 
 # Temporary solution to always force recompilation of hceweights.cpp.
 # The reason for this is to remove the chance of making changes to the evaluation weights and
@@ -139,7 +139,7 @@ add_subdirectory("ext")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC requires some flags in order for threads and <filesystem> to work.
-    set(CMAKE_CXX_FLAGS "-pthread -static-libstdc++ -static-libgcc --static")
+    set(CMAKE_CXX_FLAGS "-march=native -pthread -static-libstdc++ -static-libgcc --static")
     target_link_libraries(luna PUBLIC stdc++fs)
 endif()
 
