@@ -261,6 +261,60 @@ static std::tuple<int, double> tune(const Settings& settings,
     return std::make_tuple(bestValue, lowestError);
 }
 
+static std::tuple<double, double> tuneK(const Settings& settings,
+                                        const InputData& inputData,
+                                        nlohmann::json flatWeightsJson,
+                                        ThreadPool& threadPool,
+                                        double step,
+                                        double lowestError = INFINITY) {
+    constexpr int MAX_BAD_ITERATIONS = 4;
+    constexpr double MIN_ERR_DELTA   = 0.00000001;
+
+    int badIts    = 0;
+    double k      = settings.k;
+    double bestK  = k;
+
+    auto unflattened = flatWeightsJson.unflatten();
+    HCEWeightTable weights(unflattened);
+
+    while (badIts < MAX_BAD_ITERATIONS) {
+        k += step;
+        double mse = computeMSE(threadPool, weights,
+                                inputData,
+                                k);
+
+        double delta = lowestError - mse;
+        if (delta >= MIN_ERR_DELTA) {
+            bestK       = k;
+            lowestError = mse;
+            badIts      = 0;
+        }
+        else {
+            badIts++;
+        }
+    }
+
+    return std::make_tuple(bestK, lowestError);
+}
+
+static void computeK(Settings& settings,
+                    const InputData& inputData,
+                    nlohmann::json flatWeightsJson) {
+    std::cout << "Adjusting K... (initial guess: " << settings.k << ")" << std::endl;
+
+    ThreadPool threadPool(settings.threads);
+    auto [upK, upError]     = tuneK(settings, inputData, flatWeightsJson, threadPool, 0.01);
+    auto [downK, downError] = tuneK(settings, inputData, flatWeightsJson, threadPool, -0.01);
+
+    if (upError < downError) {
+        settings.k = upK;
+    }
+    else {
+        settings.k = downK;
+    }
+    std::cout << "K = " << settings.k << std::endl;
+}
+
 static int tuneParameter(const Settings& settings,
                          const InputData& inputData,
                          nlohmann::json flatWeightsJson,
@@ -365,6 +419,8 @@ static void tuneEvaluator(Settings& settings) {
     std::sort(parameters.begin(), parameters.end(), [&settings](auto& a, auto& b) {
         return settings.paramPriorities[a] > settings.paramPriorities[b];
     });
+
+    computeK(settings, inputData, flatWeights);
 
     std::cout << "Starting tuning process." << std::endl;
     int it = 0;
