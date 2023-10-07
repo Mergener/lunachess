@@ -70,6 +70,7 @@ private:
     i32 getCheckPower(i32 gpf, Color us) const;
     i32 getQueenTouchPower(i32 gpf, Color us) const;
     i32 getTropismPower(i32 gpf, Color us) const;
+    i32 getNearKingAttacksPower(i32 gpf, Color us) const;
 
 public:
     inline const HCEWeightTable& getWeights() const {

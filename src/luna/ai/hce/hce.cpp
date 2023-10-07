@@ -374,7 +374,7 @@ i32 HandCraftedEvaluator::getKingAttackScore(i32 gpf, Color us) const {
     totalAttackPower += getQueenTouchPower(gpf, us);
     totalAttackPower += getCheckPower(gpf, us);
 
-    size_t idx = std::min(size_t(totalAttackPower) >> 4, m_Weights->kingAttackScore.size() - 1);
+    size_t idx = std::max(size_t(0), std::min(size_t(totalAttackPower) >> 4, m_Weights->kingAttackScore.size() - 1));
 
     return m_Weights->kingAttackScore[idx];
 }
