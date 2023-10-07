@@ -18,7 +18,7 @@ void TimeManager::start(const TimeControl& tc) {
             break;
 
         case TC_TOURNAMENT:
-            m_TargetTime = std::min(tc.time - 80, tc.time / 19 + tc.increment * 2);
+            m_TargetTime = std::min(tc.time - 80, tc.time / 14 + tc.increment * 2);
             m_OriginalTargetTime = m_TargetTime;
             break;
 
@@ -44,14 +44,10 @@ void TimeManager::onNewDepth(const SearchResults& res) {
     }
 
     if (res.bestMove == m_BestItMove) {
-        // Cached results may have several repetitions that don't really
-        // count.
-        if (!res.cached) {
-            m_ItMoveReps++;
-            if (m_ItMoveReps >= 11) {
-                m_TargetTime /= 2;
-                m_ItMoveReps = 0;
-            }
+        m_ItMoveReps += res.depth;
+        if (m_ItMoveReps >= 96) {
+            m_TargetTime = m_TargetTime * 2 / 3;
+            m_ItMoveReps = 0;
         }
     }
     else {
@@ -68,11 +64,11 @@ void TimeManager::onNewDepth(const SearchResults& res) {
     // to finish the search in our speculated target time, it is better
     // to not go further onto the search.
 
-    constexpr int EXPECTED_BRANCH_FACTOR = 4;
+    int expectedBranchFactor = 3;
     i64 depthTime = res.getCurrDepthTime();
     i64 totalTime = res.getSearchTime();
 
-    if (totalTime + (depthTime * EXPECTED_BRANCH_FACTOR) >= m_TargetTime) {
+    if (totalTime + (depthTime * expectedBranchFactor) >= m_TargetTime) {
         // Setting the target time to 0 will make the next call to
         // timeIsUp() return true.
         m_TargetTime = 0;
