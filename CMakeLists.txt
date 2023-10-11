@@ -89,7 +89,7 @@ add_library(luna STATIC
         src/luna/ai/movecursor.cpp
         src/luna/ai/movecursor.h
         src/luna/ai/searchtrace.cpp
-        src/luna/ai/searchtrace.h src/luna/ai/nnue/nnue.h)
+        src/luna/ai/searchtrace.h)
 
 # Temporary solution to always force recompilation of hceweights.cpp.
 # The reason for this is to remove the chance of making changes to the evaluation weights and
