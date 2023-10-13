@@ -354,6 +354,10 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
+    searchSettings.onNewMove = [](const ai::SearchResults& res, Move move, int moveNum) {
+        std::cout << "info depth " << res.depth << " currmove " << move << " currmovenumber " << moveNum << std::endl;
+    };
+
     ctx.workThread = std::make_unique<std::thread>([&ctx, searchSettings, pos]() {
         try {
             ai::SearchResults res = ctx.searcher.search(pos, searchSettings);

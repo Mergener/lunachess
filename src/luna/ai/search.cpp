@@ -23,7 +23,7 @@ class SearchInterrupt {
 
 constexpr int CHECK_TIME_NODE_INTERVAL = 2048;
 static_assert((CHECK_TIME_NODE_INTERVAL & (CHECK_TIME_NODE_INTERVAL - 1)) == 0,
-        "CHECK_TIME_NODE_INTERVAL must be a power of 2");
+              "CHECK_TIME_NODE_INTERVAL must be a power of 2");
 
 static std::array<std::array<int, MoveList::MAX_ELEMS>, MAX_SEARCH_DEPTH * 2> s_LMRReductions;
 
@@ -41,11 +41,14 @@ static int getLMRReduction(int depth, int moveIndex) {
 }
 
 void AlphaBetaSearcher::interruptSearchIfNecessary() {
-    if (m_Results.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0 &&
-        (m_TimeManager.timeIsUp()
-         || m_ShouldStop)) {
-        throw SearchInterrupt();
-    }
+   if (m_ShouldStop) {
+       throw SearchInterrupt();
+   }
+   if (m_Results.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0) {
+       if (m_TimeManager.timeIsUp()) {
+           throw SearchInterrupt();
+       }
+   }
 }
 
 template <bool TRACE>
@@ -176,7 +179,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     // even a drawn position, so we don't care if its drawn.
     if (!IS_ROOT &&
         (pos.isRepetitionDraw(2) ||
-        pos.is50MoveRuleDraw() || pos.isInsufficientMaterialDraw())) {
+         pos.is50MoveRuleDraw() || pos.isInsufficientMaterialDraw())) {
         // Position is a draw, return draw score.
         TRACE_SET_SCORES(m_Eval->getDrawScore(), alpha, beta);
         TRACE_SET_STATEVAL(m_Eval->evaluate());
@@ -351,9 +354,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     // Finally, do the search
     bool shouldSearchPV = true;
     int bestItScore     = -HIGH_BETA;
-    int searchedMoves   = 0;
     int searchedDepth   = 0;
     bool hasLegalMoves  = false;
+    MoveList searchedMoves;
 
     MoveCursor moveCursor;
     Move bestMove = moveCursor.next(pos, m_MvOrderData, ply, hashMove);
@@ -370,6 +373,12 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
         if (move == moveToSkip) {
             continue;
+        }
+
+        if (IS_ROOT                         &&
+            m_Settings.onNewMove != nullptr &&
+            m_Results.getSearchTime() >= m_Settings.onNewMoveMinElapsedTime) {
+            m_Settings.onNewMove(m_Results, move, searchedMoves.size() + 1);
         }
 
         // The highest depth we're going to search during this iteration.
@@ -404,7 +413,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             }
         }
         // #----------------------------------------
-        searchedMoves++;
+        searchedMoves.add(move);
 
         // #----------------------------------------
         // # SEE PRUNING
@@ -460,9 +469,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         if (!shouldSearchPV) {
             if (depth >= 2         &&
                 !moveGivesCheck    &&
-                searchedMoves >= 2 &&
+                searchedMoves.size() >= 2 &&
                 (move.is<MTM_QUIET>() || (isBadCapture(move)))) {
-                int reduction   = getLMRReduction(iterationDepth, searchedMoves);
+                int reduction   = getLMRReduction(iterationDepth, searchedMoves.size());
                 iterationDepth -= std::max(0, reduction);
             }
         }
@@ -511,9 +520,16 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                 bestMove = move;
 
                 if (bestMove.is<MTM_QUIET>()) {
-                    m_MvOrderData.storeHistory(bestMove, searchedDepth);
+                    m_MvOrderData.incrementHistory(bestMove, searchedDepth);
                     m_MvOrderData.storeKillerMove(bestMove, ply);
                     m_MvOrderData.storeCounterMove(lastMove, bestMove);
+
+                    // Penalize history for all moves besides the best move.
+                    // The best move will always be the one at the last index,
+                    // so we just skip it in the loop below.
+                    for (int i = 0; i < searchedMoves.size() - 1; ++i) {
+                        m_MvOrderData.penalizeHistory(searchedMoves[i], depth);
+                    }
                 }
                 break;
             }
@@ -580,7 +596,8 @@ template <bool TRACE>
 SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSettings settings) {
     while (m_Searching); // Wait current search.
 
-    m_Results = {};
+    m_Settings = settings;
+    m_Results  = {};
 
     try {
         // Reset everything

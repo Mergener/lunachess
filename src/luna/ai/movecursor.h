@@ -39,8 +39,12 @@ public:
             || move == m_Killers[ply][1];
     }
 
-    inline void storeHistory(Move move, int depth) {
+    inline void incrementHistory(Move move, int depth) {
         m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] += depth*depth;
+    }
+
+    inline void penalizeHistory(Move move, int depth) {
+        m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] -= depth*depth;
     }
 
     inline void storeCounterMove(Move lastMove, Move counterMove) {

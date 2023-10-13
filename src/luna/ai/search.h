@@ -135,6 +135,8 @@ struct SearchSettings {
     //
     std::function<void(const SearchResults&)> onDepthFinish;
     std::function<void(const SearchResults&, int pvIdx)> onPvFinish;
+    std::function<void(const SearchResults&, Move move, int moveNumber)> onNewMove;
+    i64 onNewMoveMinElapsedTime = 3000;
 
     bool trace = false;
 };
@@ -181,6 +183,7 @@ private:
     TimeManager        m_TimeManager;
     SearchTracer       m_Tracer;
     MoveList           m_RootMoves;
+    SearchSettings     m_Settings;
     std::shared_ptr<Evaluator> m_Eval;
 
     bool m_ShouldStop = false;
