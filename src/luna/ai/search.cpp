@@ -45,7 +45,7 @@ void AlphaBetaSearcher::interruptSearchIfNecessary() {
        throw SearchInterrupt();
    }
    if (m_Results.visitedNodes % CHECK_TIME_NODE_INTERVAL == 0) {
-       if (m_TimeManager.timeIsUp()) {
+       if (m_TimeManager.timeIsUp() && m_CurrDepth >= m_Settings.minDepth) {
            throw SearchInterrupt();
        }
    }
@@ -227,13 +227,6 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
                     TRACE_UPDATE_BEST_MOVE(ttEntry.move);
                     TRACE_SET_SCORES(ttEntry.score, alpha, beta);
 
-                    if constexpr (IS_ROOT) {
-                        // Update results best move.
-                        m_Results.bestScore = ttEntry.score;
-                        m_Results.bestMove  = ttEntry.move;
-                        m_Results.cached    = true;
-                    }
-
                     return ttEntry.score;
                 }
                 else if (ttEntry.type == TranspositionTable::LOWERBOUND) {
@@ -375,10 +368,11 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             continue;
         }
 
-        if (IS_ROOT                         &&
-            m_Settings.onNewMove != nullptr &&
-            m_Results.getSearchTime() >= m_Settings.onNewMoveMinElapsedTime) {
-            m_Settings.onNewMove(m_Results, move, searchedMoves.size() + 1);
+        if constexpr (IS_ROOT) {
+            if (m_Settings.onNewMove != nullptr &&
+                m_Results.searchTime >= m_Settings.onNewMoveMinElapsedTime) {
+                m_Settings.onNewMove(m_Results, move, searchedMoves.size() + 1);
+            }
         }
 
         // The highest depth we're going to search during this iteration.
@@ -499,9 +493,10 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         if constexpr (IS_ROOT) {
             // Update results best move.
             if (score > alpha) {
-                m_Results.bestScore = score;
-                m_Results.bestMove  = move;
-                m_Results.cached    = false;
+                m_Results.bestScore  = score;
+                m_Results.bestMove   = move;
+                m_Results.cached     = false;
+                m_Results.staticEval = staticEval;
             }
         }
 
@@ -645,14 +640,14 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         m_TimeManager.start(settings.ourTimeControl);
 
         // Perform iterative deepening, starting at depth 1
-        for (int depth = 1; depth <= maxDepth; depth++) {
+        for (m_CurrDepth = 1; m_CurrDepth <= maxDepth; m_CurrDepth++) {
             if (m_TimeManager.timeIsUp() || m_ShouldStop) {
                 break;
             }
 
             if (settings.ourTimeControl.mode == TC_TOURNAMENT &&
                 m_RootMoves.size() == 1 &&
-                depth > 1) {
+                m_CurrDepth > 1) {
                 // After scoring the position, stop searching if we only have one legal move.
                 break;
             }
@@ -679,7 +674,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
 
                     int score;
                     int lastScore = m_Results.bestScore;
-                    if (depth < ASPIRATION_WINDOWS_MIN_DEPTH) {
+                    if (m_CurrDepth < ASPIRATION_WINDOWS_MIN_DEPTH) {
                         // By default, perform a full window search
                         alpha = -HIGH_BETA;
                         beta  =  HIGH_BETA;
@@ -699,9 +694,9 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                             beta  =  HIGH_BETA;
                         }
 
-                        TRACE_NEW_TREE(pos, depth);
+                        TRACE_NEW_TREE(pos, m_CurrDepth);
 
-                        score = pvs<TRACE, ROOT>(depth, 0, alpha, beta);
+                        score = pvs<TRACE, ROOT>(m_CurrDepth, 0, alpha, beta);
                         if (score <= alpha) {
                             // Fail low, widen lower bound.
                             TRACE_FINISH_TREE(m_Results.traceTree);
@@ -718,7 +713,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     }
 
                     m_TT.probe(pos, ttEntry);
-                    m_Results.depth = depth;
+                    m_Results.depth = m_CurrDepth;
 
                     m_RootMoves.remove(ttEntry.move);
 
@@ -771,6 +766,8 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
             m_RootMoves.clear();
             movegen::generate(pos, m_RootMoves);
             filterMoves(m_RootMoves, settings.moveFilter);
+
+            m_Results.searchTime = deltaMs(Clock::now(), m_Results.searchStart);
 
             m_TimeManager.onNewDepth(m_Results);
             if (settings.onDepthFinish != nullptr) {

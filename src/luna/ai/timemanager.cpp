@@ -66,7 +66,7 @@ void TimeManager::onNewDepth(const SearchResults& res) {
 
     int expectedBranchFactor = 3;
     i64 depthTime = res.getCurrDepthTime();
-    i64 totalTime = res.getSearchTime();
+    i64 totalTime = res.searchTime;
 
     if (totalTime + (depthTime * expectedBranchFactor) >= m_TargetTime) {
         // Setting the target time to 0 will make the next call to

@@ -53,6 +53,8 @@ struct SearchResults {
     /** The score of the position. */
     int bestScore = 0;
 
+    int staticEval = 0;
+
     /** The number of visited nodes, including quiescence search nodes. */
     ui64 visitedNodes = 0;
 
@@ -71,6 +73,11 @@ struct SearchResults {
     TimePoint currDepthStart;
 
     /**
+     * How much time we've been searching in milliseconds.
+     */
+    ui64 searchTime;
+
+    /**
      * Contains all searched variations and their respective scores.
      * Note that the scores might be lowerbounds/upperbounds.
      */
@@ -80,13 +87,6 @@ struct SearchResults {
      * The variation in which each player selected the best moves according to Luna.
      */
     inline const SearchedVariation& getPrincipalVariation() const { return searchedVariations[0]; }
-
-    /**
-     * How much time we've been searching in milliseconds.
-     */
-    inline ui64 getSearchTime() const {
-        return deltaMs(Clock::now(), searchStart);
-    }
 
     /**
      * How much time we've been searching in the current depth.
@@ -100,7 +100,7 @@ struct SearchResults {
      * The number of nodes being searched every second.
      */
     inline ui64 getNPS() const {
-        return static_cast<ui64>(static_cast<double>(visitedNodes) / getSearchTime() * 1000);
+        return static_cast<ui64>(static_cast<double>(visitedNodes) / searchTime * 1000);
     }
 
     /**
@@ -117,6 +117,9 @@ struct SearchSettings {
     //
     int multiPvCount = 1;
     int maxDepth = MAX_SEARCH_DEPTH;
+
+    /** The minimum depth to search. Search won't be stopped (unless explicitly requested via stop(). */
+    int minDepth = 1;
 
     /**
      * Predicate that must return true only to moves that should be searched in the root node.
@@ -185,6 +188,7 @@ private:
     MoveList           m_RootMoves;
     SearchSettings     m_Settings;
     std::shared_ptr<Evaluator> m_Eval;
+    int                m_CurrDepth;
 
     bool m_ShouldStop = false;
     bool m_Searching  = false;
