@@ -176,7 +176,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
 
     // Check for draws.
     // When in root, we always assume the user wants to "force" Luna to analyze
-    // even a drawn position, so we don't care if its drawn.
+    // even a drawn position, so we don't care if it's drawn.
     if (!IS_ROOT &&
         (pos.isRepetitionDraw(2) ||
          pos.is50MoveRuleDraw() || pos.isInsufficientMaterialDraw())) {
