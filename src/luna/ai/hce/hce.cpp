@@ -105,22 +105,24 @@ i32 HandCraftedEvaluator::getPlacementScore(i32 gpf, Color c) const {
 
     total += evaluatePST(kingBB, c, kingMgPST, kingEgPST, gpf);
 
+    KingsDistribution kingsDistribution = staticanalysis::getKingsDistribution(pos, c);
+
     // Knights
     {
         Bitboard knightBB = pos.getBitboard(Piece(c, PT_KNIGHT));
 
-        const PieceSquareTable& knightMgPST = m_Weights->knightPstMg;
-        const PieceSquareTable& knightEgPST = m_Weights->knightPstEg;
+        const PieceSquareTable& knightMgPST = m_Weights->knightPstsMg[kingsDistribution];
+        const PieceSquareTable& knightEgPST = m_Weights->knightPstsEg[kingsDistribution];
 
         total += evaluatePST(knightBB, c, knightMgPST, knightEgPST, gpf);
     }
 
-    // Knights
+    // Bishops
     {
         Bitboard bishopBB = pos.getBitboard(Piece(c, PT_BISHOP));
 
-        const PieceSquareTable& bishopMgPST = m_Weights->bishopPstMg;
-        const PieceSquareTable& bishopEgPST = m_Weights->bishopPstEg;
+        const PieceSquareTable& bishopMgPST = m_Weights->bishopPstsMg[kingsDistribution];
+        const PieceSquareTable& bishopEgPST = m_Weights->bishopPstsEg[kingsDistribution];
 
         total += evaluatePST(bishopBB, c, bishopMgPST, bishopEgPST, gpf);
     }
@@ -129,8 +131,8 @@ i32 HandCraftedEvaluator::getPlacementScore(i32 gpf, Color c) const {
     {
         Bitboard rookBB = pos.getBitboard(Piece(c, PT_ROOK));
 
-        const PieceSquareTable& rookMgPST = m_Weights->rookPstMg;
-        const PieceSquareTable& rookEgPST = m_Weights->rookPstEg;
+        const PieceSquareTable& rookMgPST = m_Weights->rookPstsMg[kingsDistribution];
+        const PieceSquareTable& rookEgPST = m_Weights->rookPstsEg[kingsDistribution];
 
         total += evaluatePST(rookBB, c, rookMgPST, rookEgPST, gpf);
     }
@@ -139,8 +141,8 @@ i32 HandCraftedEvaluator::getPlacementScore(i32 gpf, Color c) const {
     {
         Bitboard queenBB = pos.getBitboard(Piece(c, PT_QUEEN));
 
-        const PieceSquareTable& queenMgPST = m_Weights->queenPstMg;
-        const PieceSquareTable& queenEgPST = m_Weights->queenPstEg;
+        const PieceSquareTable& queenMgPST = m_Weights->queenPstsMg[kingsDistribution];
+        const PieceSquareTable& queenEgPST = m_Weights->queenPstsEg[kingsDistribution];
 
         total += evaluatePST(queenBB, c, queenMgPST, queenEgPST, gpf);
     }
@@ -148,9 +150,8 @@ i32 HandCraftedEvaluator::getPlacementScore(i32 gpf, Color c) const {
     // Pawns
     Bitboard pawnBB = pos.getBitboard(Piece(c, PT_PAWN));
 
-    KingsDistribution kingsDistribution = staticanalysis::getKingsDistribution(pos, c);
     const PieceSquareTable& pawnMgPST = m_Weights->pawnPstsMg[kingsDistribution];
-    const PieceSquareTable& pawnEgPST = m_Weights->pawnPstEg;
+    const PieceSquareTable& pawnEgPST = m_Weights->pawnPstsEg[kingsDistribution];
 
     total += evaluatePST(pawnBB, c, pawnMgPST, pawnEgPST, gpf);
 
@@ -240,12 +241,19 @@ i32 HandCraftedEvaluator::getIsolatedPawnsScore(i32 gpf, Color c) const {
 
 i32 HandCraftedEvaluator::getPassedPawnsScore(i32 gpf, Color c, Bitboard passedPawns) const {
     i32 total = 0;
+
+//    Bitboard connectedPassers = staticanalysis::getConnectedPawns(passedPawns);
+
     for (Square s: passedPawns) {
         i32 steps = stepsFromPromotion(s, c);
-        i32 idx = std::min(size_t(steps), m_Weights->passedPawnScore.size()) - 1;
-        total += m_Weights
+        i32 idx   = std::min(size_t(steps), m_Weights->passedPawnScore.size()) - 1;
+        total     += m_Weights
                     ->passedPawnScore[idx]
                     .get(gpf);
+
+//        if (connectedPassers.contains(s)) {
+//            total += m_Weights->connectedPassersScore[idx].get(gpf);
+//        }
     }
 
     return total;
@@ -279,8 +287,8 @@ i32 HandCraftedEvaluator::getBishopPairScore(i32 gpf, Color c) const {
     const auto& pos = getPosition();
 
     Bitboard ourBishops = pos.getBitboard(Piece(c, PT_BISHOP));
-    Bitboard lsBishops = ourBishops & bbs::LIGHT_SQUARES;
-    Bitboard dsBishops = ourBishops & bbs::DARK_SQUARES;
+    Bitboard lsBishops  = ourBishops & bbs::LIGHT_SQUARES;
+    Bitboard dsBishops  = ourBishops & bbs::DARK_SQUARES;
 
     return m_Weights->bishopPairScore.get(gpf) * std::min(lsBishops.count(), dsBishops.count());
 }
@@ -386,7 +394,7 @@ i32 HandCraftedEvaluator::evaluateEndgame(const Position& pos, EndgameData egDat
         case EG_KR_KB:
         case EG_KR_KR:
         case EG_KQ_KQ:
-            return getDrawScore();
+            return 0;
 
         case EG_KBP_K:
             return evaluateKBPK(pos, egData.lhs);
@@ -455,7 +463,7 @@ i32 HandCraftedEvaluator::evaluateKBPK(const Position& pos, Color lhs) const {
     Bitboard drawBB    = rhsKingBB | (bbs::getKingAttacks(promSquare));
     if (drawBB & rhsKingBB) {
         // King is on the area that prevents the win, endgame is a draw.
-        return getDrawScore();
+        return 0;
     }
 
     if (!endgame::isInsideTheSquare(pawnSquare, *rhsKingBB.begin(), lhs, pos.getColorToMove())) {

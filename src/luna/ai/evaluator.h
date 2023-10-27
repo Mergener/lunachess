@@ -12,7 +12,7 @@ public:
      * for the current evaluation position.
      */
     virtual i32 evaluate() const = 0;
-    virtual i32 getDrawScore() const = 0;
+    virtual i32 getDrawScore(Color pov) const = 0;
 
     inline const Position& getPosition() const { return m_Pos; }
 

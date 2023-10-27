@@ -96,6 +96,10 @@ private:
 template <bool NOISY_ONLY = false>
 class MoveCursor {
 public:
+    inline MoveCursorStage getCurrentStage() const {
+        return m_Stage;
+    }
+
     Move next(const Position& pos,
               const MoveOrderingData& moveOrderingData,
               int ply,

@@ -199,43 +199,32 @@ Bitboard getPieceOutposts(const Position& pos, Piece p) {
     return bb;
 }
 
-template <bool PASSERS>
-static Bitboard getConnectedPawnsOrPassers(const Position& pos, Color us) {
-    Bitboard pawns;
-    if constexpr (PASSERS) {
-        pawns = getPassedPawns(pos, us);
-    }
-    else {
-        pawns = pos.getBitboard(Piece(us, PT_PAWN));
-    }
+Bitboard getConnectedPawns(Bitboard pawns) {
     Bitboard bb = 0;
-    if (bbs::getFileBitboard(FL_B) & pawns) {
-        bb |= bbs::getFileBitboard(FL_A) & pawns;
-    }
 
-    for (BoardFile f = FL_B; f < FL_COUNT - 1; ++f) {
-        Bitboard thisFilePawns = bbs::getFileBitboard(f) & pawns;
+    Bitboard prevFilePawns = bbs::getFileBitboard(FL_A) & pawns;
 
-        Bitboard lastFilePawns = bbs::getFileBitboard(f - 1) & pawns;
-        Bitboard nextFilePawns = bbs::getFileBitboard(f + 1) & pawns;
-        if (nextFilePawns || lastFilePawns) {
-            bb |= thisFilePawns;
+    for (BoardFile f = FL_B; f < FL_COUNT; ++f) {
+        Bitboard filePawns = bbs::getFileBitboard(f) & pawns;
+        if (prevFilePawns && filePawns) {
+            bb |= prevFilePawns;
+            bb |= filePawns;
         }
-    }
 
-    if (bbs::getFileBitboard(FL_G) & pawns) {
-        bb |= bbs::getFileBitboard(FL_H) & pawns;
+        prevFilePawns = filePawns;
     }
 
     return bb;
 }
 
 Bitboard getConnectedPawns(const Position& pos, Color us) {
-    return getConnectedPawnsOrPassers<false>(pos, us);
+    Bitboard pawns = pos.getBitboard(Piece(us, PT_PAWN));
+    return getConnectedPawns(pawns);
 }
 
 Bitboard getConnectedPassers(const Position& pos, Color us) {
-    return getConnectedPawnsOrPassers<true>(pos, us);
+    Bitboard passers = getPassedPawns(pos, us);
+    return getConnectedPawns(passers);
 }
 
 Bitboard getBlockingPawns(const Position& pos, Color c) {

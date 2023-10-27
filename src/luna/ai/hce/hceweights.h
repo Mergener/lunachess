@@ -61,18 +61,18 @@ struct HCEWeightTable {
     std::array<int, 60> kingAttackScore;
 
     std::array<PieceSquareTable, 4> pawnPstsMg;
-    PieceSquareTable pawnPstEg;
+    std::array<PieceSquareTable, 4> pawnPstsEg;
     PieceSquareTable kingPstMg;
     PieceSquareTable kingPstEg;
 
-    PieceSquareTable knightPstMg;
-    PieceSquareTable knightPstEg;
-    PieceSquareTable bishopPstMg;
-    PieceSquareTable bishopPstEg;
-    PieceSquareTable rookPstMg;
-    PieceSquareTable rookPstEg;
-    PieceSquareTable queenPstMg;
-    PieceSquareTable queenPstEg;
+    std::array<PieceSquareTable, 4> knightPstsMg;
+    std::array<PieceSquareTable, 4> knightPstsEg;
+    std::array<PieceSquareTable, 4> bishopPstsMg;
+    std::array<PieceSquareTable, 4> bishopPstsEg;
+    std::array<PieceSquareTable, 4> rookPstsMg;
+    std::array<PieceSquareTable, 4> rookPstsEg;
+    std::array<PieceSquareTable, 4> queenPstsMg;
+    std::array<PieceSquareTable, 4> queenPstsEg;
 
     HCEWeight knightOutpostScore;
     HCEWeight blockingPawnsScore;
@@ -89,22 +89,25 @@ struct HCEWeightTable {
 
     HCEWeight tempoScore;
 
+    std::array<HCEWeight, 5> connectedPassersScore;
+
     std::array<HCEWeight, 9> bishopPawnColorComplexScore;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore,
                                    bishopMobilityScore, rookHorizontalMobilityScore,
-                                   rookVerticalMobilityScore, pawnPstsMg, pawnPstEg,
-                                   knightPstMg, knightPstEg, bishopPstMg, bishopPstEg,
-                                   rookPstMg, rookPstEg,
-                                   queenPstMg, queenPstEg,
+                                   rookVerticalMobilityScore, pawnPstsMg, pawnPstsEg,
+                                   knightPstsMg, knightPstsEg, bishopPstsMg, bishopPstsEg,
+                                   rookPstsMg, rookPstsEg,
+                                   queenPstsMg, queenPstsEg,
                                    kingPstMg, kingPstEg, kingAttackScore, kingPawnDistanceScore,
                                    knightOutpostScore, blockingPawnsScore,
                                    backwardPawnScore, passedPawnScore,
                                    bishopPairScore, isolatedPawnScore,
                                    rookOnOpenFile, rookBehindPasser,
                                    pieceCheckPower, tropismPower, queenTouchPower,
-                                   tempoScore, bishopPawnColorComplexScore);
+                                   tempoScore, bishopPawnColorComplexScore,
+                                   connectedPassersScore);
 
 const HCEWeightTable* getDefaultHCEWeights();
 void initializeDefaultHCEWeights();

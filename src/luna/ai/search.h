@@ -103,6 +103,13 @@ struct SearchResults {
         return static_cast<ui64>(static_cast<double>(visitedNodes) / searchTime * 1000);
     }
 
+    inline Move getPonderMove() const {
+        if (searchedVariations.size() > 0 && searchedVariations[0].moves.size() > 1) {
+            return searchedVariations[0].moves[1];
+        }
+        return MOVE_INVALID;
+    }
+
     /**
      * Data structure that contains all paths taken by this search and results found along the way.
      * This tree is only created if "trace" is set to true in search settings. Otherwise, this is set
@@ -185,6 +192,7 @@ private:
     MoveOrderingData   m_MvOrderData;
     TimeManager        m_TimeManager;
     SearchTracer       m_Tracer;
+    Color              m_RootColor;
     MoveList           m_RootMoves;
     SearchSettings     m_Settings;
     std::shared_ptr<Evaluator> m_Eval;

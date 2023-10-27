@@ -55,10 +55,17 @@ Bitboard getPassedPawns(const Position& pos, Color c);
 Bitboard getConnectedPawns(const Position& pos, Color c);
 
 /**
+ * Returns the bitboard for all pawns of a provided pawn structure bitboard that have other pawns
+ * on neighboring files.
+ */
+Bitboard getConnectedPawns(Bitboard pawns);
+
+/**
  * Returns the bitboard for all passed pawns of the specified color that have other passed
  * pawns on neighboring files.
  */
 Bitboard getConnectedPassers(const Position& pos, Color c);
+
 
 /**
  * Returns the bitboard for all pawns of the specified color that are blocking another

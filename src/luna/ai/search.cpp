@@ -181,9 +181,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         (pos.isRepetitionDraw(2) ||
          pos.is50MoveRuleDraw() || pos.isInsufficientMaterialDraw())) {
         // Position is a draw, return draw score.
-        TRACE_SET_SCORES(m_Eval->getDrawScore(), alpha, beta);
+        TRACE_SET_SCORES(m_Eval->getDrawScore(m_RootColor), alpha, beta);
         TRACE_SET_STATEVAL(m_Eval->evaluate());
-        return m_Eval->getDrawScore();
+        return m_Eval->getDrawScore(m_RootColor);
     }
 
     interruptSearchIfNecessary();
@@ -304,7 +304,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
     }
     // #----------------------------------------
 
-    int drawScore = m_Eval->getDrawScore();
+    int drawScore = m_Eval->getDrawScore(m_RootColor);
 
     if (IS_ZW && !isCheck) {
         int pieceCount = pos.getBitboard(Piece(pos.getColorToMove(), PT_NONE)).count();
@@ -313,19 +313,18 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // # NULL MOVE PRUNING
         // #----------------------------------------
         // Prune if making a null move fails high
-        constexpr int NULL_SEARCH_DEPTH_RED = 2;
-        constexpr int NULL_SEARCH_MIN_DEPTH = NULL_SEARCH_DEPTH_RED + 1;
         constexpr int NULL_MOVE_MIN_PIECES  = 4;
 
         if (DO_NMP && staticEval >= beta   &&
-            depth >= NULL_SEARCH_MIN_DEPTH &&
+            depth >= 2 &&
             pieceCount > NULL_MOVE_MIN_PIECES) {
+            int reduction = std::max(depth, std::min(2, 2 + (staticEval - beta) / 2000));
 
             // Null move pruning allowed
             TRACE_PUSH(MOVE_INVALID);
             m_Eval->makeNullMove();
 
-            int score = -pvs<TRACE, SKIP_NULL>(depth - NULL_SEARCH_DEPTH_RED - 1, ply + 1, -beta, -beta + 1);
+            int score = -pvs<TRACE, SKIP_NULL>(depth - reduction - 1, ply + 1, -beta, -beta + 1);
             if (score >= beta) {
                 TRACE_POP();
                 m_Eval->undoNullMove();
@@ -414,8 +413,9 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // #----------------------------------------
         // Prune moves with bad static exchange evaluation.
         if (IS_ZW      &&
-            depth <= 3 &&
+            depth <= 6 &&
             !isCheck   &&
+            moveCursor.getCurrentStage() > MCS_GOOD_CAPTURES &&
             !staticanalysis::hasGoodSEE(pos, move, -depth + 1)) {
             continue;
         }
@@ -495,7 +495,7 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
             if (score > alpha) {
                 m_Results.bestScore  = score;
                 m_Results.bestMove   = move;
-                m_Results.cached     = false;
+                m_Results.cached     = move == hashMove && ttEntry.depth >= originalDepth;
                 m_Results.staticEval = staticEval;
             }
         }
@@ -605,7 +605,8 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
         m_Eval->setPosition(argPos);
 
         const Position& pos = m_Eval->getPosition();
-        int drawScore       = m_Eval->getDrawScore();
+        m_RootColor         = pos.getColorToMove();
+        int drawScore       = m_Eval->getDrawScore(m_RootColor);
         int maxDepth        = std::min(MAX_SEARCH_DEPTH, settings.maxDepth);
 
         // Try to generate moves in the position before we search
@@ -660,30 +661,27 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                 }
 
                 // Prepare results object for this search
+                m_Results.depth = m_CurrDepth;
                 m_Results.currDepthStart = Clock::now();
 
                 // Perform the search
                 try {
                     TranspositionTable::Entry ttEntry;
 
-                    constexpr int ASPIRATION_WINDOWS_MIN_DEPTH = 3;
-                    constexpr int MAX_ASPIRATION_ITERATIONS = 3;
+                    constexpr int ASPIRATION_WINDOWS_MIN_DEPTH = 4;
+                    constexpr int MAX_ASPIRATION_ITERATIONS    = 16;
 
-                    int alpha;
-                    int beta;
 
                     int score;
                     int lastScore = m_Results.bestScore;
-                    if (m_CurrDepth < ASPIRATION_WINDOWS_MIN_DEPTH) {
-                        // By default, perform a full window search
-                        alpha = -HIGH_BETA;
-                        beta  =  HIGH_BETA;
-                    }
-                    else {
-                        // From depth ASPIRATION_WINDOWS_MIN_DEPTH onwards, try to use aspiration windows based
-                        // on the last search.
-                        alpha = lastScore - 500;
-                        beta  = lastScore + 500;
+
+                    int alpha = -HIGH_BETA;
+                    int beta  = HIGH_BETA;
+                    int delta = 100;
+
+                    if (m_CurrDepth > ASPIRATION_WINDOWS_MIN_DEPTH) {
+                        alpha = std::max(-MATE_SCORE, lastScore - delta);
+                        beta  = std::min(MATE_SCORE, lastScore + delta);
                     }
 
                     for (int aspirationIt = 0; aspirationIt <= MAX_ASPIRATION_ITERATIONS; ++aspirationIt) {
@@ -700,20 +698,22 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                         if (score <= alpha) {
                             // Fail low, widen lower bound.
                             TRACE_FINISH_TREE(m_Results.traceTree);
-                            alpha -= 500;
+                            beta  = (alpha + beta) / 2;
+                            alpha = std::max(-MATE_SCORE, alpha - delta);
                         }
                         else if (score >= beta) {
                             // Fail high, increase lower bound
                             TRACE_FINISH_TREE(m_Results.traceTree);
-                            beta += 500;
+                            beta = std::min(MATE_SCORE, beta + delta);
                         }
                         else {
                             break;
                         }
+
+                        delta += delta / 2;
                     }
 
                     m_TT.probe(pos, ttEntry);
-                    m_Results.depth = m_CurrDepth;
 
                     m_RootMoves.remove(ttEntry.move);
 
@@ -752,6 +752,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
 
                     // Notify handler
                     if (settings.onPvFinish != nullptr) {
+                        m_Results.searchTime = deltaMs(Clock::now(), m_Results.searchStart);
                         settings.onPvFinish(m_Results, multipv);
                     }
                 }
@@ -766,8 +767,6 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
             m_RootMoves.clear();
             movegen::generate(pos, m_RootMoves);
             filterMoves(m_RootMoves, settings.moveFilter);
-
-            m_Results.searchTime = deltaMs(Clock::now(), m_Results.searchStart);
 
             m_TimeManager.onNewDepth(m_Results);
             if (settings.onDepthFinish != nullptr) {

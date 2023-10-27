@@ -36,7 +36,14 @@ public:
 
     i32 evaluate() const override;
 
-    inline i32 getDrawScore() const override { return 0; }
+    inline i32 getDrawScore(Color pov) const override {
+        return (pov == getPosition().getColorToMove() ? -m_Contempt : m_Contempt);
+    }
+
+    inline static constexpr i32 DEFAULT_CONTEMPT = 0;
+    inline void setContempt(i32 contempt) {
+        m_Contempt = contempt;
+    }
 
     inline HandCraftedEvaluator(const HCEWeightTable* weights = getDefaultHCEWeights())
         : m_Weights(weights) {
@@ -44,6 +51,7 @@ public:
 
 private:
     const HCEWeightTable* m_Weights;
+    i32 m_Contempt = DEFAULT_CONTEMPT;
 
     // Evaluation functions
     i32 evaluateClassic(const Position& pos, Color us) const;
@@ -69,8 +77,6 @@ private:
     // King-attack related functions
     i32 getCheckPower(i32 gpf, Color us) const;
     i32 getQueenTouchPower(i32 gpf, Color us) const;
-    i32 getTropismPower(i32 gpf, Color us) const;
-    i32 getNearKingAttacksPower(i32 gpf, Color us) const;
 
 public:
     inline const HCEWeightTable& getWeights() const {
