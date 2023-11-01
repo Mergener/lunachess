@@ -89,7 +89,7 @@ add_library(luna STATIC
         src/luna/ai/movecursor.cpp
         src/luna/ai/movecursor.h
         src/luna/ai/searchtrace.cpp
-        src/luna/ai/searchtrace.h)
+        src/luna/ai/searchtrace.h src/luna/ai/aitypes.h)
 
 # Temporary solution to always force recompilation of hceweights.cpp.
 # The reason for this is to remove the chance of making changes to the evaluation weights and
@@ -120,6 +120,9 @@ add_executable(lunatest
 add_executable(lunatuner
         src/lunatuner/main.cpp ext/include/popl/popl.h)
 
+add_executable(datagen
+        src/datagen/main.cpp)
+
 ##
 # Compilation settings
 ##
@@ -146,8 +149,10 @@ endif()
 target_link_libraries(lunacli PRIVATE luna)
 target_link_libraries(lunatest PRIVATE luna)
 target_link_libraries(lunatuner PRIVATE luna)
+target_link_libraries(datagen PRIVATE luna)
 
 target_include_directories(luna PUBLIC "ext/include")
 target_include_directories(lunacli PUBLIC "ext/include" "src/luna")
 target_include_directories(lunatest PUBLIC "ext/include" "src/luna")
 target_include_directories(lunatuner PUBLIC "ext/include" "src/luna")
+target_include_directories(datagen PUBLIC "ext/include" "src/luna")
