@@ -47,7 +47,7 @@ struct SearchResults {
     /** How many plies ahead were searched at max (excluding quiescence search). */
     int selDepth = 0;
 
-    /** The best move found in the position */
+    /** The best move found in the position. */
     Move bestMove = MOVE_INVALID;
 
     /** The score of the position. */
@@ -58,7 +58,7 @@ struct SearchResults {
     /** The number of visited nodes, including quiescence search nodes. */
     ui64 visitedNodes = 0;
 
-    /** When the search started */
+    /** When the search started. */
     TimePoint searchStart;
 
     /** Whether the results of this search were found on cache (TT). */
@@ -103,6 +103,10 @@ struct SearchResults {
         return static_cast<ui64>(static_cast<double>(visitedNodes) / searchTime * 1000);
     }
 
+    /**
+     * Returns the ponder move. The ponder move is always the expected response for the
+     * first move of a principal variation.
+     */
     inline Move getPonderMove() const {
         if (searchedVariations.size() > 0 && searchedVariations[0].moves.size() > 1) {
             return searchedVariations[0].moves[1];
