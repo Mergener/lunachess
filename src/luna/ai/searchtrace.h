@@ -15,9 +15,14 @@ constexpr int MAX_CHILDREN_PER_NODE = 256;
 
 enum SearchTreeFlags: ui8 {
 
-    STF_NONE        = 0,
-    STF_BETA_CUTOFF = BIT(0),
-    STF_PV       = BIT(1)
+    STF_NONE              = 0,
+    STF_BETA_CUTOFF       = BIT(0),
+    STF_PV                = BIT(1),
+    STF_EXTENDED_SINGULAR = BIT(2),
+    STF_EXTENDED_CHECK    = BIT(3),
+    STF_SE_BETA_CUTOFF    = BIT(4),
+    STF_NMP_BETA_CUTOFF   = BIT(5),
+    STF_RFP_CUTOFF        = BIT(6)
 
 };
 
