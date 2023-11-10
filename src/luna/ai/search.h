@@ -23,7 +23,7 @@ namespace lunachess::ai {
 constexpr int MAX_SEARCH_DEPTH = 128;
 constexpr int FORCED_MATE_THRESHOLD = 25000000;
 constexpr int MATE_SCORE = 30000000;
-constexpr int HIGH_BETA = 1000000000;
+constexpr int HIGH_BETA = MATE_SCORE + 1;
 
 struct SearchedVariation {
     /**
@@ -47,16 +47,18 @@ struct SearchResults {
     /** How many plies ahead were searched at max (excluding quiescence search). */
     int selDepth = 0;
 
-    /** The best move found in the position */
+    /** The best move found in the position. */
     Move bestMove = MOVE_INVALID;
 
     /** The score of the position. */
     int bestScore = 0;
 
+    int staticEval = 0;
+
     /** The number of visited nodes, including quiescence search nodes. */
     ui64 visitedNodes = 0;
 
-    /** When the search started */
+    /** When the search started. */
     TimePoint searchStart;
 
     /** Whether the results of this search were found on cache (TT). */
@@ -71,6 +73,11 @@ struct SearchResults {
     TimePoint currDepthStart;
 
     /**
+     * How much time we've been searching in milliseconds.
+     */
+    ui64 searchTime;
+
+    /**
      * Contains all searched variations and their respective scores.
      * Note that the scores might be lowerbounds/upperbounds.
      */
@@ -80,13 +87,6 @@ struct SearchResults {
      * The variation in which each player selected the best moves according to Luna.
      */
     inline const SearchedVariation& getPrincipalVariation() const { return searchedVariations[0]; }
-
-    /**
-     * How much time we've been searching in milliseconds.
-     */
-    inline ui64 getSearchTime() const {
-        return deltaMs(Clock::now(), searchStart);
-    }
 
     /**
      * How much time we've been searching in the current depth.
@@ -100,7 +100,18 @@ struct SearchResults {
      * The number of nodes being searched every second.
      */
     inline ui64 getNPS() const {
-        return static_cast<ui64>(static_cast<double>(visitedNodes) / getSearchTime() * 1000);
+        return static_cast<ui64>(static_cast<double>(visitedNodes) / searchTime * 1000);
+    }
+
+    /**
+     * Returns the ponder move. The ponder move is always the expected response for the
+     * first move of a principal variation.
+     */
+    inline Move getPonderMove() const {
+        if (searchedVariations.size() > 0 && searchedVariations[0].moves.size() > 1) {
+            return searchedVariations[0].moves[1];
+        }
+        return MOVE_INVALID;
     }
 
     /**
@@ -117,6 +128,9 @@ struct SearchSettings {
     //
     int multiPvCount = 1;
     int maxDepth = MAX_SEARCH_DEPTH;
+
+    /** The minimum depth to search. Search won't be stopped (unless explicitly requested via stop(). */
+    int minDepth = 1;
 
     /**
      * Predicate that must return true only to moves that should be searched in the root node.
@@ -135,6 +149,8 @@ struct SearchSettings {
     //
     std::function<void(const SearchResults&)> onDepthFinish;
     std::function<void(const SearchResults&, int pvIdx)> onPvFinish;
+    std::function<void(const SearchResults&, Move move, int moveNumber)> onNewMove;
+    i64 onNewMoveMinElapsedTime = 3000;
 
     bool trace = false;
 };
@@ -180,8 +196,12 @@ private:
     MoveOrderingData   m_MvOrderData;
     TimeManager        m_TimeManager;
     SearchTracer       m_Tracer;
+    Color              m_RootColor;
     MoveList           m_RootMoves;
+    SearchSettings     m_Settings;
     std::shared_ptr<Evaluator> m_Eval;
+    int                m_CurrDepth;
+    Move               m_CurrMove;
 
     bool m_ShouldStop = false;
     bool m_Searching  = false;

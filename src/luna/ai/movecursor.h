@@ -39,8 +39,12 @@ public:
             || move == m_Killers[ply][1];
     }
 
-    inline void storeHistory(Move move, int depth) {
+    inline void incrementHistory(Move move, int depth) {
         m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] += depth*depth;
+    }
+
+    inline void penalizeHistory(Move move, int depth) {
+        m_History[move.getSourcePiece().getColor()][move.getSource()][move.getDest()] -= depth*depth;
     }
 
     inline void storeCounterMove(Move lastMove, Move counterMove) {
@@ -92,6 +96,10 @@ private:
 template <bool NOISY_ONLY = false>
 class MoveCursor {
 public:
+    inline MoveCursorStage getCurrentStage() const {
+        return m_Stage;
+    }
+
     Move next(const Position& pos,
               const MoveOrderingData& moveOrderingData,
               int ply,

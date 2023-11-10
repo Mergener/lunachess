@@ -252,6 +252,8 @@ static std::tuple<int, double> tune(const Settings& settings,
             bestValue   = value;
             lowestError = mse;
             badIts      = 0;
+
+            std::cout << "Good iteration -- best value " << bestValue << "(err " << lowestError << ")" << std::endl;
         }
         else {
             badIts++;
@@ -389,9 +391,9 @@ static void tuneEvaluator(Settings& settings) {
     // to create a weights table object.
     nlohmann::json flatWeights = weightsJSON.flatten();
 
-    // Add all parameters and sort.
-    std::vector<std::string> parameters;
+//     Add all parameters.
 
+    std::vector<std::string> parameters;
     std::cout << "Registering parameters..." << std::endl;
     for (const auto& item: flatWeights.items()) {
         const auto& key = item.key();
@@ -414,11 +416,6 @@ static void tuneEvaluator(Settings& settings) {
         parameters.push_back(key);
         std::cout << "Added parameter " << key << std::endl;
     }
-
-    // Sort parameters so that we tune higher priority parameters first.
-    std::sort(parameters.begin(), parameters.end(), [&settings](auto& a, auto& b) {
-        return settings.paramPriorities[a] > settings.paramPriorities[b];
-    });
 
     computeK(settings, inputData, flatWeights);
 

@@ -95,6 +95,7 @@ static void cmdUci(UCIContext& ctx, const CommandArgs& args) {
     std::cout << "id author Thomas Mergener" << std::endl;
     displayOption(ctx, "MultiPV", "spin", "1", "1", "500");
     displayOption(ctx, "Hash", "spin", strutils::toString(ai::TranspositionTable::DEFAULT_SIZE_MB), "1", "1048576");
+    displayOption(ctx, "Contempt", "spin", strutils::toString(lunachess::ai::HandCraftedEvaluator::DEFAULT_CONTEMPT), strutils::toString(INT32_MIN), strutils::toString(INT32_MAX));
     displayOption(ctx, "UseOwnBook", "check", "false");
     displayOption(ctx, "TraceSearchTree", "check", "false");
 
@@ -129,6 +130,12 @@ static void processOption(UCIContext& ctx, std::string_view option, std::string_
         int count;
         if (strutils::tryParseInteger(value, count)) {
             ctx.multiPvCount = count;
+        }
+    }
+    else if (option == "Contempt") {
+        i32 contempt;
+        if (strutils::tryParseInteger(value, contempt)) {
+            ctx.hce->setContempt(contempt);
         }
     }
     else if (option == "Hash") {
@@ -354,10 +361,19 @@ static void goSearch(UCIContext& ctx, const Position& pos, ai::SearchSettings& s
         std::cout << std::endl;
     };
 
+    searchSettings.onNewMove = [](const ai::SearchResults& res, Move move, int moveNum) {
+        std::cout << "info depth " << res.depth << " currmove " << move << " currmovenumber " << moveNum << std::endl;
+    };
+
     ctx.workThread = std::make_unique<std::thread>([&ctx, searchSettings, pos]() {
         try {
             ai::SearchResults res = ctx.searcher.search(pos, searchSettings);
-            std::cout << "bestmove " << res.bestMove << std::endl;
+            std::cout << "bestmove " << res.bestMove;
+            Move ponderMove = res.getPonderMove();
+            if (ponderMove != MOVE_INVALID) {
+                std::cout << " ponder " << ponderMove;
+            }
+            std::cout << std::endl;
 
             if (res.traceTree != nullptr && ctx.trace) {
                 try {

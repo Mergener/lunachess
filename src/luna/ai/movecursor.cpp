@@ -129,12 +129,12 @@ int MoveOrderingData::scoreQuietMove(Move move, const Position& pos) const {
     int total = 0;
 
     if (isCounterMove(pos.getLastMove(), move)) {
-        total += 5000;
+        total += 2097152;
     }
 
-    total += getMoveHistory(move) * 10;
+    total += getMoveHistory(move) * 32;
     total += getHotmapDelta(move);
-    total += getMoveDangerScore(move, pos);
+    total += getMoveDangerScore(move, pos) * 4;
 
     return total;
 }
