@@ -23,7 +23,7 @@ namespace lunachess::ai {
 constexpr int MAX_SEARCH_DEPTH = 128;
 constexpr int FORCED_MATE_THRESHOLD = 25000000;
 constexpr int MATE_SCORE = 30000000;
-constexpr int HIGH_BETA = 1000000000;
+constexpr int HIGH_BETA = MATE_SCORE + 1;
 
 struct SearchedVariation {
     /**
@@ -201,6 +201,7 @@ private:
     SearchSettings     m_Settings;
     std::shared_ptr<Evaluator> m_Eval;
     int                m_CurrDepth;
+    Move               m_CurrMove;
 
     bool m_ShouldStop = false;
     bool m_Searching  = false;

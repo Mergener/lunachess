@@ -345,17 +345,16 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         // Prune if making a null move fails high
         constexpr int NULL_MOVE_MIN_PIECES  = 4;
 
-        if (DO_NMP && staticEval >= beta &&// Don't do NMP at pawn endgames.
+        if (DO_NMP && staticEval >= beta &&
             depth >= 2                   &&
             pieceCount > NULL_MOVE_MIN_PIECES) {
-//            !hasOnlyPawns(pos)) {
             int reduction = std::max(depth, std::min(2, 2 + (staticEval - beta) / 2000));
 
             // Null move pruning allowed
             TRACE_PUSH(MOVE_INVALID);
             m_Eval->makeNullMove();
 
-            int score = -pvs<TRACE, (SearchFlags)(SKIP_NULL | ZW)>(depth - reduction - 1, ply + 1, -beta, -beta + 1);
+            int score = -pvs<TRACE, SKIP_NULL>(depth - reduction - 1, ply + 1, -beta, -beta + 1);
             if (score >= beta) {
                 TRACE_POP();
                 m_Eval->undoNullMove();
@@ -398,13 +397,18 @@ int AlphaBetaSearcher::pvs(int depth, int ply,
         if (move == moveToSkip) {
             continue;
         }
-        searchedMoves.add(move);
 
         if constexpr (IS_ROOT) {
-            if (m_Settings.onNewMove != nullptr &&
+            if (m_CurrMove != move &&
+                m_Settings.onNewMove != nullptr &&
                 m_Results.searchTime >= m_Settings.onNewMoveMinElapsedTime) {
+                m_CurrMove = move;
+                searchedMoves.add(move);
                 m_Settings.onNewMove(m_Results, move, searchedMoves.size() + 1);
             }
+        }
+        else {
+            searchedMoves.add(move);
         }
 
         // The highest depth we're going to search during this iteration.
@@ -721,6 +725,7 @@ SearchResults AlphaBetaSearcher::searchInternal(const Position &argPos, SearchSe
                     constexpr int ASPIRATION_WINDOWS_MIN_DEPTH = 4;
                     constexpr int MAX_ASPIRATION_ITERATIONS    = 16;
 
+                    m_CurrMove = MOVE_INVALID;
 
                     int score;
                     int lastScore = m_Results.bestScore;
