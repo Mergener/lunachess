@@ -751,6 +751,10 @@
     "eg": -26,
     "mg": -19
   },
+  "kingPasserDistanceScore": {
+    "eg": -42,
+    "mg": -13
+  },
   "kingPstEg": {
     "m_Values": [
       -895,

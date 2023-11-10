@@ -89,7 +89,7 @@ private:
     i32 getIsolatedPawnsScore(i32 gpf, Color c) const;
     i32 getPassedPawnsScore(i32 gpf, Color c, Bitboard passers) const;
     i32 getBackwardPawnsScore(i32 gpf, Color c) const;
-    i32 getKingPawnDistanceScore(i32 gpf, Color c) const;
+    i32 getKingPawnDistanceScore(i32 gpf, Color c, Bitboard allPassers) const;
     i32 getBishopPairScore(i32 gpf, Color c) const;
     i32 getBishopPawnColorComplexScore(i32 gpf, Color c) const;
     i32 getKingAttackScore(i32 gpf, Color us) const;

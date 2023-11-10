@@ -79,6 +79,7 @@ struct HCEWeightTable {
     HCEWeight backwardPawnScore;
     HCEWeight isolatedPawnScore;
     HCEWeight kingPawnDistanceScore;
+    HCEWeight kingPasserDistanceScore;
     HCEWeight bishopPairScore;
     HCEWeight rookOnOpenFile;
     HCEWeight rookBehindPasser;
@@ -107,7 +108,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HCEWeightTable, material, knightMobilityScore
                                    rookOnOpenFile, rookBehindPasser,
                                    pieceCheckPower, tropismPower, queenTouchPower,
                                    tempoScore, bishopPawnColorComplexScore,
-                                   connectedPassersScore);
+                                   connectedPassersScore, kingPasserDistanceScore);
 
 const HCEWeightTable* getDefaultHCEWeights();
 void initializeDefaultHCEWeights();

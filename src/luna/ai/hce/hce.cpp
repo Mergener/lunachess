@@ -94,6 +94,7 @@ i32 HandCraftedEvaluator::evaluateClassic(const Position& pos, Color us) const {
     // Some pre-computed values
     Bitboard ourPassers   = m_Passers[us];
     Bitboard theirPassers = m_Passers[them];
+    Bitboard allPassers   = ourPassers | theirPassers;
 
     // Compute evaluation features
     total += getMaterialScore(gpf, us) - getMaterialScore(gpf, them);
@@ -105,7 +106,7 @@ i32 HandCraftedEvaluator::evaluateClassic(const Position& pos, Color us) const {
     total += getBlockingPawnsScore(gpf, us) - getBlockingPawnsScore(gpf, them);
     total += getBackwardPawnsScore(gpf, us) - getBackwardPawnsScore(gpf, them);
     total += getBishopPairScore(gpf, us) - getBishopPairScore(gpf, them);
-    total += getKingPawnDistanceScore(gpf, us) - getKingPawnDistanceScore(gpf, them);
+    total += getKingPawnDistanceScore(gpf, us, allPassers) - getKingPawnDistanceScore(gpf, them, allPassers);
 //    total += getBishopPawnColorComplexScore(gpf, us) - getBishopPawnColorComplexScore(gpf, them);
     total += getRooksScore(gpf, us, ourPassers) - getRooksScore(gpf, them, theirPassers);
     total += getPassedPawnsScore(gpf, us, ourPassers) - getPassedPawnsScore(gpf, them, theirPassers);
@@ -313,17 +314,22 @@ i32 HandCraftedEvaluator::getBackwardPawnsScore(i32 gpf, Color c) const {
     return backwardPawns.count() * m_Weights->backwardPawnScore.get(gpf);
 }
 
-i32 HandCraftedEvaluator::getKingPawnDistanceScore(i32 gpf, Color c) const {
+i32 HandCraftedEvaluator::getKingPawnDistanceScore(i32 gpf, Color c, Bitboard allPassers) const {
     const auto& pos = getPosition();
     i32 total = 0;
 
     Bitboard ourKingSquare = pos.getKingSquare(c);
     Bitboard pawns = pos.getBitboard(Piece(CL_WHITE, PT_PAWN)) | pos.getBitboard(Piece(CL_BLACK, PT_PAWN));
-    i32 individualScore = m_Weights->kingPawnDistanceScore.get(gpf);
+
+    i32 individualScore        = m_Weights->kingPawnDistanceScore.get(gpf);
+    i32 passerIndividualScore = m_Weights->kingPasserDistanceScore.get(gpf);
 
     for (auto s: pawns) {
         auto distance = getChebyshevDistance(s, ourKingSquare);
         total += distance * individualScore;
+        if (allPassers.contains(s)) {
+            total += distance * passerIndividualScore;
+        }
     }
 
     return total;
@@ -482,7 +488,7 @@ i32 HandCraftedEvaluator::evaluateKingAndPawns(const Position& pos, Color c) con
     Bitboard passers = m_Passers[c];
 
     total += getPassedPawnsScore(0, c, passers);
-    total += getKingPawnDistanceScore(0, c);
+    total += getKingPawnDistanceScore(0, c, passers);
     total += getIsolatedPawnsScore(0, c);
     total += getBlockingPawnsScore(0, c);
 
