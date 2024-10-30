@@ -1,3 +1,6 @@
+## Current state
+Development of Luna has ceased in favor of my new NNUE engine [Illumina](https://github.com/mergener/illumina).
+
 ## About
 
 Luna is an alpha-beta pruning based chess engine that uses traditional evaluation methods.
